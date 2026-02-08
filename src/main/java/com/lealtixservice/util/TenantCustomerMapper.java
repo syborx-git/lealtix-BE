@@ -35,6 +35,7 @@ public class TenantCustomerMapper {
                 .phone(dto.getPhone())
                 .acceptedPromotions(dto.getAcceptedPromotions() != null ? dto.getAcceptedPromotions() : true)
                 .acceptedAt(dto.getAcceptedAt())
+                .active(true)
                 .build();
     }
 }

@@ -157,6 +157,15 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
+    public Optional<Coupon> findByCustomerAndCampaign(Long customerId, Long campaignId) {
+        // Busca el cupón activo más reciente para este cliente y campaña
+        List<Coupon> activeCoupons = couponRepository.findActiveByCustomerAndCampaign(customerId, campaignId);
+        return activeCoupons.stream()
+                .filter(coupon -> coupon.canBeRedeemed())
+                .findFirst();
+    }
+
+    @Override
     public List<Coupon> findByCustomerId(Long customerId) {
         return couponRepository.findByCustomerId(customerId);
     }

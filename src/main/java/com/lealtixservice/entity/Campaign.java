@@ -69,7 +69,7 @@ public class Campaign {
     private String channels; // email, whatsapp, etc (comma separated)
 
     @Column(columnDefinition = "TEXT")
-    private String segmentation; // JSON string opcional
+    private String segmentation; // JSON string opcional (mantener compatibilidad)
 
     @Builder.Default
     @NotNull
@@ -89,6 +89,17 @@ public class Campaign {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    @Column(name = "total_sent")
+    private Integer totalSent = 0;
+
+    @Builder.Default
+    @Column(name = "total_failed")
+    private Integer totalFailed = 0;
+
+    @Column(name = "finished_at")
+    private LocalDateTime finishedAt;
 
     @OneToOne(mappedBy = "campaign", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private CampaignResult result;

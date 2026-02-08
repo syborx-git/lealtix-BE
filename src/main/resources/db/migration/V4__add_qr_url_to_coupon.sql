@@ -7,4 +7,3 @@ ALTER TABLE coupon
 
 -- Opcional: crear índice para búsquedas por qr_url
 CREATE INDEX IF NOT EXISTS idx_coupon_qr_url ON coupon(qr_url);
-

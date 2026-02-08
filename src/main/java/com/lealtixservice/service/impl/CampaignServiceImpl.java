@@ -280,7 +280,7 @@ public class CampaignServiceImpl implements CampaignService {
 
     @Override
     @Transactional
-    public CampaignResponse create(CreateCampaignDto dto) {
+    public CampaignResponse create(CreateCampaignDTO dto) {
         // Validar fechas
         validateDates(dto.getStartDate(), dto.getEndDate());
 

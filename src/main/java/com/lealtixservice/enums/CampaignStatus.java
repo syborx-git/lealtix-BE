@@ -2,6 +2,8 @@ package com.lealtixservice.enums;
 
 public enum CampaignStatus {
     DRAFT,
+    READY,
+    SENDING,
     ACTIVE,
     INACTIVE,
     SCHEDULED;

@@ -26,6 +26,11 @@ public interface CouponService {
     Optional<Coupon> findByCode(String code);
 
     /**
+     * Busca un cupón activo para un cliente en una campaña específica
+     */
+    Optional<Coupon> findByCustomerAndCampaign(Long customerId, Long campaignId);
+
+    /**
      * Lista cupones de un cliente
      */
     List<Coupon> findByCustomerId(Long customerId);
