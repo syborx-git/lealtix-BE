@@ -1,3 +1,7 @@
+-- DEPRECATED: This development folder is no longer the canonical migrations location.
+-- See src/main/resources/db/migration/V5__add_discount_calculation_fields.sql for the authoritative migration.
+-- Do not edit files in this folder. Remove this folder or keep only backups.
+
 -- Migración V5: Agregar campos de cálculo de descuentos en coupon_redemption
 -- Fecha: 2026-01-03
 -- Descripción: Agrega campos para almacenar el cálculo de descuentos al redimir cupones

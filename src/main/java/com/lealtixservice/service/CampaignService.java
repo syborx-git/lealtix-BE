@@ -15,7 +15,7 @@ public interface CampaignService {
     CampaignResponse createDraft(CreateCampaignDraftDto dto);
     CampaignResponse updateDraft(Long id, CreateCampaignDraftDto dto);
     CampaignResponse publishDraft(Long id);
-    CampaignResponse create(CreateCampaignDto dto);
+    CampaignResponse create(CreateCampaignDTO dto);
     List<CampaignResponse> getDraftsByBusiness(Long businessId);
     List<CampaignResponse> getActiveCampaigns(Long businessId);
 
