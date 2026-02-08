@@ -98,7 +98,7 @@ public class CampaignController {
 
     @Operation(summary = "Crear campaña directamente (no borrador)")
     @PostMapping("/final")
-    public ResponseEntity<GenericResponse> createFinal(@Valid @RequestBody CreateCampaignDto dto) {
+    public ResponseEntity<GenericResponse> createFinal(@Valid @RequestBody CreateCampaignDTO dto) {
         try {
             CampaignResponse response = campaignService.create(dto);
             return ResponseEntity.ok(new GenericResponse(201, "Campaña creada exitosamente", response));

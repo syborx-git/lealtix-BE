@@ -3,9 +3,11 @@ package com.lealtixservice.repository;
 import com.lealtixservice.entity.Campaign;
 import com.lealtixservice.enums.CampaignStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -47,4 +49,27 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
                                                        @Param("status") CampaignStatus status,
                                                        @Param("category") String category,
                                                        @Param("name") String name);
+
+    // Métricas de envío de emails
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE campaign SET total_sent = " +
+            "(SELECT COUNT(*) FROM campaign_email WHERE campaign_id = :campaignId AND status = 'SENT') " +
+            "WHERE id = :campaignId", nativeQuery = true)
+    void updateTotalSent(@Param("campaignId") Long campaignId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE campaign SET total_failed = " +
+            "(SELECT COUNT(*) FROM campaign_email WHERE campaign_id = :campaignId AND status = 'FAILED') " +
+            "WHERE id = :campaignId", nativeQuery = true)
+    void updateTotalFailed(@Param("campaignId") Long campaignId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE campaign SET finished_at = CURRENT_TIMESTAMP " +
+            "WHERE id = :campaignId AND " +
+            "(SELECT COUNT(*) FROM campaign_email WHERE campaign_id = :campaignId AND status = 'PENDING') = 0", 
+            nativeQuery = true)
+    void markAsFinished(@Param("campaignId") Long campaignId);
 }

@@ -1,3 +1,7 @@
+-- DEPRECATED: This development folder is no longer the canonical migrations location.
+-- See src/main/resources/db/migration/V2__add_accepted_promotions_to_tenant_customer.sql for the authoritative migration.
+-- Do not edit files in this folder. Remove this folder or keep only backups.
+
 -- Add accepted_promotions and accepted_at columns to tenant_customer table
 DO $$
 BEGIN
