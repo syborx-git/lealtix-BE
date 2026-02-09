@@ -70,4 +70,8 @@ public class TenantCustomer {
     @Column(name = "accepted_at")
     private LocalDate acceptedAt;
 
+    // Estado activo del cliente. Por defecto true.
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+
 }

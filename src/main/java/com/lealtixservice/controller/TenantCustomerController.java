@@ -1,14 +1,19 @@
 package com.lealtixservice.controller;
 
+import com.lealtixservice.dto.BulkCustomerUploadResponse;
 import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.TenantCustomerDTO;
 import com.lealtixservice.entity.TenantCustomer;
 import com.lealtixservice.service.TenantCustomerService;
 import com.lealtixservice.util.TenantCustomerMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +43,21 @@ public class TenantCustomerController {
                     .body(new GenericResponse(200, "SUCCESS", respDTO));
         } catch (Exception e) {
             log.error("Error creating TenantCustomer", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, e.getMessage(), null));
+        }
+    }
+
+    @Operation(summary = "Carga masiva de clientes")
+    @PostMapping("/bulk-upload")
+    public ResponseEntity<GenericResponse> bulkUpload(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @RequestBody List<TenantCustomerDTO> customers) {
+        try {
+            BulkCustomerUploadResponse response = tenantCustomerService.bulkUpload(tenantId, customers);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new GenericResponse(200, "SUCCESS", response));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, e.getMessage(), null));
         }
@@ -78,19 +98,47 @@ public class TenantCustomerController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Listar clientes por tenant")
-    @GetMapping("/tenant/{tenantId}")
-    public ResponseEntity<GenericResponse> getByTenantId(@PathVariable Long tenantId) {
+    @Operation(summary = "Soft delete - Marcar cliente como inactivo")
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<GenericResponse> softDelete(@PathVariable Long id) {
         try {
-            List<TenantCustomerDTO> customers = tenantCustomerService.findByTenantId(tenantId).stream()
-                    .map(TenantCustomerMapper::toDTO)
-                    .collect(Collectors.toList());
-            if (customers == null || customers.isEmpty()) {
+            Optional<TenantCustomer> customer = tenantCustomerService.findById(id);
+            if (customer.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new GenericResponse(404, "NOT FOUND", null));
+            }
+            tenantCustomerService.softDeleteById(id);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new GenericResponse(200, "SUCCESS", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, e.getMessage(), null));
+        }
+    }
+
+    @Operation(summary = "Listar clientes por tenant (paginado)")
+    @GetMapping("/tenant/{tenantId}")
+    public ResponseEntity<GenericResponse> getByTenantId(
+            @PathVariable Long tenantId,
+            @Parameter(description = "Filtro opcional por email") @RequestParam(required = false) String email,
+            @Parameter(description = "Número de página (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de la página") @RequestParam(defaultValue = "10") int pageSize) {
+        try {
+            Pageable pageable = PageRequest.of(page, pageSize);
+            Page<TenantCustomer> result;
+            
+            if (email != null && !email.trim().isEmpty()) {
+                result = tenantCustomerService.findByTenantIdAndEmailPaginated(tenantId, email, pageable);
+            } else {
+                result = tenantCustomerService.findByTenantIdPaginated(tenantId, pageable);
+            }
+            
+            if (result.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new GenericResponse(404, "NOT FOUND", null));
             }
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new GenericResponse(200, "SUCCESS", customers));
+                    .body(new GenericResponse(200, "SUCCESS", result));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, e.getMessage(), null));
@@ -126,6 +174,10 @@ public class TenantCustomerController {
             // Merge acceptedAt: if DTO did not include it keep existing
             if (customerDTO.getAcceptedAt() == null) {
                 toUpdate.setAcceptedAt(existingEntity.getAcceptedAt());
+            }
+            // Merge active: if DTO did not include it keep existing value
+            if (customerDTO.getActive() == null) {
+                toUpdate.setActive(existingEntity.isActive());
             }
 
             TenantCustomer updated = tenantCustomerService.save(toUpdate);

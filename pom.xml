@@ -162,51 +162,8 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-
-            <!-- Read application properties into maven properties so the Flyway plugin can reuse them when running via mvn -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>properties-maven-plugin</artifactId>
-                <version>1.0.0</version>
-                <executions>
-                    <execution>
-                        <phase>initialize</phase>
-                        <goals>
-                            <goal>read-project-properties</goal>
-                        </goals>
-                        <configuration>
-                            <files>
-                                <!-- Only read the main application.properties by default. The profile-specific file will be read by a Maven profile below when -Dspring.profiles.active is provided. -->
-                                <file>src/main/resources/application.properties</file>
-                            </files>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Flyway Maven Plugin configured to reuse spring.datasource.* properties when available -->
-            <plugin>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-maven-plugin</artifactId>
-                <version>${flyway.version}</version>
-                <configuration>
-                    <!-- Prefer using the properties read from application.properties/application-*.properties -->
-                    <url>${spring.datasource.url}</url>
-                    <user>${spring.datasource.username}</user>
-                    <password>${spring.datasource.password}</password>
-                    <locations>
-                        <location>classpath:db/migration</location>
-                    </locations>
-                </configuration>
-            </plugin>
-
         </plugins>
     </build>
-
-    <!-- A profile that will read the profile-specific application-${spring.profiles.active}.properties
-         into Maven properties only when the property is provided (for example: -Dspring.profiles.active=dev).
-         This prevents the properties-maven-plugin from attempting to load a file with an unresolved placeholder
-         when building without that -D property. -->
     <profiles>
         <profile>
             <id>read-spring-profile-properties</id>
