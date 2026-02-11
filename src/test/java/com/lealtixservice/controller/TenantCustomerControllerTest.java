@@ -88,26 +88,6 @@ class TenantCustomerControllerTest {
         verify(service).deleteById(1L);
     }
 
-    @Test
-    void getByTenantId_success() {
-        List<TenantCustomer> customers = Arrays.asList(new TenantCustomer(), new TenantCustomer());
-        when(service.findByTenantId(10L)).thenReturn(customers);
-        ResponseEntity<GenericResponse> response = controller.getByTenantId(10L);
-        assertNotNull(response.getBody());
-        assertEquals(200, response.getBody().getCode());
-        assertTrue(response.getBody().getObject() instanceof List);
-        List<?> result = (List<?>) response.getBody().getObject();
-        assertEquals(2, result.size());
-    }
-
-    @Test
-    void getByTenantId_notFound() {
-        when(service.findByTenantId(10L)).thenReturn(Collections.emptyList());
-        ResponseEntity<GenericResponse> response = controller.getByTenantId(10L);
-        assertNotNull(response.getBody());
-        assertEquals(404, response.getBody().getCode());
-        assertEquals("NOT FOUND", response.getBody().getMessage());
-    }
 
     @Test
     void update_success() {

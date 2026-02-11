@@ -174,8 +174,10 @@ class TenantCustomerSpecificationsTest {
         repository.save(recent);
         repository.save(old);
 
-        // Filtrar clientes creados en los últimos 30 días
-        Specification<TenantCustomer> spec = TenantCustomerSpecifications.createdWithinDays(30);
+        // Filtrar clientes creados en los últimos 30 días (filtrando por tenant para aislamiento)
+        Specification<TenantCustomer> spec = Specification
+                .where(TenantCustomerSpecifications.byTenantId(testTenant.getId()))
+                .and(TenantCustomerSpecifications.createdWithinDays(30));
         List<TenantCustomer> result = repository.findAll(spec);
 
         assertEquals(1, result.size());
@@ -271,8 +273,10 @@ class TenantCustomerSpecificationsTest {
         repository.save(recentlyActive);
         repository.save(inactive);
 
-        // Filtrar clientes activos en los últimos 30 días
-        Specification<TenantCustomer> spec = TenantCustomerSpecifications.activeWithinDays(30);
+        // Filtrar clientes activos en los últimos 30 días (filtrando por tenant para aislamiento)
+        Specification<TenantCustomer> spec = Specification
+                .where(TenantCustomerSpecifications.byTenantId(testTenant.getId()))
+                .and(TenantCustomerSpecifications.activeWithinDays(30));
         List<TenantCustomer> result = repository.findAll(spec);
 
         assertEquals(1, result.size());

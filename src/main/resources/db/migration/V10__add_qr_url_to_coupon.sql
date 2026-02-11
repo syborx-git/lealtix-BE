@@ -1,4 +1,4 @@
--- V4: Agregar columna qr_url a coupon
+-- V010: Agregar columna qr_url a coupon
 -- Fecha: 2025-12-28
 -- Agrega la columna qr_url para almacenar la URL del código QR
 

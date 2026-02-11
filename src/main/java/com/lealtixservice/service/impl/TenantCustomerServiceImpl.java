@@ -1,7 +1,10 @@
 package com.lealtixservice.service.impl;
 
+import com.lealtixservice.dto.BulkCustomerError;
+import com.lealtixservice.dto.BulkCustomerUploadResponse;
 import com.lealtixservice.dto.EmailAttachmentDTO;
 import com.lealtixservice.dto.EmailDTO;
+import com.lealtixservice.dto.TenantCustomerDTO;
 import com.lealtixservice.entity.Campaign;
 import com.lealtixservice.entity.Coupon;
 import com.lealtixservice.entity.Tenant;
@@ -14,12 +17,16 @@ import com.lealtixservice.service.CouponService;
 import com.lealtixservice.service.Emailservice;
 import com.lealtixservice.service.QrCodeService;
 import com.lealtixservice.service.TenantCustomerService;
+import com.lealtixservice.util.TenantCustomerMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -252,5 +259,117 @@ public class TenantCustomerServiceImpl implements TenantCustomerService {
     @Override
     public List<TenantCustomer> findByTenantId(Long tenantId) {
         return tenantCustomerRepository.findByTenantId(tenantId);
+    }
+
+    @Override
+    public Page<TenantCustomer> findByTenantIdPaginated(Long tenantId, Pageable pageable) {
+        return tenantCustomerRepository.findByTenantIdAndActiveTrue(tenantId, pageable);
+    }
+
+    @Override
+    public Page<TenantCustomer> findByTenantIdAndEmailPaginated(Long tenantId, String email, Pageable pageable) {
+        return tenantCustomerRepository.findByTenantIdAndEmailContainingIgnoreCaseAndActiveTrue(tenantId, email, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void softDeleteById(Long id) {
+        Optional<TenantCustomer> customer = tenantCustomerRepository.findById(id);
+        if (customer.isPresent()) {
+            TenantCustomer entity = customer.get();
+            entity.setActive(false);
+            entity.setUpdatedAt(LocalDateTime.now());
+            tenantCustomerRepository.save(entity);
+            log.info("Customer {} soft deleted (marked as inactive)", id);
+        }
+    }
+
+    @Override
+    @Transactional
+    public BulkCustomerUploadResponse bulkUpload(Long tenantId, List<TenantCustomerDTO> customers) {
+        List<BulkCustomerError> errores = new ArrayList<>();
+        int exitosos = 0;
+        int fallidos = 0;
+
+        // Validar que el tenant exista
+        if (!tenantRepository.existsById(tenantId)) {
+            BulkCustomerError error = BulkCustomerError.builder()
+                    .indice(-1)
+                    .mensaje("El tenant con ID " + tenantId + " no existe")
+                    .build();
+            errores.add(error);
+            return BulkCustomerUploadResponse.builder()
+                    .exitosos(0)
+                    .fallidos(customers != null ? customers.size() : 0)
+                    .errores(errores)
+                    .build();
+        }
+
+        if (customers == null || customers.isEmpty()) {
+            return BulkCustomerUploadResponse.builder()
+                    .exitosos(0)
+                    .fallidos(0)
+                    .errores(new ArrayList<>())
+                    .build();
+        }
+
+        for (int i = 0; i < customers.size(); i++) {
+            TenantCustomerDTO customerDTO = customers.get(i);
+            try {
+                // Validar datos básicos
+                if (customerDTO.getName() == null || customerDTO.getName().trim().isEmpty()) {
+                    throw new IllegalArgumentException("El nombre del cliente es requerido");
+                }
+                if (customerDTO.getEmail() == null || customerDTO.getEmail().trim().isEmpty()) {
+                    throw new IllegalArgumentException("El email del cliente es requerido");
+                }
+
+                // Establecer tenantId si no está especificado
+                if (customerDTO.getTenantId() == null) {
+                    customerDTO.setTenantId(tenantId);
+                } else if (!customerDTO.getTenantId().equals(tenantId)) {
+                    throw new IllegalArgumentException("El tenantId del cliente no coincide con el parámetro");
+                }
+
+                // Convertir a entidad y guardar
+                TenantCustomer entity = TenantCustomerMapper.toEntity(customerDTO);
+                if (entity.getTenant() == null) {
+                    entity.setTenant(Tenant.builder().id(tenantId).build());
+                }
+
+                // Guardar cliente
+                entity.setActive(true);
+                entity.setUpdatedAt(LocalDateTime.now());
+                entity.setAcceptedAt(LocalDate.now());
+                entity.setAcceptedPromotions(true);
+                this.save(entity);
+                exitosos++;
+                log.info("Cliente {} cargado exitosamente en bulk upload, índice: {}", customerDTO.getEmail(), i);
+
+            } catch (EmailAlreadyRegisteredException e) {
+                fallidos++;
+                BulkCustomerError error = BulkCustomerError.builder()
+                        .indice(i)
+                        .mensaje(e.getMessage())
+                        .build();
+                errores.add(error);
+                log.warn("Error en bulk upload índice {}: {}", i, e.getMessage());
+            } catch (Exception e) {
+                fallidos++;
+                String errorMsg = e.getMessage() != null ? e.getMessage() : "Error desconocido al procesar el cliente";
+                BulkCustomerError error = BulkCustomerError.builder()
+                        .indice(i)
+                        .mensaje(errorMsg)
+                        .build();
+                errores.add(error);
+                log.error("Error en bulk upload índice {}: {}", i, errorMsg);
+            }
+        }
+
+        return BulkCustomerUploadResponse.builder()
+                .exitosos(exitosos)
+                .fallidos(fallidos)
+                .errores(errores)
+                .build();
     }
 }

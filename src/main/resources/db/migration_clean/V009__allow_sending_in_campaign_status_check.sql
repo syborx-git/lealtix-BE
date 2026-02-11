@@ -1,3 +1,0 @@
--- DEPRECATED: This development folder is no longer the canonical migrations location.
--- See src/main/resources/db/migration/V009__allow_sending_in_campaign_status_check.sql for the authoritative migration.
--- Do not edit files in this folder. Remove this folder or keep only backups.
