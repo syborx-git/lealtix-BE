@@ -1,11 +1,13 @@
 package com.lealtixservice.controller;
 
+import com.lealtixservice.dto.BulkCustomerUploadResponse;
 import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.TenantCustomerDTO;
 import com.lealtixservice.entity.TenantCustomer;
 import com.lealtixservice.service.TenantCustomerService;
 import com.lealtixservice.util.TenantCustomerMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,21 @@ public class TenantCustomerController {
                     .body(new GenericResponse(200, "SUCCESS", respDTO));
         } catch (Exception e) {
             log.error("Error creating TenantCustomer", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, e.getMessage(), null));
+        }
+    }
+
+    @Operation(summary = "Carga masiva de clientes")
+    @PostMapping("/bulk-upload")
+    public ResponseEntity<GenericResponse> bulkUpload(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @RequestBody List<TenantCustomerDTO> customers) {
+        try {
+            BulkCustomerUploadResponse response = tenantCustomerService.bulkUpload(tenantId, customers);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new GenericResponse(200, "SUCCESS", response));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, e.getMessage(), null));
         }
@@ -260,6 +277,10 @@ public class TenantCustomerController {
             // Merge acceptedAt: if DTO did not include it keep existing
             if (customerDTO.getAcceptedAt() == null) {
                 toUpdate.setAcceptedAt(existingEntity.getAcceptedAt());
+            }
+            // Merge active: if DTO did not include it keep existing value
+            if (customerDTO.getActive() == null) {
+                toUpdate.setActive(existingEntity.isActive());
             }
 
             TenantCustomer updated = tenantCustomerService.update(toUpdate);

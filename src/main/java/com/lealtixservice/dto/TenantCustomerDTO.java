@@ -45,4 +45,6 @@ public class TenantCustomerDTO {
     // Nuevo: consentimiento y fecha
     private Boolean acceptedPromotions;
     private LocalDate acceptedAt;
+
+    private Boolean active;
 }

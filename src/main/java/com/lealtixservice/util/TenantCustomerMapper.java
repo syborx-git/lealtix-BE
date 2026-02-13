@@ -20,6 +20,7 @@ public class TenantCustomerMapper {
                 .updatedAt(entity.getUpdatedAt())
                 .acceptedPromotions(entity.isAcceptedPromotions())
                 .acceptedAt(entity.getAcceptedAt())
+                .active(entity.isActive())
                 .build();
     }
 
