@@ -174,8 +174,8 @@ class TenantCustomerSpecificationsTest {
         repository.save(recent);
         repository.save(old);
 
-        // Filtrar clientes creados en los últimos 30 días (filtrando por tenant para aislamiento)
-        Specification<TenantCustomer> spec = Specification
+        // Filtrar clientes creados en los últimos 30 días (siempre restringir por tenant para pruebas)
+        Specification<TenantCustomer> spec = org.springframework.data.jpa.domain.Specification
                 .where(TenantCustomerSpecifications.byTenantId(testTenant.getId()))
                 .and(TenantCustomerSpecifications.createdWithinDays(30));
         List<TenantCustomer> result = repository.findAll(spec);
@@ -273,8 +273,8 @@ class TenantCustomerSpecificationsTest {
         repository.save(recentlyActive);
         repository.save(inactive);
 
-        // Filtrar clientes activos en los últimos 30 días (filtrando por tenant para aislamiento)
-        Specification<TenantCustomer> spec = Specification
+        // Filtrar clientes activos en los últimos 30 días (restringir por tenant)
+        Specification<TenantCustomer> spec = org.springframework.data.jpa.domain.Specification
                 .where(TenantCustomerSpecifications.byTenantId(testTenant.getId()))
                 .and(TenantCustomerSpecifications.activeWithinDays(30));
         List<TenantCustomer> result = repository.findAll(spec);

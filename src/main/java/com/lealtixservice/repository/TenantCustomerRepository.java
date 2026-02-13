@@ -15,9 +15,9 @@ public interface TenantCustomerRepository extends JpaRepository<TenantCustomer, 
     List<TenantCustomer> findByTenantId(Long tenantId);
     Optional<TenantCustomer> findByEmailAndTenantId(String email, Long tenantId);
     boolean existsByEmailAndTenantId(String email, Long tenantId);
-    
-    // Paginación y filtrado
+
     Page<TenantCustomer> findByTenantIdAndActiveTrue(Long tenantId, Pageable pageable);
+
     Page<TenantCustomer> findByTenantIdAndEmailContainingIgnoreCaseAndActiveTrue(Long tenantId, String email, Pageable pageable);
 }
 

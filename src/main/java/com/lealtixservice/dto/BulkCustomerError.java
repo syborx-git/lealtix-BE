@@ -1,14 +1,13 @@
 package com.lealtixservice.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
+/**
+ * DTO que representa un error al procesar un cliente en bulk upload
+ */
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class BulkCustomerError {
     private int indice;
     private String mensaje;

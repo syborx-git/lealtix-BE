@@ -2,36 +2,31 @@ package com.lealtixservice.service.impl;
 
 import com.lealtixservice.dto.BulkCustomerError;
 import com.lealtixservice.dto.BulkCustomerUploadResponse;
-import com.lealtixservice.dto.EmailAttachmentDTO;
-import com.lealtixservice.dto.EmailDTO;
 import com.lealtixservice.dto.TenantCustomerDTO;
 import com.lealtixservice.entity.Campaign;
 import com.lealtixservice.entity.Coupon;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantCustomer;
+import com.lealtixservice.event.CustomerCreatedEvent;
 import com.lealtixservice.exception.EmailAlreadyRegisteredException;
 import com.lealtixservice.repository.TenantCustomerRepository;
 import com.lealtixservice.repository.TenantRepository;
 import com.lealtixservice.service.CampaignService;
 import com.lealtixservice.service.CouponService;
-import com.lealtixservice.service.Emailservice;
-import com.lealtixservice.service.QrCodeService;
 import com.lealtixservice.service.TenantCustomerService;
 import com.lealtixservice.util.TenantCustomerMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
@@ -47,16 +42,13 @@ public class TenantCustomerServiceImpl implements TenantCustomerService {
     private TenantRepository tenantRepository;
 
     @Autowired
-    private Emailservice emailService;
+    private ApplicationEventPublisher eventPublisher;
 
     @Autowired
     private CampaignService campaignService;
 
     @Autowired
     private CouponService couponService;
-
-    @Autowired
-    private QrCodeService qrCodeService;
 
     @Value("${sendgrid.templates.welcome-customer}")
     private String welcomeTemplateId;
@@ -74,17 +66,19 @@ public class TenantCustomerServiceImpl implements TenantCustomerService {
     @Transactional
     public TenantCustomer save(TenantCustomer customer) {
 
-        // Validar que el email no esté registrado para este tenant
+        // Validar que el email no esté registrado para este tenant, excepto si es el mismo cliente (update)
         if (customer.getTenant() != null && customer.getTenant().getId() != null) {
-            boolean emailExists = tenantCustomerRepository.existsByEmailAndTenantId(
+            Optional<TenantCustomer> existing = tenantCustomerRepository.findByEmailAndTenantId(
                 customer.getEmail(),
                 customer.getTenant().getId()
             );
-
-            if (emailExists) {
-                throw new EmailAlreadyRegisteredException(
-                    "El email " + customer.getEmail() + " ya está registrado para este negocio"
-                );
+            if (existing.isPresent()) {
+                // Si es update, permitir si el id es el mismo
+                if (customer.getId() == null || !existing.get().getId().equals(customer.getId())) {
+                    throw new EmailAlreadyRegisteredException(
+                        "El email " + customer.getEmail() + " ya está registrado para este negocio"
+                    );
+                }
             }
         }
 
@@ -143,7 +137,8 @@ public class TenantCustomerServiceImpl implements TenantCustomerService {
             log.debug("saved.getTenant() es null o no tiene ID, se omite validación de campaña de bienvenida");
         }
 
-        // Enviar correo de bienvenida usando SendGrid si el guardado fue exitoso
+        // Publicar evento para enviar email de bienvenida de forma asíncrona y post-commit
+        // Esto evita bloquear la transacción de BD con llamadas externas (SendGrid)
         try {
             Tenant tenant = null;
             if (customer.getTenant() != null && customer.getTenant().getId() != null) {
@@ -152,93 +147,45 @@ public class TenantCustomerServiceImpl implements TenantCustomerService {
                 tenant = tenantRepository.findById(saved.getTenant().getId()).orElse(null);
             }
 
-            Map<String, Object> dynamicData = new HashMap<>();
-            if (tenant != null) {
-                dynamicData.put("tenantName", tenant.getNombreNegocio());
-                dynamicData.put("logoUrl", tenant.getLogoUrl());
-            } else {
-                dynamicData.put("tenantName", "");
-                dynamicData.put("logoUrl", "");
-            }
-
-            dynamicData.put("customerName", saved.getName());
-
-            // Si se generó cupón, usar datos reales y generar QR
-            List<EmailAttachmentDTO> attachments = new ArrayList<>();
-            String templateToUse;
-
-            if (welcomeCoupon != null) {
-                // Usar template con cupón
-                templateToUse = welcomeTemplateId;
-                dynamicData.put("discount", welcomeCoupon.getCampaign().getPromotionReward().getDescription());
-                dynamicData.put("couponCode", welcomeCoupon.getCode());
-                dynamicData.put("promoImageUrl",  welcomeCoupon.getCampaign().getImageUrl());
-
-                // Generar QR code para el cupón
-                try {
-                    String redeemUrl = dashboardUrl + "/redeem?code=" + welcomeCoupon.getQrToken();
-                    String qrBase64 = qrCodeService.generateQrCodeBase64(redeemUrl);
-
-                    // Crear attachment inline para el QR
-                    EmailAttachmentDTO qrAttachment = EmailAttachmentDTO.builder()
-                            .content(qrBase64)
-                            .type("image/png")
-                            .filename("coupon-qr.png")
-                            .disposition("inline")
-                            .contentId("couponQr")
-                            .build();
-
-                    attachments.add(qrAttachment);
-                    dynamicData.put("hasQr", true);
-                    log.info("QR code generado y adjuntado para cupón {}", welcomeCoupon.getCode());
-
-                } catch (IOException qrEx) {
-                    log.error("Error generando QR code para cupón {}: {}",
-                        welcomeCoupon.getCode(), qrEx.getMessage());
-                    dynamicData.put("hasQr", false);
-                }
-            } else {
-                // Usar template sin cupón (solo bienvenida simple)
-                templateToUse = welcomeNoCouponTemplateId;
-                log.info("No hay cupón de bienvenida, usando template sin cupón para customer {}", saved.getId());
-            }
-
-            // Construir landing URL basada en la propiedad invitation.base-url del environment
-            String slug = tenant.getSlug();
-            String baseUrl;
-            if (invitationBaseUrl != null && !invitationBaseUrl.trim().isEmpty()) {
-                baseUrl = invitationBaseUrl.replaceAll("/+$", "");
-            } else {
-                // Si no hay base URL definida (por ejemplo en dev local), usar el comportamiento anterior
-                baseUrl = "https://lealtix.com.mx";
-            }
-            String landingUrl = baseUrl + "/landing-page/" + slug;
-            dynamicData.put("landingUrl", landingUrl);
-
-            EmailDTO emailDTO = EmailDTO.builder()
-                    .to(saved.getEmail())
-                    .subject("Bienvenido a " + (tenant != null ? tenant.getNombreNegocio() : "nuestro servicio"))
-                    .templateId(templateToUse)
-                    .dynamicData(dynamicData)
-                    .attachments(attachments.isEmpty() ? null : attachments)
+            // Construir y publicar evento con toda la información necesaria
+            CustomerCreatedEvent event = CustomerCreatedEvent.builder()
+                    .customer(saved)
+                    .tenant(tenant)
+                    .welcomeCoupon(welcomeCoupon)
+                    .invitationBaseUrl(invitationBaseUrl)
+                    .dashboardUrl(dashboardUrl)
+                    .welcomeTemplateId(welcomeTemplateId)
+                    .welcomeNoCouponTemplateId(welcomeNoCouponTemplateId)
                     .build();
 
-            log.info("Intentando enviar email de bienvenida a: {}, template: {}, tenant: {}",
-                    saved.getEmail(), templateToUse, tenant != null ? tenant.getNombreNegocio() : "null");
-            log.debug("EmailDTO construido - to: {}, subject: {}, templateId: {}, hasAttachments: {}",
-                    emailDTO.getTo(), emailDTO.getSubject(), emailDTO.getTemplateId(),
-                    emailDTO.getAttachments() != null && !emailDTO.getAttachments().isEmpty());
-            log.debug("DynamicData keys: {}", dynamicData != null ? dynamicData.keySet() : "null");
+            eventPublisher.publishEvent(event);
+            log.info("CustomerCreatedEvent publicado para customer: {}", saved.getEmail());
 
-            emailService.sendEmailWithTemplate(emailDTO);
-            log.info("✅ Email de bienvenida enviado exitosamente a: {}", saved.getEmail());
-        } catch (IOException ex) {
-            log.error("Error sending welcome email to customer: {}", saved.getEmail(), ex);
         } catch (Exception ex) {
-            log.error("Unexpected error sending welcome email", ex);
+            log.error("Error publishing CustomerCreatedEvent for customer {}: {}", 
+                    saved.getEmail(), ex.getMessage(), ex);
+            // No fallar el guardado si falla la publicación del evento
         }
 
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public TenantCustomer update(TenantCustomer customer) {
+        Optional<TenantCustomer> existing = tenantCustomerRepository.findById(customer.getId());
+        if (existing.isEmpty()) {
+            return null;
+        }
+        TenantCustomer entity = existing.get();
+        entity.setName(customer.getName());
+        entity.setEmail(customer.getEmail());
+        entity.setBirthDate(customer.getBirthDate());
+        entity.setGender(customer.getGender());
+        entity.setPhone(customer.getPhone());
+        entity.setActive(true);
+        entity.setUpdatedAt(LocalDateTime.now());
+        return tenantCustomerRepository.save(entity);
     }
 
     @Override
@@ -268,7 +215,12 @@ public class TenantCustomerServiceImpl implements TenantCustomerService {
 
     @Override
     public Page<TenantCustomer> findByTenantIdAndEmailPaginated(Long tenantId, String email, Pageable pageable) {
-        return tenantCustomerRepository.findByTenantIdAndEmailContainingIgnoreCaseAndActiveTrue(tenantId, email, pageable);
+        // Normalizar email: trim y lowercase
+        String normalizedEmail = email != null ? email.trim() : "";
+        log.debug("Searching customers by tenantId={}, email filter='{}', page={}, size={}", 
+                tenantId, normalizedEmail, pageable.getPageNumber(), pageable.getPageSize());
+        return tenantCustomerRepository.findByTenantIdAndEmailContainingIgnoreCaseAndActiveTrue(
+                tenantId, normalizedEmail, pageable);
     }
 
     @Override
