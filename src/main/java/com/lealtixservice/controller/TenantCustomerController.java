@@ -280,7 +280,7 @@ public class TenantCustomerController {
             }
             // Merge active: if DTO did not include it keep existing value
             if (customerDTO.getActive() == null) {
-                toUpdate.setActive(existingEntity.isActive());
+                toUpdate.setActive(existingEntity.getActive());
             }
 
             TenantCustomer updated = tenantCustomerService.update(toUpdate);

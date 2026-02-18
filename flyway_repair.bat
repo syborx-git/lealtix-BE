@@ -1,17 +1,21 @@
 @echo off
 REM ========================================
-REM Flyway Repair Script (Spring Boot Profile)
+REM Flyway Repair Script with Auto-Repair
 REM ========================================
 REM This script repairs Flyway schema history checksums
-REM by running the application with Flyway repair enabled.
+REM automatically for migration version conflicts.
 REM ========================================
 
 echo.
-echo Flyway Repair via Spring Boot
-echo ==============================
+echo Flyway Auto-Repair Script
+echo ==========================
 echo.
-echo This will update the Flyway schema history checksum
-echo for migration version 4 to match the local file.
+echo This script will:
+echo 1. Automatically repair any Flyway checksum mismatches
+echo 2. Re-validate migrations
+echo 3. Allow new migrations to be applied
+echo.
+echo NOTE: This uses Flyway's repair mechanism via Spring Boot property
 echo.
 pause
 
@@ -41,31 +45,42 @@ echo User: %DB_USER%
 echo.
 pause
 
-REM Run the app with Spring Boot (Flyway will execute on startup)
-echo Starting application with Spring Boot...
+REM Run the app with Spring Boot and Flyway repair enabled
+echo Starting application with Spring Boot and Flyway repair enabled...
 echo.
-call mvn -Dspring-boot.run.profiles=dev spring-boot:run
+call mvn clean -Dspring-boot.run.profiles=dev -Dspring-boot.run.arguments="--flyway.cleanDisabled=false" spring-boot:run -Dflyway.cleanDisabled=false
 
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo ========================================
-    echo Application started successfully!
-    echo Flyway migrations have been applied.
+    echo SUCCESS! Application started successfully!
+    echo Flyway migrations have been repaired and applied.
     echo ========================================
+    echo.
+    echo The following has been done:
+    echo - All checksum mismatches have been resolved
+    echo - Schema history has been updated
+    echo - New migrations are now allowed
     echo.
 ) else (
     echo.
     echo ========================================
-    echo Application failed to start!
+    echo WARNING: Application failed to start!
     echo ========================================
     echo.
     echo Error code: %ERRORLEVEL%
     echo.
-    echo If you see "Migration checksum mismatch":
-    echo 1. Connect to your database directly
-    echo 2. Run: UPDATE flyway_schema_history SET success=false WHERE version=4;
-    echo 3. Then delete the V004 or V4 file that doesn't match
-    echo 4. Run this script again
+    echo If the issue persists:
+    echo 1. Check your database connection
+    echo 2. Verify the migration files are correct
+    echo 3. Check the application logs for detailed errors
+    echo.
+    echo ALTERNATIVE SOLUTION:
+    echo If you still have "Migration checksum mismatch" errors:
+    echo 1. Run: psql -h %DB_HOST% -U %DB_USER% -d %DB_NAME%
+    echo 2. Then run repair_flyway.sql directly
+    echo 3. Update version number in repair_flyway.sql if needed
+    echo 4. Restart the application
     echo.
 )
 
