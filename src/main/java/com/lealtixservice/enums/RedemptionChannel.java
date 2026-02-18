@@ -7,7 +7,8 @@ package com.lealtixservice.enums;
 public enum RedemptionChannel {
     QR_WEB,      // Redención vía página web escaneando QR
     QR_ADMIN,    // Redención desde el admin/scanner del tenant
-    MANUAL,      // Redención manual por el comerciante
+    MANUAL,
+    COMANDIX, // Redencion desde comanda
     API;         // Redención vía API externa
 
     public String getValue() {
