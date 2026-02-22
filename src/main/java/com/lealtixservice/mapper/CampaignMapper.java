@@ -8,6 +8,7 @@ import com.lealtixservice.entity.PromotionReward;
 import com.lealtixservice.enums.CampaignStatus;
 import com.lealtixservice.enums.PromoType;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -113,6 +114,7 @@ public class CampaignMapper {
                 .isAutomatic(campaign.getIsAutomatic())
                 .createdAt(campaign.getCreatedAt())
                 .updatedAt(campaign.getUpdatedAt())
+                .inUse(isActiveNow(campaign))
                 .build();
 
         if (campaign.getPromotionReward() != null) {
@@ -214,5 +216,17 @@ public class CampaignMapper {
                 .createdAt(reward.getCreatedAt())
                 .updatedAt(reward.getUpdatedAt())
                 .build();
+    }
+
+    private static boolean isActiveNow(Campaign campaign) {
+        if (campaign == null) return false;
+        String status = determineStatus(campaign);
+        if (!CampaignStatus.ACTIVE.name().equals(status)) return false;
+        LocalDate today = LocalDate.now();
+        LocalDate start = campaign.getStartDate();
+        LocalDate end = campaign.getEndDate();
+        boolean afterStart = start == null || !today.isBefore(start);
+        boolean beforeEnd = end == null || !today.isAfter(end);
+        return afterStart && beforeEnd;
     }
 }

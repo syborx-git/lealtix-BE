@@ -112,5 +112,28 @@ public interface DashboardRedemptionRepository extends JpaRepository<CouponRedem
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
-}
 
+    /**
+     * ROI por campaña usando costo implícito de descuento.
+     * Retorna: [0]=campaignId, [1]=campaignName, [2]=redemptions, [3]=revenue, [4]=discountCost
+     */
+    @Query(value = """
+            SELECT ca.id AS campaignId,
+                   ca.title AS campaignName,
+                   COUNT(cr.id) AS redemptions,
+                   COALESCE(SUM(cr.final_amount), 0.0) AS revenue,
+                   COALESCE(SUM(COALESCE(cr.discount_amount, 0.0)), 0.0) AS discountCost
+            FROM campaign ca
+            LEFT JOIN coupon_redemption cr
+                   ON cr.campaign_id = ca.id
+                  AND cr.redeemed_at BETWEEN :from AND :to
+            WHERE ca.business_id = :tenantId
+            GROUP BY ca.id, ca.title
+            ORDER BY revenue DESC
+            """, nativeQuery = true)
+    List<Object[]> findCampaignRoiByDiscountCost(
+            @Param("tenantId") Long tenantId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+}

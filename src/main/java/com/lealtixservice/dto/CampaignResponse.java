@@ -30,5 +30,5 @@ public class CampaignResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private PromotionRewardResponse promotionReward;
+    private Boolean inUse;
 }
-

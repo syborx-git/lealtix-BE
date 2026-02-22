@@ -32,6 +32,17 @@ public class CampaignTemplateController {
         }
     }
 
+    @Operation(summary = "Listar templates con estado de uso por tenant")
+    @GetMapping("/tenant/{tenantId}")
+    public ResponseEntity<GenericResponseProd> findAllByTenant(@PathVariable Long tenantId) {
+        try {
+            List<CampaignTemplateDTO> list = templateService.findAllWithUsageStatus(tenantId);
+            return ResponseEntity.ok(new GenericResponseProd(200, "Templates obtenidos con estado de uso", list, list.size()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new GenericResponseProd(500, "Error interno", null, 0));
+        }
+    }
+
     @Operation(summary = "Obtener template por id")
     @GetMapping("/{id}")
     public ResponseEntity<GenericResponse> findById(@PathVariable Long id) {
