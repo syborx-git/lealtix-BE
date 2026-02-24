@@ -3,6 +3,7 @@ package com.lealtixservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import com.lealtixservice.enums.CampaignStatus;
+import com.lealtixservice.enums.PromoType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -52,6 +53,9 @@ public class Campaign {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "promo_type", length = 50)
+    private PromoType promoType;
 
     @Column(name = "start_date")
     private LocalDate startDate;

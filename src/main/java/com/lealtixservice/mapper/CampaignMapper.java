@@ -68,14 +68,16 @@ public class CampaignMapper {
         if (request.getSubtitle() != null) entity.setSubtitle(request.getSubtitle());
         if (request.getDescription() != null) entity.setDescription(request.getDescription());
         if (request.getImageUrl() != null) entity.setImageUrl(request.getImageUrl());
-        // NOTA: promoType y promoValue removidos - usar PromotionReward
+        if (request.getPromoType() != null) {
+            entity.setPromoType(parsePromoType(request.getPromoType()));
+        }
         if (request.getStartDate() != null) entity.setStartDate(request.getStartDate());
         if (request.getEndDate() != null) entity.setEndDate(request.getEndDate());
         // Usar setStatus personalizado que sincroniza isDraft automáticamente
         if (request.getStatus() != null) {
             CampaignStatus status = parseStatus(request.getStatus());
             if (status != null) {
-                entity.setStatus(status); // Este método sincroniza isDraft
+                entity.setStatus(status);
             }
         }
         if (request.getCallToAction() != null) entity.setCallToAction(request.getCallToAction());
@@ -103,7 +105,7 @@ public class CampaignMapper {
                 .subtitle(campaign.getSubtitle())
                 .description(campaign.getDescription())
                 .imageUrl(campaign.getImageUrl())
-                .promoType(null)
+                .promoType(enumToString(campaign.getPromoType()))
                 .promoValue(null)
                 .startDate(campaign.getStartDate())
                 .endDate(campaign.getEndDate())
