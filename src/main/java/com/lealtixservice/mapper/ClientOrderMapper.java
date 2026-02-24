@@ -40,6 +40,7 @@ public class ClientOrderMapper {
                 .subtotal(subtotal)
                 .descuento(descuento)
                 .total(total)
+                .fecha(java.time.LocalDateTime.now())  // Establecer la fecha actual
                 .build();
     }
 

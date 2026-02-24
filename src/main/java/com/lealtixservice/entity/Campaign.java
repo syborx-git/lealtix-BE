@@ -3,9 +3,11 @@ package com.lealtixservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import com.lealtixservice.enums.CampaignStatus;
+import com.lealtixservice.enums.PromoType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -51,6 +53,9 @@ public class Campaign {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "promo_type", length = 50)
+    private PromoType promoType;
 
     @Column(name = "start_date")
     private LocalDate startDate;
@@ -97,6 +102,9 @@ public class Campaign {
     @Builder.Default
     @Column(name = "total_failed")
     private Integer totalFailed = 0;
+
+    @Column(name = "estimated_cost", precision = 10, scale = 2)
+    private BigDecimal estimatedCost;  // Costo estimado de la campaña para cálculo de ROI
 
     @Column(name = "finished_at")
     private LocalDateTime finishedAt;

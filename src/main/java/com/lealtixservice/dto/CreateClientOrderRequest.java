@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.util.List;
 import com.lealtixservice.enums.RedemptionChannel;
+import org.springframework.lang.Nullable;
 
 /**
  * DTO para crear una nueva orden
@@ -20,7 +21,7 @@ import com.lealtixservice.enums.RedemptionChannel;
 @AllArgsConstructor
 public class CreateClientOrderRequest {
     
-    @NotNull(message = "customerId es requerido")
+    @Nullable
     private Long customerId;
     
     @NotNull(message = "tenantId es requerido")

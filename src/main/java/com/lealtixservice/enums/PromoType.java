@@ -1,6 +1,7 @@
 package com.lealtixservice.enums;
 
 public enum PromoType {
+    NONE,
     DISCOUNT,
     AMOUNT,
     BOGO,
@@ -11,4 +12,3 @@ public enum PromoType {
         return name();
     }
 }
-

@@ -52,16 +52,19 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     public ClientOrderDTO createOrder(CreateClientOrderRequest request) {
         log.info("Creando nueva orden para cliente {} en tenant {}", request.getCustomerId(), request.getTenantId());
 
-        // Validar que el cliente existe
-        TenantCustomer customer = tenantCustomerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.getCustomerId()));
+        // Validar que el cliente existe si se proporciona un customerId
+        TenantCustomer customer = null;
+        if (request.getCustomerId() != null) {
+            customer = tenantCustomerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.getCustomerId()));
+        }
 
         // Validar que el tenant existe
         Tenant tenant = tenantRepository.findById(request.getTenantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant no encontrado con ID: " + request.getTenantId()));
 
-        // Validar que el cliente pertenece al tenant
-        if (!customer.getTenant().getId().equals(tenant.getId())) {
+        // Validar que el cliente pertenece al tenant (solo si existe cliente)
+        if (customer != null && !customer.getTenant().getId().equals(tenant.getId())) {
             throw new IllegalArgumentException("El cliente no pertenece al tenant especificado");
         }
 
@@ -103,7 +106,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         order.setTotal(total);
         order = clientOrderRepository.save(order);
 
-        redeemCouponIfPresent(request, customer, tenant, order, subtotal);
+        // Solo redimir coupon si hay un cliente asociado
+        if (customer != null) {
+            redeemCouponIfPresent(request, customer, tenant, order, subtotal);
+        }
 
         log.info("Orden creada exitosamente con ID: {}", order.getId());
         return ClientOrderMapper.toDTO(order);
@@ -263,6 +269,11 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         String couponCode = request.getCouponCode();
         if (couponCode == null || couponCode.isBlank()) {
             return;
+        }
+
+        // Si no hay cliente, no se puede redimir cupon (el email es obligatorio)
+        if (customer == null) {
+            throw new IllegalArgumentException("No se puede redimir un cupon sin un cliente asociado");
         }
 
         String redeemedBy = request.getRedeemedBy() != null ? request.getRedeemedBy() : customer.getEmail();

@@ -17,7 +17,9 @@ import java.util.UUID;
         @Index(name = "idx_client_order_tenant_customer", columnList = "tenant_id,customer_id"),
         @Index(name = "idx_client_order_tenant_fecha", columnList = "tenant_id,fecha"),
         @Index(name = "idx_client_order_tenant_estado", columnList = "tenant_id,estado"),
-        @Index(name = "idx_client_order_fecha", columnList = "fecha")
+        @Index(name = "idx_client_order_fecha", columnList = "fecha"),
+        @Index(name = "idx_client_order_coupon_id", columnList = "coupon_id"),
+        @Index(name = "idx_client_order_tenant_coupon", columnList = "tenant_id,coupon_id")
 })
 @Getter
 @Setter
@@ -32,15 +34,17 @@ public class ClientOrder {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "customer_id", nullable = false)
-    @NotNull
-    private TenantCustomer customer;
+    @ManyToOne
+    @JoinColumn(name = "customer_id")
+    private TenantCustomer customer;  // Nullable para soportar "Venta General"
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "tenant_id", nullable = false)
     @NotNull
     private Tenant tenant;
+
+    @Column(name = "coupon_id")
+    private Long couponId;  // Nullable, referencia opcional al cupón usado
 
     @Column(name = "fecha", nullable = false)
     private LocalDateTime fecha;

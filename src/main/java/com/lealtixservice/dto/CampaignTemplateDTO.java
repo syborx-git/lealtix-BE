@@ -16,5 +16,5 @@ public class CampaignTemplateDTO {
     private String defaultImageUrl;
     private String defaultPromoType;
     private Boolean active;
+    private Boolean inUse;
 }
-
