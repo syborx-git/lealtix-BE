@@ -2,12 +2,15 @@ package com.lealtixservice.controller;
 
 import com.lealtixservice.dto.BulkProductRequest;
 import com.lealtixservice.dto.BulkProductResponse;
+import com.lealtixservice.dto.CrossSellingDTO;
 import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.GenericResponseProd;
 import com.lealtixservice.dto.TenantMenuProductDTO;
 import com.lealtixservice.entity.TenantMenuProduct;
+import com.lealtixservice.service.ProductCrossSellingService;
 import com.lealtixservice.service.TenantMenuProductService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,10 +26,14 @@ import java.util.List;
 public class TenantMenuProductController {
 
     private final TenantMenuProductService productService;
+    private final ProductCrossSellingService crossSellingService;
 
     @Autowired
-    public TenantMenuProductController(TenantMenuProductService productService) {
+    public TenantMenuProductController(
+            TenantMenuProductService productService,
+            ProductCrossSellingService crossSellingService) {
         this.productService = productService;
+        this.crossSellingService = crossSellingService;
     }
 
     @Operation(summary = "Obtener todos los productos")
@@ -94,6 +101,41 @@ public class TenantMenuProductController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(
                 new GenericResponse(400, "Solicitud inválida: " + e.getMessage(), null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                new GenericResponse(500, "Error interno del servidor: " + e.getMessage(), null)
+            );
+        }
+    }
+
+    @Operation(
+        summary = "Obtener sugerencias de productos complementarios (Cross-Selling)",
+        description = "Retorna una lista de productos sugeridos para venta cruzada al seleccionar un producto. " +
+                      "Diseñado para aumentar el ticket promedio y la recompra intencional. " +
+                      "Las sugerencias se filtran por tenant para garantizar aislamiento SaaS."
+    )
+    @GetMapping("/{id}/suggestions")
+    public ResponseEntity<GenericResponse> getCrossSellingSuggestions(
+            @Parameter(description = "ID del producto principal") 
+            @PathVariable Long id,
+            @Parameter(description = "ID del tenant") 
+            @RequestParam Long tenantId) {
+        try {
+            List<CrossSellingDTO> suggestions = crossSellingService.getSuggestionsByProduct(id, tenantId);
+            
+            if (suggestions != null && !suggestions.isEmpty()) {
+                return ResponseEntity.ok(
+                    new GenericResponse(200, "Sugerencias obtenidas exitosamente", suggestions)
+                );
+            } else {
+                return ResponseEntity.ok(
+                    new GenericResponse(200, "No hay sugerencias disponibles para este producto", List.of())
+                );
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(
+                new GenericResponse(400, "Error: " + e.getMessage(), null)
             );
         } catch (Exception e) {
             return ResponseEntity.ok(
