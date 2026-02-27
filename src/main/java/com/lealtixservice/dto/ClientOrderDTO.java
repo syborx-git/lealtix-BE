@@ -30,6 +30,7 @@ public class ClientOrderDTO {
     private BigDecimal descuento;
     private BigDecimal total;
     private List<ClientOrderItemDTO> items;
+    private String source;  // Origen: 'CHATBOT', 'MANUAL', 'POS', 'WEB', 'MOBILE'
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

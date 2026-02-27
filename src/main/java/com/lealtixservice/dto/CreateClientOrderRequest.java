@@ -40,6 +40,8 @@ public class CreateClientOrderRequest {
     private String redeemedBy;
 
     private RedemptionChannel redemptionChannel;
+
+    private String source;  // Origen: 'CHATBOT', 'MANUAL', 'POS', 'WEB', 'MOBILE'
     
     /**
      * DTO anidado para los items de la orden

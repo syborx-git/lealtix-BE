@@ -9,7 +9,7 @@ public enum RedemptionChannel {
     QR_ADMIN,    // Redención desde el admin/scanner del tenant
     MANUAL,
     COMANDIX, // Redencion desde comanda
-    API;         // Redención vía API externa
+    API, CHATBOT;         // Redención vía API externa
 
     public String getValue() {
         return name();

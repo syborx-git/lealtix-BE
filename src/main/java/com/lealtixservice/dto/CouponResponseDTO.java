@@ -46,5 +46,9 @@ public class CouponResponseDTO {
     private Integer usageCount;
     private RewardType rewardType;
     private BigDecimal numericValue; // Para PERCENT_DISCOUNT o FIXED_AMOUNT
+    private Long productId;
+    private Integer buyQuantity;
+    private Integer freeQuantity;
+
 }
 

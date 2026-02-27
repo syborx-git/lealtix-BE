@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface TenantCustomerRepository extends JpaRepository<TenantCustomer, Long>, JpaSpecificationExecutor<TenantCustomer> {
     List<TenantCustomer> findByTenantId(Long tenantId);
     Optional<TenantCustomer> findByEmailAndTenantId(String email, Long tenantId);
+    Optional<TenantCustomer> findByPhoneAndTenantId(String phone, Long tenantId);
     boolean existsByEmailAndTenantId(String email, Long tenantId);
 
     Page<TenantCustomer> findByTenantIdAndActiveTrue(Long tenantId, Pageable pageable);

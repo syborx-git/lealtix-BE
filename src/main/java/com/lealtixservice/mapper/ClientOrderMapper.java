@@ -41,6 +41,7 @@ public class ClientOrderMapper {
                 .descuento(descuento)
                 .total(total)
                 .fecha(java.time.LocalDateTime.now())  // Establecer la fecha actual
+                .source(request.getSource() != null ? request.getSource() : "MANUAL")  // Soporte para source
                 .build();
     }
 
@@ -69,6 +70,7 @@ public class ClientOrderMapper {
                 .descuento(order.getDescuento())
                 .total(order.getTotal())
                 .items(itemsDTO)
+                .source(order.getSource())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();

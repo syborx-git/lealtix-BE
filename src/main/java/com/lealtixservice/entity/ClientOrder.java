@@ -65,6 +65,9 @@ public class ClientOrder {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ClientOrderItem> items;
 
+    @Column(name = "source", length = 20)
+    private String source;  // Origen: 'CHATBOT', 'MANUAL', 'POS', 'WEB', 'MOBILE'
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -89,6 +92,9 @@ public class ClientOrder {
         }
         if (fecha == null) {
             fecha = LocalDateTime.now();
+        }
+        if (source == null) {
+            source = "MANUAL";
         }
     }
 
