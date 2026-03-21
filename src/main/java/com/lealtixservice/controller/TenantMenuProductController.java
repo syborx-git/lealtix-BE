@@ -17,7 +17,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api" +
@@ -48,7 +50,12 @@ public class TenantMenuProductController {
         try {
             List<TenantMenuProductDTO>  products = productService.getProductsByTenantId(tenantId);
             if (products != null && !products.isEmpty()) {
-                return ResponseEntity.ok(new GenericResponseProd(200, "Productos obtenidos exitosamente", products, products.size()));
+                List<TenantMenuProductDTO> sortedProducts = products.stream()
+                        .sorted(Comparator.comparing(TenantMenuProductDTO::getCategoryDisplayOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+                                .thenComparing(TenantMenuProductDTO::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                        .collect(Collectors.toList());
+
+                return ResponseEntity.ok(new GenericResponseProd(200, "Productos obtenidos exitosamente", sortedProducts, sortedProducts.size()));
             } else {
                 return ResponseEntity.ok(new GenericResponseProd(400, "No se pudo obtener  Productos", null, 0));
             }

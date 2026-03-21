@@ -6,9 +6,11 @@ import com.lealtixservice.dto.RedeemCouponRequest;
 import com.lealtixservice.dto.RedemptionResponse;
 import com.lealtixservice.entity.ClientOrder;
 import com.lealtixservice.entity.ClientOrderItem;
+import com.lealtixservice.entity.Coupon;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantCustomer;
 import com.lealtixservice.entity.TenantMenuProduct;
+import com.lealtixservice.enums.CouponStatus;
 import com.lealtixservice.enums.OrderStatus;
 import com.lealtixservice.enums.RedemptionChannel;
 import com.lealtixservice.exception.ResourceNotFoundException;
@@ -16,6 +18,7 @@ import com.lealtixservice.mapper.ClientOrderItemMapper;
 import com.lealtixservice.mapper.ClientOrderMapper;
 import com.lealtixservice.repository.ClientOrderItemRepository;
 import com.lealtixservice.repository.ClientOrderRepository;
+import com.lealtixservice.repository.CouponRepository;
 import com.lealtixservice.repository.TenantCustomerRepository;
 import com.lealtixservice.repository.TenantMenuProductRepository;
 import com.lealtixservice.repository.TenantRepository;
@@ -46,6 +49,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     private final TenantCustomerRepository tenantCustomerRepository;
     private final TenantMenuProductRepository tenantMenuProductRepository;
     private final TenantRepository tenantRepository;
+    private final CouponRepository couponRepository;
     private final CouponRedemptionService couponRedemptionService;
 
     @Override
@@ -106,13 +110,17 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         order.setTotal(total);
         order = clientOrderRepository.save(order);
 
+        // Redimir cupón y obtener información completa si está presente
+        String couponCode = request.getCouponCode();
+        BigDecimal couponDiscount = BigDecimal.ZERO;
+        
         // Solo redimir coupon si hay un cliente asociado
         if (customer != null) {
-            redeemCouponIfPresent(request, customer, tenant, order, subtotal);
+            couponDiscount = redeemCouponIfPresent(request, customer, tenant, order, subtotal);
         }
 
         log.info("Orden creada exitosamente con ID: {}", order.getId());
-        return ClientOrderMapper.toDTO(order);
+        return ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
     }
 
     @Override
@@ -175,11 +183,28 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         // Validar transiciones de estado permitidas
         validateStatusTransition(order.getEstado(), newStatus);
 
+        // Si se está confirmando/pagando la orden y hay un cupón asociado, redimirlo
+        if (newStatus == OrderStatus.PAGADA && order.getCouponId() != null && order.getCustomer() != null) {
+            redeemCouponOnOrderConfirmation(order);
+        }
+
         order.setEstado(newStatus);
         order = clientOrderRepository.save(order);
 
         log.info("Estado de orden {} actualizado a: {}", orderId, newStatus);
-        return ClientOrderMapper.toDTO(order);
+        
+        // Obtener el código del cupón para incluirlo en el DTO (si existe)
+        String couponCode = null;
+        BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
+        
+        if (order.getCouponId() != null) {
+            Coupon coupon = couponRepository.findById(order.getCouponId()).orElse(null);
+            if (coupon != null) {
+                couponCode = coupon.getCode();
+            }
+        }
+        
+        return ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
     }
 
     @Override
@@ -261,14 +286,14 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
     }
 
-    private void redeemCouponIfPresent(CreateClientOrderRequest request,
+    private BigDecimal redeemCouponIfPresent(CreateClientOrderRequest request,
                                        TenantCustomer customer,
                                        Tenant tenant,
                                        ClientOrder order,
                                        BigDecimal originalAmount) {
         String couponCode = request.getCouponCode();
         if (couponCode == null || couponCode.isBlank()) {
-            return;
+            return BigDecimal.ZERO;
         }
 
         // Si no hay cliente, no se puede redimir cupon (el email es obligatorio)
@@ -292,6 +317,62 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     ? response.getMessage()
                     : "No se pudo redimir el cupon";
             throw new IllegalArgumentException(message);
+        }
+        
+        // Retornar el descuento del cupón desde la respuesta de redención
+        return response.getDiscountAmount() != null ? response.getDiscountAmount() : BigDecimal.ZERO;
+    }
+
+    /**
+     * Redime el cupón asociado a una orden cuando se confirma/paga.
+     * Solo se redime si:
+     * - La orden tiene un cupón asociado (couponId no null)
+     * - La orden tiene un cliente asociado (no es venta general)
+     * - El cupón existe y no ha sido redimido previamente
+     */
+    private void redeemCouponOnOrderConfirmation(ClientOrder order) {
+        log.info("Intentando redimir cupón {} para orden {}", order.getCouponId(), order.getId());
+        
+        // Obtener el cupón por ID
+        Coupon coupon = couponRepository.findById(order.getCouponId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cupón no encontrado con ID: " + order.getCouponId()));
+        
+        // Validar que el cupón no haya sido redimido previamente
+        // Verificar por status = REDEEMED o por fecha de redención no vacía
+        if (coupon.getStatus() == CouponStatus.REDEEMED || coupon.getRedeemedAt() != null) {
+            log.warn("El cupón {} ya fue redimido previamente (status={}, redeemedAt={}). Orden: {}", 
+                    coupon.getCode(), coupon.getStatus(), coupon.getRedeemedAt(), order.getId());
+            return; // No lanzar error, solo advertir y continuar
+        }
+        
+        TenantCustomer customer = order.getCustomer();
+        Tenant tenant = order.getTenant();
+        
+        // Construir request de redención
+        RedeemCouponRequest redeemRequest = RedeemCouponRequest.builder()
+                .redeemedBy(customer.getEmail())
+                .channel(RedemptionChannel.ORDER_CONFIRMATION)
+                .originalAmount(order.getSubtotal())
+                .metadata("{\"orderId\":\"" + order.getId() + "\",\"source\":\"order_confirmation\"}")
+                .build();
+        
+        try {
+            RedemptionResponse response = couponRedemptionService.redeemCouponByCode(
+                    coupon.getCode(), 
+                    redeemRequest, 
+                    tenant.getId()
+            );
+            
+            if (response != null && response.isSuccess()) {
+                log.info("Cupón {} redimido exitosamente para orden {}. Descuento: {}", 
+                        coupon.getCode(), order.getId(), response.getDiscountAmount());
+            } else {
+                String message = response != null ? response.getMessage() : "Error desconocido";
+                log.error("Error redimiendo cupón {} para orden {}: {}", coupon.getCode(), order.getId(), message);
+            }
+        } catch (Exception e) {
+            // No fallar el cambio de estado si la redención del cupón falla
+            log.error("Error al redimir cupón {} para orden {}: {}", coupon.getCode(), order.getId(), e.getMessage(), e);
         }
     }
 }

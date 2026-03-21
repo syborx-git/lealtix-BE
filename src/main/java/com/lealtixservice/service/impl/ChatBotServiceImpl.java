@@ -299,6 +299,18 @@ public class ChatBotServiceImpl implements ChatBotService {
             customerId = newCustomer.getId();
         }
         
+        // Resolver couponId desde couponCode (si aplica)
+        Long couponId = null;
+        String couponCode = request.getCouponCode();
+        if (couponCode != null && !couponCode.isBlank()) {
+            Coupon coupon = couponRepository.findByCodeWithRelations(couponCode)
+                    .orElseThrow(() -> new IllegalArgumentException("Cupón no encontrado: " + couponCode));
+            if (coupon.getCampaign() != null && !coupon.getCampaign().getBusinessId().equals(request.getTenantId())) {
+                throw new IllegalArgumentException("El cupón no pertenece al tenant especificado");
+            }
+            couponId = coupon.getId();
+        }
+
         // Crear el request para el servicio de órdenes
         CreateClientOrderRequest orderRequest = CreateClientOrderRequest.builder()
                 .customerId(customerId)
@@ -314,10 +326,10 @@ public class ChatBotServiceImpl implements ChatBotService {
                 .descuento(request.getDescuento())
                 .subtotal(request.getSubtotal())
                 .totalFinal(request.getTotalFinal())
-                .couponCode(request.getCouponCode())
+                .couponId(couponId)
                 .source("CHATBOT")  // ¡IMPORTANTE! Marca el origen
                 .build();
-        
+
         ClientOrderDTO order = clientOrderService.createOrder(orderRequest);
         
         // Actualizar la sesión con el cliente identificado si aplica

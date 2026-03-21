@@ -36,6 +36,7 @@ public class CreateClientOrderRequest {
     private BigDecimal totalFinal;
 
     private String couponCode;
+    private Long couponId;
 
     private String redeemedBy;
 

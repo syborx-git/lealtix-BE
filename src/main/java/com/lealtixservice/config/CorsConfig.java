@@ -41,11 +41,20 @@ public class CorsConfig {
                 // Mantener mappings existentes y añadir/usar la lista de orígenes desde properties
                 registry.addMapping("/api/**")
                         .allowedOrigins(origins.toArray(new String[0]))
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .exposedHeaders("Authorization", "Content-Type")
                         .allowCredentials(true)
                         .maxAge(3600);
+
+                // SSE endpoint requiere allowCredentials y cache control propio
+                registry.addMapping("/api/sse/**")
+                        .allowedOrigins(origins.toArray(new String[0]))
+                        .allowedMethods("GET", "OPTIONS")
+                        .allowedHeaders("*")
+                        .exposedHeaders("Content-Type", "Cache-Control", "X-Accel-Buffering")
+                        .allowCredentials(true)
+                        .maxAge(0);
 
                 registry.addMapping("/stripe/**")
                         .allowedOrigins(origins.toArray(new String[0]))
@@ -67,11 +76,19 @@ public class CorsConfig {
 
         CorsConfiguration apiConfig = new CorsConfiguration();
         apiConfig.setAllowedOrigins(origins);
-        apiConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        apiConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         apiConfig.setAllowedHeaders(List.of("*"));
         apiConfig.setExposedHeaders(List.of("Authorization", "Content-Type"));
         apiConfig.setAllowCredentials(true);
         apiConfig.setMaxAge(3600L);
+
+        CorsConfiguration sseConfig = new CorsConfiguration();
+        sseConfig.setAllowedOrigins(origins);
+        sseConfig.setAllowedMethods(List.of("GET", "OPTIONS"));
+        sseConfig.setAllowedHeaders(List.of("*"));
+        sseConfig.setExposedHeaders(List.of("Content-Type", "Cache-Control", "X-Accel-Buffering"));
+        sseConfig.setAllowCredentials(true);
+        sseConfig.setMaxAge(0L);
 
         CorsConfiguration stripeConfig = new CorsConfiguration();
         stripeConfig.setAllowedOrigins(origins);
@@ -82,6 +99,7 @@ public class CorsConfig {
         stripeConfig.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/sse/**", sseConfig);
         source.registerCorsConfiguration("/api/**", apiConfig);
         source.registerCorsConfiguration("/stripe/**", stripeConfig);
 

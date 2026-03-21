@@ -133,6 +133,49 @@ public class ClientOrderController {
         }
     }
 
+    @Operation(summary = "Obtener órdenes de un tenant filtradas por estado (query params)")
+    @GetMapping
+    public ResponseEntity<GenericResponse> getOrdersByTenantAndStatusQuery(
+            @RequestParam Long tenantId,
+            @RequestParam String status,
+            @Parameter(description = "Número de página (comenzando en 0)")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de página")
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            OrderStatus orderStatus = resolveOrderStatus(status);
+            if (orderStatus == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new GenericResponse(400,
+                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, PAID/PAGADA, CANCELLED/CANCELADA", null));
+            }
+            log.debug("Obteniendo órdenes del tenant {} con estado {} (página: {}, tamaño: {})", tenantId, orderStatus, page, size);
+            Pageable pageable = PageRequest.of(page, size, Sort.by("fecha").descending());
+            Page<ClientOrderDTO> orders = clientOrderService.getOrdersByTenantAndStatus(tenantId, orderStatus, pageable);
+            return ResponseEntity.ok(new GenericResponse(200, "Órdenes encontradas", orders));
+        } catch (Exception e) {
+            log.error("Error obteniendo órdenes del tenant {} con estado {}", tenantId, status, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    /**
+     * Resuelve el estado de la orden aceptando tanto inglés como español.
+     * PENDING / PENDIENTE → OrderStatus.PENDIENTE
+     * CONFIRMED / PAID / PAGADA → OrderStatus.PAGADA
+     * CANCELLED / CANCELED / CANCELADA → OrderStatus.CANCELADA
+     */
+    private OrderStatus resolveOrderStatus(String status) {
+        if (status == null) return null;
+        return switch (status.toUpperCase().trim()) {
+            case "PENDING", "PENDIENTE"                      -> OrderStatus.PENDIENTE;
+            case "CONFIRMED", "PAID", "PAGADA", "CONFIRMADO"               -> OrderStatus.PAGADA;
+            case "CANCELLED", "CANCELED", "CANCELADA", "RECHAZADO"        -> OrderStatus.CANCELADA;
+            default -> null;
+        };
+    }
+
     @Operation(summary = "Actualizar el estado de una orden")
     @PatchMapping("/{orderId}/status")
     public ResponseEntity<GenericResponse> updateOrderStatus(
@@ -141,6 +184,36 @@ public class ClientOrderController {
         try {
             log.info("Actualizando estado de orden {} a: {}", orderId, request.getEstado());
             ClientOrderDTO order = clientOrderService.updateOrderStatus(orderId, request.getEstado());
+            return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Orden no encontrada: {}", orderId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Error de validación al actualizar orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error actualizando estado de orden {}", orderId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Actualizar estado de una orden (endpoint dedicado)")
+    @PatchMapping("/status")
+    public ResponseEntity<GenericResponse> updateOrderStatusDedicated(
+            @RequestParam UUID orderId,
+            @RequestParam String status) {
+        try {
+            OrderStatus orderStatus = resolveOrderStatus(status);
+            if (orderStatus == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new GenericResponse(400,
+                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/PAID/PAGADA, CANCELLED/CANCELADA", null));
+            }
+            log.info("Actualizando estado de orden {} a: {} (dedicado)", orderId, orderStatus);
+            ClientOrderDTO order = clientOrderService.updateOrderStatus(orderId, orderStatus);
             return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
         } catch (ResourceNotFoundException ex) {
             log.warn("Orden no encontrada: {}", orderId);

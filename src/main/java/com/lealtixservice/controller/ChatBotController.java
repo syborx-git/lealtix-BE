@@ -1,7 +1,9 @@
 package com.lealtixservice.controller;
 
 import com.lealtixservice.dto.*;
+import com.lealtixservice.enums.OrderStatus;
 import com.lealtixservice.service.ChatBotService;
+import com.lealtixservice.service.OrderSseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +30,7 @@ import java.util.UUID;
 public class ChatBotController {
 
     private final ChatBotService chatBotService;
+    private final OrderSseService orderSseService;
 
     @Operation(
         summary = "Validar cliente por teléfono o email",
@@ -232,7 +235,12 @@ public class ChatBotController {
                      request.getSessionId(), request.getTenantId());
             
             ClientOrderDTO order = chatBotService.createOrderFromChatBot(request);
-            
+
+            // Notificación SSE al FE: orden nueva desde CHATBOT en estado PENDIENTE
+            if (OrderStatus.PENDIENTE.equals(order.getEstado())) {
+                orderSseService.publishNewChatbotOrder(order);
+            }
+
             // Completar la sesión automáticamente
             chatBotService.completeSession(request.getSessionId());
             
