@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -647,11 +648,36 @@ public class CampaignServiceImpl implements CampaignService {
         if (tenantId == null) {
             return false;
         }
+        
         // Reglas: template.category = 'General', template.name = 'Bienvenida', status = ACTIVE, endDate null o >= today
+        log.debug("INTENTO 1: Buscando por template exacto (category='General', name='Bienvenida')");
         boolean exists = campaignRepository.existsActiveWelcomeCampaignForTenant(
                 tenantId, CampaignStatus.ACTIVE, "General", "Bienvenida");
-        log.info("Resultado verificación campaña bienvenida para tenant {}: {}", tenantId, exists);
-        return exists;
+        
+        log.info("INTENTO 1 Resultado: {} | Buscando campaña de bienvenida para tenant {}: {}", exists ? "ENCONTRADA" : "NO ENCONTRADA", tenantId, exists);
+        
+        if (exists) {
+            log.info("Campaña de bienvenida encontrada en INTENTO 1 para tenant {}", tenantId);
+            return true;
+        }
+        
+        // Fallback: Buscar solo por nombre "Bienvenida" sin criterios de template tan restrictivos
+        log.debug("INTENTO 2 (fallback): Buscando campaña con nombre similar a 'bienvenida' (case-insensitive)");
+        List<Campaign> fallbackCampaigns = campaignRepository.findAll()
+                .stream()
+                .filter(c -> c.getBusinessId() != null && c.getBusinessId().equals(tenantId))
+                .filter(c -> c.getStatus() == CampaignStatus.ACTIVE)
+                .filter(c -> c.getEndDate() == null || c.getEndDate().compareTo(LocalDate.now()) >= 0)
+                .filter(c -> c.getTitle() != null && c.getTitle().toLowerCase().contains("bienvenid"))
+                .collect(Collectors.toList());
+        
+        if (!fallbackCampaigns.isEmpty()) {
+            log.info("INTENTO 2: Campaña de bienvenida encontrada (fallback) para tenant {}: {}", tenantId, fallbackCampaigns.get(0).getTitle());
+            return true;
+        }
+        
+        log.warn("INTENTO 2: No se encontró campaña de bienvenida incluso con fallback para tenant {}", tenantId);
+        return false;
     }
 
     @Override
@@ -663,19 +689,35 @@ public class CampaignServiceImpl implements CampaignService {
         }
 
         // Buscar campañas activas de bienvenida (con template y promotionReward precargados)
-        log.debug("Ejecutando query findActiveWelcomeCampaignsForTenant con parámetros: tenantId={}, status=ACTIVE, category=General, name=Bienvenida", tenantId);
+        log.debug("INTENTO 1: Ejecutando query findActiveWelcomeCampaignsForTenant con parámetros: tenantId={}, status=ACTIVE, category=General, name=Bienvenida", tenantId);
         List<Campaign> campaigns = campaignRepository.findActiveWelcomeCampaignsForTenant(
                 tenantId, CampaignStatus.ACTIVE, "General", "Bienvenida");
 
-        log.debug("Query ejecutado. Número de campañas encontradas: {}", campaigns.size());
+        log.debug("INTENTO 1: Query ejecutado. Número de campañas encontradas: {}", campaigns.size());
 
         if (campaigns.isEmpty()) {
-            log.warn("No se encontró campaña de bienvenida activa para tenant {}", tenantId);
-            return null;
+            log.warn("INTENTO 1: No se encontró campaña de bienvenida con criterios estrictos para tenant {}, intentando fallback...", tenantId);
+            
+            // Fallback: Buscar solo por nombre "bienvenida" sin criterios de template tan restrictivos
+            log.debug("INTENTO 2 (fallback): Buscando por nombre contiene 'bienvenida'");
+            campaigns = campaignRepository.findAll()
+                    .stream()
+                    .filter(c -> c.getBusinessId() != null && c.getBusinessId().equals(tenantId))
+                    .filter(c -> c.getStatus() == CampaignStatus.ACTIVE)
+                    .filter(c -> c.getEndDate() == null || c.getEndDate().compareTo(LocalDate.now()) >= 0)
+                    .filter(c -> c.getTitle() != null && c.getTitle().toLowerCase().contains("bienvenid"))
+                    .collect(Collectors.toList());
+            
+            log.debug("INTENTO 2: Campañas encontradas con fallback: {}", campaigns.size());
+            
+            if (campaigns.isEmpty()) {
+                log.warn("INTENTO 2: No se encontró campaña de bienvenida activa incluso con fallback para tenant {}", tenantId);
+                return null;
+            }
         }
 
         Campaign campaign = campaigns.get(0);
-        log.info("Campaña de bienvenida {} encontrada para tenant {}", campaign.getId(), tenantId);
+        log.info("Campaña de bienvenida {} encontrada para tenant {}: {}", campaign.getId(), tenantId, campaign.getTitle());
 
         // Forzar la inicialización de las relaciones lazy (para evitar LazyInitializationException)
         try {

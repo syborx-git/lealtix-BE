@@ -31,8 +31,8 @@ public class CouponValidationServiceImpl implements CouponValidationService {
     public CouponValidationResponse validateCouponByQrToken(String qrToken, Long tenantId) {
         log.debug("Validando cupón por QR token para tenant: {}", tenantId);
 
-        // 1. Buscar cupón por QR token
-        Coupon coupon = couponRepository.findByQrToken(qrToken)
+        // 1. Buscar cupón por QR token con relaciones precargadas (optimizado)
+        Coupon coupon = couponRepository.findByQrTokenWithRelations(qrToken)
                 .orElse(null);
 
         if (coupon == null) {
@@ -55,7 +55,8 @@ public class CouponValidationServiceImpl implements CouponValidationService {
     public CouponValidationResponse validateCouponByCode(String couponCode, Long tenantId) {
         log.debug("Validando cupón por código para tenant: {}", tenantId);
 
-        Coupon coupon = couponRepository.findByCode(couponCode)
+        // Usar consulta optimizada con JOIN FETCH
+        Coupon coupon = couponRepository.findByCodeWithRelations(couponCode)
                 .orElse(null);
 
         if (coupon == null) {
@@ -76,8 +77,8 @@ public class CouponValidationServiceImpl implements CouponValidationService {
     public CouponValidationResponse validateCouponByQrTokenForCustomer(String qrToken) {
         log.debug("Validando cupón por QR token desde perspectiva del cliente");
 
-        // 1. Buscar cupón por QR token
-        Coupon coupon = couponRepository.findByQrToken(qrToken)
+        // 1. Buscar cupón por QR token con relaciones precargadas (optimizado)
+        Coupon coupon = couponRepository.findByQrTokenWithRelations(qrToken)
                 .orElse(null);
 
         if (coupon == null) {

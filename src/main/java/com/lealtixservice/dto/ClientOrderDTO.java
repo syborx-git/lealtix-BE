@@ -30,6 +30,10 @@ public class ClientOrderDTO {
     private BigDecimal descuento;
     private BigDecimal total;
     private List<ClientOrderItemDTO> items;
+    private String source;  // Origen: 'CHATBOT', 'MANUAL', 'POS', 'WEB', 'MOBILE'
+    private String couponCode;  // Código del cupón aplicado (ej: "SUMMER20")
+    private Long couponId;  // ID del cupón aplicado
+    private BigDecimal couponDiscount;  // Descuento específico del cupón
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

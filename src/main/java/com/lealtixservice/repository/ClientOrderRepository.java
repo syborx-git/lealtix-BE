@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -37,6 +38,12 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
      * Buscar órdenes de un cliente por fecha descendente
      */
     List<ClientOrder> findByCustomerIdOrderByFechaDesc(Long customerId);
+
+    /**
+     * Obtener la última orden de un cliente (para "lo de siempre")
+     * Spring Data JPA automaticamente limita a 1 resultado con 'First'
+     */
+    Optional<ClientOrder> findFirstByCustomerIdAndTenantIdOrderByFechaDesc(Long customerId, Long tenantId);
 
     /**
      * Buscar órdenes pendientes de pago de un tenant

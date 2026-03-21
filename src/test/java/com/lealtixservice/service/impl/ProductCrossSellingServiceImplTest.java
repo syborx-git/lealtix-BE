@@ -239,7 +239,7 @@ class ProductCrossSellingServiceImplTest {
             crossSellingService.createCrossSelling(request);
         });
         
-        assertTrue(exception.getMessage().contains("máximo de 5 sugerencias"));
+        assertTrue(exception.getMessage().contains("máximo de 3 sugerencias"));
         assertTrue(exception.getMessage().contains("elimina una sugerencia existente"));
         
         verify(crossSellingRepository).findByProductIdAndTenantId(1L, 1L);

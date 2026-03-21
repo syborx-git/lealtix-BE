@@ -40,7 +40,9 @@ public class ClientOrderMapper {
                 .subtotal(subtotal)
                 .descuento(descuento)
                 .total(total)
+                .couponId(request.getCouponId())
                 .fecha(java.time.LocalDateTime.now())  // Establecer la fecha actual
+                .source(request.getSource() != null ? request.getSource() : "MANUAL")  // Soporte para source
                 .build();
     }
 
@@ -48,6 +50,13 @@ public class ClientOrderMapper {
      * Convierte una entidad ClientOrder a un DTO ClientOrderDTO
      */
     public static ClientOrderDTO toDTO(ClientOrder order) {
+        return toDTO(order, null, null);
+    }
+
+    /**
+     * Convierte una entidad ClientOrder a un DTO ClientOrderDTO con información de cupón
+     */
+    public static ClientOrderDTO toDTO(ClientOrder order, String couponCode, BigDecimal couponDiscount) {
         if (order == null) return null;
         
         List<ClientOrderItemDTO> itemsDTO = null;
@@ -69,6 +78,10 @@ public class ClientOrderMapper {
                 .descuento(order.getDescuento())
                 .total(order.getTotal())
                 .items(itemsDTO)
+                .source(order.getSource())
+                .couponCode(couponCode)
+                .couponId(order.getCouponId())
+                .couponDiscount(couponDiscount != null ? couponDiscount : BigDecimal.ZERO)
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();

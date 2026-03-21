@@ -1,49 +1,55 @@
 package com.lealtixservice.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.util.List;
-import com.lealtixservice.enums.RedemptionChannel;
-import org.springframework.lang.Nullable;
 
 /**
- * DTO para crear una nueva orden
+ * DTO para crear una orden desde el ChatBot.
+ * Extiende la funcionalidad de CreateClientOrderRequest con campos específicos del ChatBot.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateClientOrderRequest {
-    
-    @Nullable
-    private Long customerId;
-    
+public class ChatBotOrderRequestDTO {
+
     @NotNull(message = "tenantId es requerido")
     private Long tenantId;
-    
+
+    @NotBlank(message = "sessionId es requerido")
+    private String sessionId;
+
+    private Long customerId;  // Nullable si es venta general
+
+    private String customerPhone;  // Para registro rápido
+
+    private String customerEmail;  // Para registro rápido
+
+    private String customerName;  // Para registro rápido
+
     @NotNull(message = "items es requerido")
+    @Valid
     private List<OrderItemRequest> items;
-    
+
     private BigDecimal descuento;
 
     private BigDecimal subtotal;
+
     private BigDecimal totalFinal;
 
     private String couponCode;
-    private Long couponId;
 
-    private String redeemedBy;
+    @Builder.Default
+    private String source = "CHATBOT";
 
-    private RedemptionChannel redemptionChannel;
-
-    private String source;  // Origen: 'CHATBOT', 'MANUAL', 'POS', 'WEB', 'MOBILE'
-    
     /**
      * DTO anidado para los items de la orden
      */
@@ -52,18 +58,16 @@ public class CreateClientOrderRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OrderItemRequest {
-        
+
         @NotNull(message = "productId es requerido")
         private Long productId;
-        
+
         @NotNull(message = "cantidad es requerida")
-        @Positive(message = "cantidad debe ser mayor a 0")
         private Integer cantidad;
-        
+
         @NotNull(message = "precioUnitario es requerido")
-        @Positive(message = "precioUnitario debe ser mayor a 0")
         private BigDecimal precioUnitario;
-        
+
         private String comentarios;
     }
 }
