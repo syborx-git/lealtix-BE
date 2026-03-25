@@ -20,6 +20,7 @@ public class TenantCustomerMapper {
                 .updatedAt(entity.getUpdatedAt())
                 .acceptedPromotions(entity.isAcceptedPromotions())
                 .acceptedAt(entity.getAcceptedAt())
+                .active(entity.getActive())
                 .build();
     }
 
@@ -35,6 +36,7 @@ public class TenantCustomerMapper {
                 .phone(dto.getPhone())
                 .acceptedPromotions(dto.getAcceptedPromotions() != null ? dto.getAcceptedPromotions() : true)
                 .acceptedAt(dto.getAcceptedAt())
+                .active(true)
                 .build();
     }
 }

@@ -4,6 +4,7 @@ import com.lealtixservice.config.SendGridTemplates;
 import com.lealtixservice.dto.EmailDTO;
 import com.lealtixservice.dto.PagoDto;
 import com.lealtixservice.entity.*;
+import com.lealtixservice.enums.PaymentStatus;
 import com.lealtixservice.repository.PreRegistroRepository;
 import com.lealtixservice.repository.TenantPaymentRepository;
 import com.lealtixservice.repository.TenantRepository;
@@ -21,7 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.Optional;
 
@@ -130,7 +133,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
             // Actualiza invitacion usada
             Invitation invitation = invitationService.getInviteByEmail(user.getEmail());
             if (invitation != null) {
-                invitation.setUsedAt(LocalDateTime.now().atZone(java.time.ZoneId.systemDefault()).toInstant());
+                invitation.setUsedAt(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
                 invitationService.save(invitation);
             }
 
@@ -152,9 +155,12 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                     .build();
             emailservice.sendEmailWithTemplate(emailDTO);
 
+        } catch (IOException e) {
+            log.error("❌ FALLO envío de email de bienvenida a {}: {}", pagoDto != null ? pagoDto.getName() : "desconocido", e.getMessage(), e);
+            throw new RuntimeException("Failed to send welcome email", e);
         } catch (Exception e) {
-            log.error("Error retrieving checkout session: {}", e.getMessage());
-            return null;
+            log.error("❌ Error procesando checkout session: {}", e.getMessage(), e);
+            throw new RuntimeException("Error processing checkout session", e);
         }
 
         return pagoDto;
@@ -163,6 +169,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
     @Override
     public void handlePaymentIntentSucceeded(Event event) {
         PagoDto pagoDto = null;
+        String email = "";
         try {
             StripeObject obj = event.getDataObjectDeserializer().getObject()
                     .orElseThrow(() -> new IllegalArgumentException("Stripe object is missing"));
@@ -182,7 +189,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
             AppUser user = appUserService.findById(userId).orElseThrow(
                     () -> new RuntimeException("User not found with id: " + userId)
             );
-
+            email =  user.getEmail();
             TenantPayment tp = TenantPayment.builder().build();
             tp.setCreatedAt(LocalDateTime.now());
             tp.setEndDate(LocalDateTime.now());
@@ -235,7 +242,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
             // Actualiza invitacion usada
             Invitation invitation = invitationService.getInviteByEmail(user.getEmail());
             if (invitation != null) {
-                invitation.setUsedAt(LocalDateTime.now().atZone(java.time.ZoneId.systemDefault()).toInstant());
+                invitation.setUsedAt(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
                 invitationService.save(invitation);
             }
 
@@ -258,8 +265,12 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                     .build();
             emailservice.sendEmailWithTemplate(emailDTO);
 
+        } catch (IOException e) {
+            log.error("❌ FALLO envío de email de bienvenida a {}: {}", email, e.getMessage(), e);
+            throw new RuntimeException("Failed to send welcome email after payment intent success", e);
         } catch (Exception e) {
-            log.error("Error retrieving checkout session: {}", e.getMessage());
+            log.error("❌ Error procesando payment intent succeeded: {}", e.getMessage(), e);
+            throw new RuntimeException("Error processing payment intent succeeded", e);
         }
     }
 
@@ -294,7 +305,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
             tp.setDescription("PaymentIntent failed");
             tp.setStripeCustomerId(intent.getCustomer());
             // Marcar como FAILED usando el enum como en handleChargeFailed
-            tp.setStatus(com.lealtixservice.enums.PaymentStatus.FAILED.getStatus());
+            tp.setStatus(PaymentStatus.FAILED.getStatus());
             tp.setUpdatedAt(LocalDateTime.now());
             tp.setAmount(intent.getAmount());
             tp.setStripePaymentId(intent.getId());
@@ -381,7 +392,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
             Optional<TenantPayment> opt = tenantPaymentRepository.findByStripePaymentId(lookupId);
             if (opt.isPresent()) {
                 TenantPayment tp = opt.get();
-                tp.setStatus(com.lealtixservice.enums.PaymentStatus.FAILED.getStatus());
+                tp.setStatus(PaymentStatus.FAILED.getStatus());
                 String failureMessage = charge.getFailureMessage() != null ? charge.getFailureMessage() : charge.getFailureCode();
                 tp.setDescription("Charge failed: " + (failureMessage != null ? failureMessage : "Unknown reason"));
                 tp.setUpdatedAt(LocalDateTime.now());

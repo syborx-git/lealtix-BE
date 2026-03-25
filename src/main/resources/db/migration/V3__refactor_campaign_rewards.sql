@@ -3,8 +3,12 @@
 -- Descripción: Separación de lógica de campañas y rewards
 -- Base de datos: PostgreSQL
 
+-- DEPRECATED: This development folder is no longer the canonical migrations location.
+-- See src/main/resources/db/migration/V3__refactor_campaign_rewards.sql for the authoritative migration.
+-- Do not edit files in this folder. Remove this folder or keep only backups.
+
 -- 1. Crear tabla promotion_reward
-CREATE TABLE promotion_reward (
+CREATE TABLE IF NOT EXISTS promotion_reward (
     id BIGSERIAL PRIMARY KEY,
     campaign_id BIGINT NOT NULL UNIQUE,
     reward_type VARCHAR(50) NOT NULL,
@@ -22,11 +26,11 @@ CREATE TABLE promotion_reward (
     CONSTRAINT fk_promotion_reward_campaign FOREIGN KEY (campaign_id) REFERENCES campaign(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_promotion_reward_campaign ON promotion_reward(campaign_id);
-CREATE INDEX idx_promotion_reward_type ON promotion_reward(reward_type);
+CREATE INDEX IF NOT EXISTS idx_promotion_reward_campaign ON promotion_reward(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_promotion_reward_type ON promotion_reward(reward_type);
 
 -- 2. Crear tabla coupon
-CREATE TABLE coupon (
+CREATE TABLE IF NOT EXISTS coupon (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(100) NOT NULL UNIQUE,
     campaign_id BIGINT NOT NULL,
@@ -40,14 +44,13 @@ CREATE TABLE coupon (
     CONSTRAINT fk_coupon_customer FOREIGN KEY (customer_id) REFERENCES tenant_customer(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_coupon_code ON coupon(code);
-CREATE INDEX idx_coupon_campaign ON coupon(campaign_id);
-CREATE INDEX idx_coupon_customer ON coupon(customer_id);
-CREATE INDEX idx_coupon_status ON coupon(status);
-CREATE INDEX idx_coupon_expires_at ON coupon(expires_at);
+CREATE INDEX IF NOT EXISTS idx_coupon_code ON coupon(code);
+CREATE INDEX IF NOT EXISTS idx_coupon_campaign ON coupon(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_coupon_customer ON coupon(customer_id);
+CREATE INDEX IF NOT EXISTS idx_coupon_status ON coupon(status);
+CREATE INDEX IF NOT EXISTS idx_coupon_expires_at ON coupon(expires_at);
 
 -- 3. Migrar datos existentes de campaign a promotion_reward
--- NOTA: Ejecutar solo si existen campañas con promo_type y promo_value
 INSERT INTO promotion_reward (campaign_id, reward_type, numeric_value, description, usage_count, created_at, updated_at)
 SELECT
     c.id,
@@ -60,7 +63,6 @@ SELECT
     END,
     CASE
         WHEN c.promo_type IN ('DISCOUNT', 'AMOUNT') THEN
-            -- Limpiar caracteres no numéricos (%, $, espacios) antes de convertir
             CASE
                 WHEN REGEXP_REPLACE(c.promo_value, '[^0-9.]', '', 'g') ~ '^[0-9]+\.?[0-9]*$'
                 THEN CAST(REGEXP_REPLACE(c.promo_value, '[^0-9.]', '', 'g') AS DECIMAL(10,2))
@@ -75,17 +77,12 @@ SELECT
 FROM campaign c
 WHERE c.promo_type IS NOT NULL AND c.status != 'DRAFT';
 
--- 4. Eliminar columnas obsoletas de campaign (ejecutar después de verificar migración)
--- ALTER TABLE campaign DROP COLUMN promo_type;
--- ALTER TABLE campaign DROP COLUMN promo_value;
-
--- 5. Actualizar tabla campaign_result para agregar last_click_at
+-- 4. Actualizar tabla campaign_result para agregar last_click_at
 ALTER TABLE campaign_result
-ADD COLUMN last_click_at TIMESTAMP NULL;
+ADD COLUMN IF NOT EXISTS last_click_at TIMESTAMP NULL;
 
 -- Notas de migración:
 -- - Las campañas en DRAFT pueden no tener reward, esto es válido
 -- - Solo campañas ACTIVE/SCHEDULED deben tener promotion_reward
 -- - Los cupones se generarán dinámicamente al asignar campañas a clientes
 -- - Verificar foreign keys según el nombre real de tenant_customer
-

@@ -22,4 +22,3 @@ $$;
 -- Create index for efficient queries on promotion acceptance
 CREATE INDEX IF NOT EXISTS idx_tenant_customer_accepted_promotions
 ON tenant_customer(tenant_id, accepted_promotions);
-

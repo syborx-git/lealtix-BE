@@ -8,6 +8,7 @@ import com.lealtixservice.entity.PromotionReward;
 import com.lealtixservice.enums.CampaignStatus;
 import com.lealtixservice.enums.PromoType;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -67,14 +68,16 @@ public class CampaignMapper {
         if (request.getSubtitle() != null) entity.setSubtitle(request.getSubtitle());
         if (request.getDescription() != null) entity.setDescription(request.getDescription());
         if (request.getImageUrl() != null) entity.setImageUrl(request.getImageUrl());
-        // NOTA: promoType y promoValue removidos - usar PromotionReward
+        if (request.getPromoType() != null) {
+            entity.setPromoType(parsePromoType(request.getPromoType()));
+        }
         if (request.getStartDate() != null) entity.setStartDate(request.getStartDate());
         if (request.getEndDate() != null) entity.setEndDate(request.getEndDate());
         // Usar setStatus personalizado que sincroniza isDraft automáticamente
         if (request.getStatus() != null) {
             CampaignStatus status = parseStatus(request.getStatus());
             if (status != null) {
-                entity.setStatus(status); // Este método sincroniza isDraft
+                entity.setStatus(status);
             }
         }
         if (request.getCallToAction() != null) entity.setCallToAction(request.getCallToAction());
@@ -102,7 +105,7 @@ public class CampaignMapper {
                 .subtitle(campaign.getSubtitle())
                 .description(campaign.getDescription())
                 .imageUrl(campaign.getImageUrl())
-                .promoType(null)
+                .promoType(enumToString(campaign.getPromoType()))
                 .promoValue(null)
                 .startDate(campaign.getStartDate())
                 .endDate(campaign.getEndDate())
@@ -113,6 +116,7 @@ public class CampaignMapper {
                 .isAutomatic(campaign.getIsAutomatic())
                 .createdAt(campaign.getCreatedAt())
                 .updatedAt(campaign.getUpdatedAt())
+                .inUse(isActiveNow(campaign))
                 .build();
 
         if (campaign.getPromotionReward() != null) {
@@ -214,5 +218,17 @@ public class CampaignMapper {
                 .createdAt(reward.getCreatedAt())
                 .updatedAt(reward.getUpdatedAt())
                 .build();
+    }
+
+    private static boolean isActiveNow(Campaign campaign) {
+        if (campaign == null) return false;
+        String status = determineStatus(campaign);
+        if (!CampaignStatus.ACTIVE.name().equals(status)) return false;
+        LocalDate today = LocalDate.now();
+        LocalDate start = campaign.getStartDate();
+        LocalDate end = campaign.getEndDate();
+        boolean afterStart = start == null || !today.isBefore(start);
+        boolean beforeEnd = end == null || !today.isAfter(end);
+        return afterStart && beforeEnd;
     }
 }

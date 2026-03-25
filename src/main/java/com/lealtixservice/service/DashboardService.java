@@ -1,9 +1,6 @@
 package com.lealtixservice.service;
 
-import com.lealtixservice.dto.dashboard.CampaignPerformanceDTO;
-import com.lealtixservice.dto.dashboard.CouponStatsDTO;
-import com.lealtixservice.dto.dashboard.SalesSummaryDTO;
-import com.lealtixservice.dto.dashboard.TimeSeriesCountDTO;
+import com.lealtixservice.dto.dashboard.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,5 +45,43 @@ public interface DashboardService {
             LocalDateTime from,
             LocalDateTime to
     );
-}
 
+    // ==================== NUEVOS KPIs DE FIDELIZACIÓN Y COMANDIX ====================
+
+    /**
+     * KPI COMANDIX 1: Tasa de Recompra (Repeat Purchase Rate)
+     * Calcula el porcentaje de clientes que han realizado más de una compra.
+     */
+    RepeatPurchaseRateDTO getRepeatPurchaseRate(Long tenantId, LocalDateTime from, LocalDateTime to);
+
+    /**
+     * KPI COMANDIX 2: Ventas Identificadas vs Generales
+     * Compara ingresos y transacciones entre clientes registrados y ventas anónimas.
+     */
+    IdentifiedVsGeneralSalesDTO getIdentifiedVsGeneralSales(Long tenantId, LocalDateTime from, LocalDateTime to);
+
+    /**
+     * KPI COMANDIX 3: LTV (Customer Lifetime Value)
+     * Lista de clientes ordenados por valor total generado.
+     */
+    List<CustomerLTVDTO> getCustomerLTV(Long tenantId, LocalDateTime from, LocalDateTime to, Integer limit);
+
+    /**
+     * KPI COMANDIX 4: Tasa de Conversión de Cupón
+     * Relación entre cupones emitidos, redimidos y usados en órdenes.
+     */
+    List<CouponConversionRateDTO> getCouponConversionRate(Long tenantId, LocalDateTime from, LocalDateTime to);
+
+    /**
+     * KPI COMANDIX 5: Análisis de Personalización
+     * Frecuencia de términos en comentarios de items para identificar tendencias.
+     */
+    List<CustomizationAnalysisDTO> getCustomizationAnalysis(Long tenantId, LocalDateTime from, LocalDateTime to);
+
+    /**
+     * KPI COMANDIX 6: ROI por Campaña
+     * Calcula retorno de inversión: (Ingresos - Costo) / Costo
+     */
+    List<CampaignROIDTO> getCampaignROI(Long tenantId, LocalDateTime from, LocalDateTime to);
+
+}

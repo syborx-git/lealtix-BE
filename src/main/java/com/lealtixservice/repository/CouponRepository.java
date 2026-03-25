@@ -15,14 +15,38 @@ import java.util.Optional;
 public interface CouponRepository extends JpaRepository<Coupon, Long> {
 
     /**
-     * Buscar cupón por código
+     * Buscar cupón por código (sin optimización, puede causar N+1)
      */
     Optional<Coupon> findByCode(String code);
 
     /**
-     * Buscar cupón por QR token (para redención)
+     * Buscar cupón por código con EAGER FETCH para validación rápida
+     * Incluye: campaign, customer, tenant, promotionReward
+     */
+    @Query("SELECT c FROM Coupon c " +
+           "JOIN FETCH c.campaign camp " +
+           "JOIN FETCH c.customer cust " +
+           "JOIN FETCH cust.tenant t " +
+           "LEFT JOIN FETCH camp.promotionReward pr " +
+           "WHERE c.code = :code")
+    Optional<Coupon> findByCodeWithRelations(@Param("code") String code);
+
+    /**
+     * Buscar cupón por QR token (sin optimización, puede causar N+1)
      */
     Optional<Coupon> findByQrToken(String qrToken);
+
+    /**
+     * Buscar cupón por QR token con EAGER FETCH para validación rápida
+     * Incluye: campaign, customer, tenant, promotionReward
+     */
+    @Query("SELECT c FROM Coupon c " +
+           "JOIN FETCH c.campaign camp " +
+           "JOIN FETCH c.customer cust " +
+           "JOIN FETCH cust.tenant t " +
+           "LEFT JOIN FETCH camp.promotionReward pr " +
+           "WHERE c.qrToken = :qrToken")
+    Optional<Coupon> findByQrTokenWithRelations(@Param("qrToken") String qrToken);
 
     /**
      * Verificar si existe un cupón con el código

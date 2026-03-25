@@ -15,7 +15,6 @@ public class MapperUtils {
                 .email(appUser.getEmail())
                 .telefono(appUser.getTelefono())
                 .fechaNacimiento(appUser.getFechaNacimiento())
-                .password(EncrypUtils.decrypPassword(appUser.getPasswordHash()))
                 .build();
     }
 }

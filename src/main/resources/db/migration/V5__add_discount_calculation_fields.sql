@@ -15,4 +15,3 @@ ADD COLUMN IF NOT EXISTS coupon_value NUMERIC(10, 2);
 
 -- Crear índice para consultas de reportes por tipo de cupón
 CREATE INDEX IF NOT EXISTS idx_redemption_coupon_type ON coupon_redemption(coupon_type);
-
