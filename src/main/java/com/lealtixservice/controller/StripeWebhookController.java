@@ -74,24 +74,30 @@ public class StripeWebhookController {
 
         log.info("✅ Evento Stripe validado correctamente: type={} id={}", event.getType(), event.getId());
         PagoDto pagoDto;
-        switch (event.getType()) {
-            case "checkout.session.completed":
-                pagoDto = stripeWebhookService.handleCheckoutSessionCompleted(event);
-                break;
-            case "payment_intent.succeeded":
-                stripeWebhookService.handlePaymentIntentSucceeded(event);
-                break;
-            case "payment_intent.payment_failed":
-                stripeWebhookService.handlePaymentIntentFailed(event);
-                resp = false;
-                break;
-            case "charge.failed":
-                stripeWebhookService.handleChargeFailed(event);
-                resp = false;
-                break;
-            default:
-                log.info("ℹ️ Evento no manejado: {}", event.getType());
-                break;
+        try {
+            switch (event.getType()) {
+                case "checkout.session.completed":
+                    pagoDto = stripeWebhookService.handleCheckoutSessionCompleted(event);
+                    break;
+                case "payment_intent.succeeded":
+                    stripeWebhookService.handlePaymentIntentSucceeded(event);
+                    break;
+                case "payment_intent.payment_failed":
+                    stripeWebhookService.handlePaymentIntentFailed(event);
+                    resp = false;
+                    break;
+                case "charge.failed":
+                    stripeWebhookService.handleChargeFailed(event);
+                    resp = false;
+                    break;
+                default:
+                    log.info("ℹ️ Evento no manejado: {}", event.getType());
+                    break;
+            }
+        } catch (RuntimeException e) {
+            log.error("❌ Error procesando webhook de Stripe (type={}): {}", event.getType(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error procesando webhook: " + e.getMessage());
         }
 
         if(resp){

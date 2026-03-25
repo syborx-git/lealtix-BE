@@ -14,5 +14,13 @@ public class SendGridTemplates {
     @Value("${sendgrid.templates.welcome}")
     private String welcomeTemplate;
 
+    public String getPreRegistroTemplate() {
+        return preRegistroTemplate != null ? preRegistroTemplate.trim() : null;
+    }
+
+    public String getWelcomeTemplate() {
+        return welcomeTemplate != null ? welcomeTemplate.trim() : null;
+    }
+
 }
 
