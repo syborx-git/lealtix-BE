@@ -64,7 +64,7 @@ public class TenantUserMapper {
                 .fechaNacimiento(dto.getFechaNacimiento())
                 .telefono(dto.getTelefono())
                 .email(dto.getEmail())
-                .passwordHash(dto.getPassword())
+                .passwordHash(EncrypUtils.encryptPassword(dto.getPassword()))
                 .isActive(dto.isActive())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())

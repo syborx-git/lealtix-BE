@@ -63,55 +63,84 @@ public class EmailServiceImpl implements Emailservice {
         log.debug("[EmailService] Subject: {}", emailDTO.getSubject());
         log.debug("[EmailService] From: {}", emailFrom);
 
-        Mail mail = new Mail();
-        mail.setFrom(new Email(emailFrom));
-        mail.setSubject(emailDTO.getSubject());
-        mail.setTemplateId(emailDTO.getTemplateId());
-        log.info("Sending email ... : {}", emailDTO.getSubject());
-        Personalization personalization = new Personalization();
-        personalization.addTo(new Email(emailDTO.getTo()));
-        personalization.setSubject(emailDTO.getSubject());
+        try {
+            Mail mail = new Mail();
+            mail.setFrom(new Email(emailFrom));
+            mail.setSubject(emailDTO.getSubject());
+            mail.setTemplateId(emailDTO.getTemplateId());
+            log.info("Sending email ... : {}", emailDTO.getSubject());
+            Personalization personalization = new Personalization();
+            personalization.addTo(new Email(emailDTO.getTo()));
+            personalization.setSubject(emailDTO.getSubject());
 
-        if (emailDTO.getDynamicData() != null) {
-            emailDTO.getDynamicData().forEach(personalization::addDynamicTemplateData);
-        }
-        mail.addPersonalization(personalization);
-
-        // Agregar attachments si existen
-        if (emailDTO.getAttachments() != null && !emailDTO.getAttachments().isEmpty()) {
-            log.info("Agregando {} attachment(s) al email", emailDTO.getAttachments().size());
-            for (EmailAttachmentDTO attachmentDTO : emailDTO.getAttachments()) {
-                Attachments attachment = new Attachments();
-                attachment.setContent(attachmentDTO.getContent());
-                attachment.setType(attachmentDTO.getType());
-                attachment.setFilename(attachmentDTO.getFilename());
-                attachment.setDisposition(attachmentDTO.getDisposition());
-                attachment.setContentId(attachmentDTO.getContentId());
-                mail.addAttachments(attachment);
-                log.debug("Attachment agregado: {} (contentId: {})",
-                    attachmentDTO.getFilename(), attachmentDTO.getContentId());
+            if (emailDTO.getDynamicData() != null) {
+                emailDTO.getDynamicData().forEach(personalization::addDynamicTemplateData);
             }
+            mail.addPersonalization(personalization);
+
+            // Agregar attachments si existen
+            if (emailDTO.getAttachments() != null && !emailDTO.getAttachments().isEmpty()) {
+                log.info("Agregando {} attachment(s) al email", emailDTO.getAttachments().size());
+                for (EmailAttachmentDTO attachmentDTO : emailDTO.getAttachments()) {
+                    Attachments attachment = new Attachments();
+                    attachment.setContent(attachmentDTO.getContent());
+                    attachment.setType(attachmentDTO.getType());
+                    attachment.setFilename(attachmentDTO.getFilename());
+                    attachment.setDisposition(attachmentDTO.getDisposition());
+                    attachment.setContentId(attachmentDTO.getContentId());
+                    mail.addAttachments(attachment);
+                    log.debug("Attachment agregado: {} (contentId: {})",
+                        attachmentDTO.getFilename(), attachmentDTO.getContentId());
+                }
+            }
+
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+
+            Response response = sendGrid.api(request);
+            log.info("SendGrid response: {}", response.getStatusCode());
+
+            // Registra en EmailLog
+            EmailLog emailLog = EmailLog.builder()
+                    .entityType(emailDTO.getEntityType() != null ? emailDTO.getEntityType() : emailDTO.getTemplateId())
+                    .entityId(emailDTO.getEntityId() != null ? emailDTO.getEntityId() : 0L)
+                    .email(emailDTO.getTo())
+                    .templateName(emailDTO.getTemplateId())
+                    .sendgridMessageId(response.getHeaders().get("X-Message-Id") != null ? response.getHeaders().get("X-Message-Id").trim() : null)
+                    .status(response.getStatusCode() >= 200 && response.getStatusCode() < 300 ? "sent" : "failed")
+                    .errorMessage(response.getStatusCode() >= 200 && response.getStatusCode() < 300 ? null : response.getBody())
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            emailLogService.save(emailLog);
+
+            // Si la respuesta es error, lanzar excepción
+            if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+                String errorMsg = String.format("SendGrid API error (status %d): %s", response.getStatusCode(), response.getBody());
+                log.error("❌ {}", errorMsg);
+                throw new IOException(errorMsg);
+            }
+            
+            log.info("✅ Email enviado exitosamente a: {} | MessageId: {}", emailDTO.getTo(), 
+                response.getHeaders().get("X-Message-Id"));
+
+        } catch (IOException e) {
+            // Registra en EmailLog si hay error de I/O
+            EmailLog failedLog = EmailLog.builder()
+                    .entityType(emailDTO.getEntityType() != null ? emailDTO.getEntityType() : emailDTO.getTemplateId())
+                    .entityId(emailDTO.getEntityId() != null ? emailDTO.getEntityId() : 0L)
+                    .email(emailDTO.getTo())
+                    .templateName(emailDTO.getTemplateId())
+                    .status("failed")
+                    .errorMessage("IOException: " + e.getMessage())
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            emailLogService.save(failedLog);
+            
+            log.error("❌ Error de IO al enviar email a {}: {}", emailDTO.getTo(), e.getMessage(), e);
+            throw e;
         }
-
-        Request request = new Request();
-        request.setMethod(Method.POST);
-        request.setEndpoint("mail/send");
-        request.setBody(mail.build());
-
-        Response response = sendGrid.api(request);
-        log.info("SendGrid response: {}", response.getStatusCode());
-
-        EmailLog emailLog = EmailLog.builder()
-                .entityType(emailDTO.getEntityType() != null ? emailDTO.getEntityType() : emailDTO.getTemplateId())
-                .entityId(emailDTO.getEntityId() != null ? emailDTO.getEntityId() : 0L)
-                .email(emailDTO.getTo())
-                .templateName(emailDTO.getTemplateId())
-                .sendgridMessageId(response.getHeaders().get("X-Message-Id") != null ? response.getHeaders().get("X-Message-Id").trim() : null)
-                .status(response.getStatusCode() >= 200 && response.getStatusCode() < 300 ? "sent" : "failed")
-                .errorMessage(response.getStatusCode() >= 200 && response.getStatusCode() < 300 ? null : response.getBody())
-                .createdAt(LocalDateTime.now())
-                .build();
-        emailLogService.save(emailLog);
     }
 
 

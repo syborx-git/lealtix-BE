@@ -11,12 +11,12 @@ import com.lealtixservice.repository.TenantRepository;
 import com.lealtixservice.repository.TenantUserRepository;
 import com.lealtixservice.service.RolePermissionService;
 import com.lealtixservice.service.TenantUserService;
+import com.lealtixservice.util.EncrypUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,9 +33,6 @@ public class TenantUserServiceImpl implements TenantUserService {
 
     @Autowired
     private TenantRepository tenantRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private RolePermissionService rolePermissionService;
@@ -61,7 +58,7 @@ public class TenantUserServiceImpl implements TenantUserService {
         }
 
         // Crear el usuario
-        String passwordHash = passwordEncoder.encode(request.getContrasena());
+        String passwordHash = EncrypUtils.encryptPassword(request.getContrasena());
         TenantUser user = TenantUserMapper.toEntity(request, passwordHash);
         user.setTenant(tenant);
         user.setCreatedBy(createdBy);
@@ -95,7 +92,7 @@ public class TenantUserServiceImpl implements TenantUserService {
 
         // Si se actualiza la contraseña
         if (request.getContrasena() != null && !request.getContrasena().isBlank()) {
-            user.setPasswordHash(passwordEncoder.encode(request.getContrasena()));
+            user.setPasswordHash(EncrypUtils.encryptPassword(request.getContrasena()));
         }
 
         user.setUpdatedBy(updatedBy);
