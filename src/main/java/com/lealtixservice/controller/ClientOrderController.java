@@ -7,6 +7,8 @@ import com.lealtixservice.dto.UpdateOrderStatusRequest;
 import com.lealtixservice.enums.OrderStatus;
 import com.lealtixservice.exception.ResourceNotFoundException;
 import com.lealtixservice.service.ClientOrderService;
+import com.lealtixservice.util.RequireKitchenModule;
+import com.lealtixservice.util.TenantOwnership;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -135,6 +137,7 @@ public class ClientOrderController {
 
     @Operation(summary = "Obtener órdenes de un tenant filtradas por estado (query params)")
     @GetMapping
+    @TenantOwnership(tenantIdParam = "tenantId")
     public ResponseEntity<GenericResponse> getOrdersByTenantAndStatusQuery(
             @RequestParam Long tenantId,
             @RequestParam String status,
@@ -165,6 +168,8 @@ public class ClientOrderController {
      * PENDING / PENDIENTE → OrderStatus.PENDIENTE
      * CONFIRMED / PAID / PAGADA → OrderStatus.PAGADA
      * CANCELLED / CANCELED / CANCELADA → OrderStatus.CANCELADA
+     * IN_PREPARATION / EN_PREPARACION → OrderStatus.EN_PREPARACION
+     * READY / LISTO → OrderStatus.LISTO
      */
     private OrderStatus resolveOrderStatus(String status) {
         if (status == null) return null;
@@ -172,6 +177,8 @@ public class ClientOrderController {
             case "PENDING", "PENDIENTE"                      -> OrderStatus.PENDIENTE;
             case "CONFIRMED", "PAID", "PAGADA", "CONFIRMADO"               -> OrderStatus.PAGADA;
             case "CANCELLED", "CANCELED", "CANCELADA", "RECHAZADO"        -> OrderStatus.CANCELADA;
+            case "IN_PREPARATION", "EN_PREPARACION", "PREPARING"           -> OrderStatus.EN_PREPARACION;
+            case "READY", "LISTO", "COMPLETED"                             -> OrderStatus.LISTO;
             default -> null;
         };
     }
@@ -200,8 +207,9 @@ public class ClientOrderController {
         }
     }
 
-    @Operation(summary = "Actualizar estado de una orden (endpoint dedicado)")
+    @Operation(summary = "Actualizar estado de una orden (endpoint dedicado para cocina)")
     @PatchMapping("/status")
+    @RequireKitchenModule
     public ResponseEntity<GenericResponse> updateOrderStatusDedicated(
             @RequestParam UUID orderId,
             @RequestParam String status) {

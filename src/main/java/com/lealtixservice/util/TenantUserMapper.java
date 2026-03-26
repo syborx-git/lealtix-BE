@@ -84,6 +84,8 @@ public class TenantUserMapper {
                 .linkedin(tenantConfig.getLinkedin())
                 .instagram(tenantConfig.getInstagram())
                 .tiktok(tenantConfig.getTiktok())
+                .kitchenModuleEnabled(tenantConfig.getKitchenModuleEnabled())
+                .kitchenEnabledAt(tenantConfig.getKitchenEnabledAt())
                 .createdAt(tenantConfig.getCreatedAt())
                 .updatedAt(tenantConfig.getUpdatedAt())
                 .build();
@@ -101,6 +103,8 @@ public class TenantUserMapper {
             dto.setX(tenantConfig.getTwitter());
             dto.setTiktok(tenantConfig.getTiktok());
             dto.setLinkedin(tenantConfig.getLinkedin());
+            dto.setKitchenModuleEnabled(tenantConfig.getKitchenModuleEnabled());
+            dto.setKitchenEnabledAt(tenantConfig.getKitchenEnabledAt());
         }
         return dto;
     }

@@ -31,6 +31,7 @@ public class OrderSseService {
     private static final long SSE_TIMEOUT = 30L * 60L * 1000L; // 30 minutos
     private static final String PING_EVENT = "ping";
     private static final String NEW_ORDER_EVENT = "new-order";
+    private static final String ORDER_STATUS_CHANGED_EVENT = "order-status-changed";
 
     private final ObjectMapper objectMapper;
 
@@ -96,6 +97,31 @@ public class OrderSseService {
             sendToTenant(tenantId, NEW_ORDER_EVENT, payload);
         } catch (Exception e) {
             log.error("[SSE] Error serializando orden para SSE, tenant {}: {}", tenantId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Publica un evento de cambio de estado de orden (para cocina)
+     */
+    public void publishOrderStatusChanged(ClientOrderDTO order) {
+        Long tenantId = order.getTenantId();
+        List<SseEmitter> emitters = emittersByTenant.getOrDefault(tenantId, new CopyOnWriteArrayList<>());
+
+        if (emitters.isEmpty()) {
+            log.debug("[SSE] No hay suscriptores activos para tenant {}. Evento de cambio de estado descartado.", tenantId);
+            return;
+        }
+
+        try {
+            // Construir el evento SSE completo con toda la información
+            OrderSseEventDTO event = buildOrderSseEvent(order);
+            event.setType(ORDER_STATUS_CHANGED_EVENT);
+            String payload = objectMapper.writeValueAsString(event);
+            
+            log.info("[SSE] Enviando evento order-status-changed para tenant {}, orden {}", tenantId, order.getId());
+            sendToTenant(tenantId, ORDER_STATUS_CHANGED_EVENT, payload);
+        } catch (Exception e) {
+            log.error("[SSE] Error serializando cambio de estado para SSE, tenant {}: {}", tenantId, e.getMessage(), e);
         }
     }
 
@@ -172,6 +198,8 @@ public class OrderSseService {
             case PENDIENTE -> "PENDING";
             case PAGADA -> "PAID";
             case CANCELADA -> "CANCELLED";
+            case EN_PREPARACION -> "EN_PREPARACION";
+            case LISTO -> "LISTO";
         };
     }
 

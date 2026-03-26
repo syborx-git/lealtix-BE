@@ -82,6 +82,8 @@ public class ClientOrderMapper {
                 .couponCode(couponCode)
                 .couponId(order.getCouponId())
                 .couponDiscount(couponDiscount != null ? couponDiscount : BigDecimal.ZERO)
+                .acceptedAt(order.getAcceptedAt())
+                .readyAt(order.getReadyAt())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();

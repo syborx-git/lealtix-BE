@@ -43,9 +43,6 @@ class TenantUserServiceImplTest {
     private TenantRepository tenantRepository;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
     private RolePermissionService rolePermissionService;
 
     @InjectMocks
@@ -94,7 +91,6 @@ class TenantUserServiceImplTest {
         // Arrange
         when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
         when(tenantUserRepository.existsByEmailAndTenantId("juan@example.com", 1L)).thenReturn(false);
-        when(passwordEncoder.encode("password123")).thenReturn("hashedPassword");
         when(tenantUserRepository.save(any(TenantUser.class))).thenReturn(tenantUser);
         when(rolePermissionService.getPermissionsByRole("MESERO"))
                 .thenReturn(Arrays.asList("view_comanda", "create_order", "edit_own_order"));
@@ -112,7 +108,6 @@ class TenantUserServiceImplTest {
 
         verify(tenantRepository, times(1)).findById(1L);
         verify(tenantUserRepository, times(1)).existsByEmailAndTenantId("juan@example.com", 1L);
-        verify(passwordEncoder, times(1)).encode("password123");
         verify(tenantUserRepository, times(1)).save(any(TenantUser.class));
     }
 

@@ -75,7 +75,8 @@ SELECT
     NOW(),
     NOW()
 FROM campaign c
-WHERE c.promo_type IS NOT NULL AND c.status != 'DRAFT';
+WHERE c.promo_type IS NOT NULL AND c.status != 'DRAFT'
+ON CONFLICT (campaign_id) DO NOTHING;
 
 -- 4. Actualizar tabla campaign_result para agregar last_click_at
 ALTER TABLE campaign_result
