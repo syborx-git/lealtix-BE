@@ -150,7 +150,7 @@ public class ClientOrderController {
             if (orderStatus == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(new GenericResponse(400,
-                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, PAID/PAGADA, CANCELLED/CANCELADA", null));
+                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/CONFIRMADA, EN_PREPARACION/IN_PREPARATION, LISTO/READY, PAGADA/PAID, CANCELADA/CANCELLED", null));
             }
             log.debug("Obteniendo órdenes del tenant {} con estado {} (página: {}, tamaño: {})", tenantId, orderStatus, page, size);
             Pageable pageable = PageRequest.of(page, size, Sort.by("fecha").descending());
@@ -166,19 +166,21 @@ public class ClientOrderController {
     /**
      * Resuelve el estado de la orden aceptando tanto inglés como español.
      * PENDING / PENDIENTE → OrderStatus.PENDIENTE
-     * CONFIRMED / PAID / PAGADA → OrderStatus.PAGADA
-     * CANCELLED / CANCELED / CANCELADA → OrderStatus.CANCELADA
-     * IN_PREPARATION / EN_PREPARACION → OrderStatus.EN_PREPARACION
-     * READY / LISTO → OrderStatus.LISTO
+     * CONFIRMED / CONFIRMADA / CONFIRMADO → OrderStatus.CONFIRMADA
+     * IN_PREPARATION / EN_PREPARACION / PREPARING → OrderStatus.EN_PREPARACION
+     * READY / LISTO / COMPLETED → OrderStatus.LISTO
+     * PAID / PAGADA → OrderStatus.PAGADA
+     * CANCELLED / CANCELED / CANCELADA / RECHAZADO → OrderStatus.CANCELADA
      */
     private OrderStatus resolveOrderStatus(String status) {
         if (status == null) return null;
         return switch (status.toUpperCase().trim()) {
             case "PENDING", "PENDIENTE"                      -> OrderStatus.PENDIENTE;
-            case "CONFIRMED", "PAID", "PAGADA", "CONFIRMADO"               -> OrderStatus.PAGADA;
-            case "CANCELLED", "CANCELED", "CANCELADA", "RECHAZADO"        -> OrderStatus.CANCELADA;
+            case "CONFIRMED", "CONFIRMADA", "CONFIRMADO"               -> OrderStatus.CONFIRMADA;
             case "IN_PREPARATION", "EN_PREPARACION", "PREPARING"           -> OrderStatus.EN_PREPARACION;
             case "READY", "LISTO", "COMPLETED"                             -> OrderStatus.LISTO;
+            case "PAID", "PAGADA"                                           -> OrderStatus.PAGADA;
+            case "CANCELLED", "CANCELED", "CANCELADA", "RECHAZADO"        -> OrderStatus.CANCELADA;
             default -> null;
         };
     }
@@ -218,7 +220,7 @@ public class ClientOrderController {
             if (orderStatus == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(new GenericResponse(400,
-                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/PAID/PAGADA, CANCELLED/CANCELADA", null));
+                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/CONFIRMADA, EN_PREPARACION/IN_PREPARATION, LISTO/READY, PAGADA/PAID, CANCELADA/CANCELLED", null));
             }
             log.info("Actualizando estado de orden {} a: {} (dedicado)", orderId, orderStatus);
             ClientOrderDTO order = clientOrderService.updateOrderStatus(orderId, orderStatus);

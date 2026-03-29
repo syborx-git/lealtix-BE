@@ -7,11 +7,13 @@ import lombok.Getter;
  */
 @Getter
 public enum OrderStatus {
-    PENDIENTE("Pendiente de pago"),
-    PAGADA("Pagada"),
-    CANCELADA("Cancelada"),
+    PENDIENTE("Pendiente de confirmacion"),
+    CONFIRMADA("Orden confirmada por mesero"),
     EN_PREPARACION("En preparación"),
-    LISTO("Listo para servir");
+    LISTO("Listo para servir"),
+    PAGADA("Pagada"),
+    CANCELADA("Cancelada");
+
 
     private final String description;
 

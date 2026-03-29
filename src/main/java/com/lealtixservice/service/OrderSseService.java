@@ -198,6 +198,7 @@ public class OrderSseService {
             case PENDIENTE -> "PENDING";
             case PAGADA -> "PAID";
             case CANCELADA -> "CANCELLED";
+            case CONFIRMADA -> "CONFIRMADA";
             case EN_PREPARACION -> "EN_PREPARACION";
             case LISTO -> "LISTO";
         };

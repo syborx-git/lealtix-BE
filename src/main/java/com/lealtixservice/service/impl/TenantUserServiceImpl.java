@@ -2,11 +2,13 @@ package com.lealtixservice.service.impl;
 
 import com.lealtixservice.dto.*;
 import com.lealtixservice.entity.Tenant;
+import com.lealtixservice.entity.TenantConfig;
 import com.lealtixservice.entity.TenantUser;
 import com.lealtixservice.enums.RoleEnum;
 import com.lealtixservice.exception.BusinessRuleException;
 import com.lealtixservice.exception.ResourceNotFoundException;
 import com.lealtixservice.mapper.TenantUserMapper;
+import com.lealtixservice.repository.TenantConfigRepository;
 import com.lealtixservice.repository.TenantRepository;
 import com.lealtixservice.repository.TenantUserRepository;
 import com.lealtixservice.service.RolePermissionService;
@@ -33,6 +35,9 @@ public class TenantUserServiceImpl implements TenantUserService {
 
     @Autowired
     private TenantRepository tenantRepository;
+
+    @Autowired
+    private TenantConfigRepository tenantConfigRepository;
 
     @Autowired
     private RolePermissionService rolePermissionService;
@@ -155,5 +160,33 @@ public class TenantUserServiceImpl implements TenantUserService {
                 .total((int) users.getTotalElements())
                 .usuarios(userDTOs)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TenantUser getTenantUserByEmail(String email) {
+        log.info("Fetching tenant user by email: {}", email);
+        return tenantUserRepository.findByEmail(email).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDTO getByEmail(String email) {
+        log.info("Fetching tenant user DTO by email: {}", email);
+        TenantUser user = tenantUserRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        
+        List<String> permissions = rolePermissionService.getPermissionsByRole(user.getRol().name());
+        UserDTO userDTO = TenantUserMapper.toDTO(user, permissions);
+        
+        // Obtener kitchenModuleEnabled desde TenantConfig
+        TenantConfig tenantConfig = tenantConfigRepository.findByTenantId(user.getTenant().getId());
+        if (tenantConfig != null) {
+            userDTO.setKitchenModuleEnabled(tenantConfig.getKitchenModuleEnabled());
+        } else {
+            userDTO.setKitchenModuleEnabled(false);
+        }
+        
+        return userDTO;
     }
 }

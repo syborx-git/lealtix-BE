@@ -303,9 +303,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
      * Valida las transiciones de estado permitidas
      */
     private void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-        // PENDIENTE puede ir a PAGADA, CANCELADA o EN_PREPARACION
+        // PENDIENTE puede ir a CONFIRMADA, PAGADA, CANCELADA o EN_PREPARACION
         if (currentStatus == OrderStatus.PENDIENTE) {
-            if (newStatus != OrderStatus.PAGADA && 
+            if (newStatus != OrderStatus.CONFIRMADA &&
+                newStatus != OrderStatus.PAGADA && 
                 newStatus != OrderStatus.CANCELADA && 
                 newStatus != OrderStatus.EN_PREPARACION) {
                 throw new IllegalArgumentException("No se puede cambiar de PENDIENTE a " + newStatus);
