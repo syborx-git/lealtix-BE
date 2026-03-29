@@ -24,6 +24,7 @@ import com.lealtixservice.repository.TenantMenuProductRepository;
 import com.lealtixservice.repository.TenantRepository;
 import com.lealtixservice.service.ClientOrderService;
 import com.lealtixservice.service.CouponRedemptionService;
+import com.lealtixservice.service.OrderSseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -51,6 +52,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     private final TenantRepository tenantRepository;
     private final CouponRepository couponRepository;
     private final CouponRedemptionService couponRedemptionService;
+    private final OrderSseService orderSseService;
 
     @Override
     public ClientOrderDTO createOrder(CreateClientOrderRequest request) {
@@ -120,7 +122,19 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         log.info("Orden creada exitosamente con ID: {}", order.getId());
-        return ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        
+        // Publicar evento SSE si la orden es de CHATBOT
+        if ("CHATBOT".equalsIgnoreCase(order.getSource())) {
+            try {
+                orderSseService.publishNewChatbotOrder(orderDTO);
+                log.info("Evento SSE publicado para orden {} del tenant {}", order.getId(), order.getTenant().getId());
+            } catch (Exception e) {
+                log.error("Error al publicar evento SSE para orden {}: {}", order.getId(), e.getMessage(), e);
+            }
+        }
+        
+        return orderDTO;
     }
 
     @Override
@@ -183,6 +197,13 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         // Validar transiciones de estado permitidas
         validateStatusTransition(order.getEstado(), newStatus);
 
+        // Actualizar timestamps según transición
+        if (newStatus == OrderStatus.EN_PREPARACION && order.getAcceptedAt() == null) {
+            order.setAcceptedAt(LocalDateTime.now());
+        } else if (newStatus == OrderStatus.LISTO && order.getReadyAt() == null) {
+            order.setReadyAt(LocalDateTime.now());
+        }
+
         // Si se está confirmando/pagando la orden y hay un cupón asociado, redimirlo
         if (newStatus == OrderStatus.PAGADA && order.getCouponId() != null && order.getCustomer() != null) {
             redeemCouponOnOrderConfirmation(order);
@@ -204,7 +225,21 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
         
-        return ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        
+        // Publicar evento SSE para cambios de estado de cocina
+        if (newStatus == OrderStatus.EN_PREPARACION || newStatus == OrderStatus.LISTO) {
+            try {
+                orderSseService.publishOrderStatusChanged(orderDTO);
+                log.info("Evento SSE de cambio de estado publicado para orden {} del tenant {}", 
+                        orderId, order.getTenant().getId());
+            } catch (Exception e) {
+                log.error("Error al publicar evento SSE de cambio de estado para orden {}: {}", 
+                        orderId, e.getMessage(), e);
+            }
+        }
+        
+        return orderDTO;
     }
 
     @Override
@@ -268,10 +303,25 @@ public class ClientOrderServiceImpl implements ClientOrderService {
      * Valida las transiciones de estado permitidas
      */
     private void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-        // PENDIENTE puede ir a PAGADA o CANCELADA
+        // PENDIENTE puede ir a CONFIRMADA, PAGADA, CANCELADA o EN_PREPARACION
         if (currentStatus == OrderStatus.PENDIENTE) {
-            if (newStatus != OrderStatus.PAGADA && newStatus != OrderStatus.CANCELADA) {
+            if (newStatus != OrderStatus.CONFIRMADA &&
+                newStatus != OrderStatus.PAGADA && 
+                newStatus != OrderStatus.CANCELADA && 
+                newStatus != OrderStatus.EN_PREPARACION) {
                 throw new IllegalArgumentException("No se puede cambiar de PENDIENTE a " + newStatus);
+            }
+        }
+        // EN_PREPARACION puede ir a LISTO o CANCELADA
+        else if (currentStatus == OrderStatus.EN_PREPARACION) {
+            if (newStatus != OrderStatus.LISTO && newStatus != OrderStatus.CANCELADA) {
+                throw new IllegalArgumentException("No se puede cambiar de EN_PREPARACION a " + newStatus);
+            }
+        }
+        // LISTO solo puede ir a CANCELADA
+        else if (currentStatus == OrderStatus.LISTO) {
+            if (newStatus != OrderStatus.CANCELADA) {
+                throw new IllegalArgumentException("No se puede cambiar de LISTO a " + newStatus);
             }
         }
         // PAGADA solo puede ir a CANCELADA

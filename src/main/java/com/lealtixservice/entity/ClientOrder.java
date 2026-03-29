@@ -68,6 +68,12 @@ public class ClientOrder {
     @Column(name = "source", length = 20)
     private String source;  // Origen: 'CHATBOT', 'MANUAL', 'POS', 'WEB', 'MOBILE'
 
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;  // PENDIENTE -> EN_PREPARACION
+
+    @Column(name = "ready_at")
+    private LocalDateTime readyAt;  // EN_PREPARACION -> LISTO
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

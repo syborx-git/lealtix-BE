@@ -7,6 +7,8 @@ import com.lealtixservice.dto.UpdateOrderStatusRequest;
 import com.lealtixservice.enums.OrderStatus;
 import com.lealtixservice.exception.ResourceNotFoundException;
 import com.lealtixservice.service.ClientOrderService;
+import com.lealtixservice.util.RequireKitchenModule;
+import com.lealtixservice.util.TenantOwnership;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -135,6 +137,7 @@ public class ClientOrderController {
 
     @Operation(summary = "Obtener órdenes de un tenant filtradas por estado (query params)")
     @GetMapping
+    @TenantOwnership(tenantIdParam = "tenantId")
     public ResponseEntity<GenericResponse> getOrdersByTenantAndStatusQuery(
             @RequestParam Long tenantId,
             @RequestParam String status,
@@ -147,7 +150,7 @@ public class ClientOrderController {
             if (orderStatus == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(new GenericResponse(400,
-                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, PAID/PAGADA, CANCELLED/CANCELADA", null));
+                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/CONFIRMADA, EN_PREPARACION/IN_PREPARATION, LISTO/READY, PAGADA/PAID, CANCELADA/CANCELLED", null));
             }
             log.debug("Obteniendo órdenes del tenant {} con estado {} (página: {}, tamaño: {})", tenantId, orderStatus, page, size);
             Pageable pageable = PageRequest.of(page, size, Sort.by("fecha").descending());
@@ -163,14 +166,20 @@ public class ClientOrderController {
     /**
      * Resuelve el estado de la orden aceptando tanto inglés como español.
      * PENDING / PENDIENTE → OrderStatus.PENDIENTE
-     * CONFIRMED / PAID / PAGADA → OrderStatus.PAGADA
-     * CANCELLED / CANCELED / CANCELADA → OrderStatus.CANCELADA
+     * CONFIRMED / CONFIRMADA / CONFIRMADO → OrderStatus.CONFIRMADA
+     * IN_PREPARATION / EN_PREPARACION / PREPARING → OrderStatus.EN_PREPARACION
+     * READY / LISTO / COMPLETED → OrderStatus.LISTO
+     * PAID / PAGADA → OrderStatus.PAGADA
+     * CANCELLED / CANCELED / CANCELADA / RECHAZADO → OrderStatus.CANCELADA
      */
     private OrderStatus resolveOrderStatus(String status) {
         if (status == null) return null;
         return switch (status.toUpperCase().trim()) {
             case "PENDING", "PENDIENTE"                      -> OrderStatus.PENDIENTE;
-            case "CONFIRMED", "PAID", "PAGADA", "CONFIRMADO"               -> OrderStatus.PAGADA;
+            case "CONFIRMED", "CONFIRMADA", "CONFIRMADO"               -> OrderStatus.CONFIRMADA;
+            case "IN_PREPARATION", "EN_PREPARACION", "PREPARING"           -> OrderStatus.EN_PREPARACION;
+            case "READY", "LISTO", "COMPLETED"                             -> OrderStatus.LISTO;
+            case "PAID", "PAGADA"                                           -> OrderStatus.PAGADA;
             case "CANCELLED", "CANCELED", "CANCELADA", "RECHAZADO"        -> OrderStatus.CANCELADA;
             default -> null;
         };
@@ -200,8 +209,9 @@ public class ClientOrderController {
         }
     }
 
-    @Operation(summary = "Actualizar estado de una orden (endpoint dedicado)")
+    @Operation(summary = "Actualizar estado de una orden (endpoint dedicado para cocina)")
     @PatchMapping("/status")
+    @RequireKitchenModule
     public ResponseEntity<GenericResponse> updateOrderStatusDedicated(
             @RequestParam UUID orderId,
             @RequestParam String status) {
@@ -210,7 +220,7 @@ public class ClientOrderController {
             if (orderStatus == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(new GenericResponse(400,
-                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/PAID/PAGADA, CANCELLED/CANCELADA", null));
+                                "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/CONFIRMADA, EN_PREPARACION/IN_PREPARATION, LISTO/READY, PAGADA/PAID, CANCELADA/CANCELLED", null));
             }
             log.info("Actualizando estado de orden {} a: {} (dedicado)", orderId, orderStatus);
             ClientOrderDTO order = clientOrderService.updateOrderStatus(orderId, orderStatus);

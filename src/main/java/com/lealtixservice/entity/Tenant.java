@@ -37,6 +37,11 @@ public class Tenant {
     @Column(name = "slogan")
     private String slogan;
 
+    @Column(name = "kitchen_module_enabled")
+    private Boolean kitchenModuleEnabled;
+
+    @Column(name = "kitchen_enabled_at")
+    private LocalDateTime kitchenEnabledAt;
 
     @Builder.Default
     private boolean isActive = true;

@@ -34,6 +34,8 @@ public class ClientOrderDTO {
     private String couponCode;  // Código del cupón aplicado (ej: "SUMMER20")
     private Long couponId;  // ID del cupón aplicado
     private BigDecimal couponDiscount;  // Descuento específico del cupón
+    private LocalDateTime acceptedAt;  // Timestamp cuando fue aceptado en cocina
+    private LocalDateTime readyAt;  // Timestamp cuando estuvo listo
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

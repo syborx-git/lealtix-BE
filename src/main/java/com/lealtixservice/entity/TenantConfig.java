@@ -32,6 +32,13 @@ public class TenantConfig {
     private String schedules;
 
     @Builder.Default
+    @Column(name = "kitchen_module_enabled", nullable = false)
+    private Boolean kitchenModuleEnabled = false;
+
+    @Column(name = "kitchen_enabled_at")
+    private java.time.LocalDateTime kitchenEnabledAt;
+
+    @Builder.Default
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
     private java.time.LocalDateTime updatedAt;
 

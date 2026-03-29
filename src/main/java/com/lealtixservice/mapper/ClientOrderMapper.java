@@ -20,6 +20,7 @@ public class ClientOrderMapper {
 
     /**
      * Convierte un CreateClientOrderRequest a una entidad ClientOrder
+     * Si la orden viene de COMANDIX, el estado inicial es EN_PREPARACION, sino PENDIENTE
      */
     public static ClientOrder toEntity(CreateClientOrderRequest request, TenantCustomer customer, Tenant tenant) {
         if (request == null) return null;
@@ -33,16 +34,26 @@ public class ClientOrderMapper {
             total = BigDecimal.ZERO;
         }
         
+        // Validar si la orden viene de COMANDIX - si es así, poner estado EN_PREPARACION
+        OrderStatus estado = OrderStatus.PENDIENTE;
+        java.time.LocalDateTime acceptedAt = null;
+        if (request.getRedemptionChannel() != null && 
+            request.getRedemptionChannel().name().equalsIgnoreCase("COMANDIX")) {
+            estado = OrderStatus.CONFIRMADA;
+            acceptedAt = java.time.LocalDateTime.now();  // Registrar cuándo fue aceptada
+        }
+        
         return ClientOrder.builder()
                 .customer(customer)
                 .tenant(tenant)
-                .estado(OrderStatus.PENDIENTE)
+                .estado(estado)
+                .acceptedAt(acceptedAt)
                 .subtotal(subtotal)
                 .descuento(descuento)
                 .total(total)
                 .couponId(request.getCouponId())
                 .fecha(java.time.LocalDateTime.now())  // Establecer la fecha actual
-                .source(request.getSource() != null ? request.getSource() : "MANUAL")  // Soporte para source
+                .source(request.getRedemptionChannel() != null ? request.getRedemptionChannel().name() : "MANUAL")  // Soporte para source
                 .build();
     }
 
@@ -82,6 +93,8 @@ public class ClientOrderMapper {
                 .couponCode(couponCode)
                 .couponId(order.getCouponId())
                 .couponDiscount(couponDiscount != null ? couponDiscount : BigDecimal.ZERO)
+                .acceptedAt(order.getAcceptedAt())
+                .readyAt(order.getReadyAt())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();
