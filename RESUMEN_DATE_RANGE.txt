@@ -1,0 +1,136 @@
+
+╔═════════════════════════════════════════════════════════════════════════════╗
+║                                                                             ║
+║          ✅ BÚSQUEDA POR RANGO DE FECHAS IMPLEMENTADA EXITOSAMENTE         ║
+║                                                                             ║
+║                   Nuevo Endpoint: GET /summary/by-date-range               ║
+║                                                                             ║
+╚═════════════════════════════════════════════════════════════════════════════╝
+
+
+🎯 NUEVO ENDPOINT:
+═══════════════════════════════════════════════════════════════════════════════
+
+GET /api/dashboard/waiter/summary/by-date-range
+
+Parámetros REQUERIDOS:
+  • tenantId (Long): ID del tenant
+  • userId (String): ID del usuario
+
+Parámetros OPCIONALES:
+  • from (yyyy-MM-dd'T'HH:mm:ss): Fecha inicio
+  • to (yyyy-MM-dd'T'HH:mm:ss): Fecha fin
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📝 EJEMPLOS DE PETICIÓN:
+═══════════════════════════════════════════════════════════════════════════════
+
+1️⃣  HOY (sin fechas):
+────────────────────
+http://localhost:8080/api/dashboard/waiter/summary/by-date-range?tenantId=36&userId=waiter_001
+
+→ Retorna datos de hoy (30/03/2026)
+
+
+2️⃣  ÚLTIMOS 7 DÍAS:
+────────────────────
+http://localhost:8080/api/dashboard/waiter/summary/by-date-range?tenantId=36&userId=waiter_001&from=2026-03-23T00:00:00&to=2026-03-30T23:59:59
+
+→ Retorna datos del 23-30 de marzo
+
+
+3️⃣  MES ACTUAL:
+────────────────
+http://localhost:8080/api/dashboard/waiter/summary/by-date-range?tenantId=36&userId=waiter_001&from=2026-03-01T00:00:00&to=2026-03-31T23:59:59
+
+→ Retorna datos de todo marzo
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ CAMBIOS REALIZADOS:
+═══════════════════════════════════════════════════════════════════════════════
+
+CAPA REPOSITORY:
+  ✓ 6 nuevas queries con parámetros from/to
+  ✓ getTotalIdentifiedSalesByDateRange()
+  ✓ getTotalGeneralSalesByDateRange()
+  ✓ countNewClientsByDateRange()
+  ✓ countOrdersByDateRange()
+  ✓ calculateSalesIdentifiedPercentageByDateRange()
+  ✓ calculateRepurchaseRateByDateRange()
+
+CAPA SERVICE:
+  ✓ Nueva interfaz: getDashboardSummaryByDateRange()
+  ✓ Implementación con lógica inteligente:
+    - Si from/to = null → busca hoy
+    - Si from/to presentes → busca en ese rango
+
+CAPA CONTROLLER:
+  ✓ Nuevo endpoint: GET /summary/by-date-range
+  ✓ Parámetros opcionales con @DateTimeFormat
+  ✓ @PreAuthorize activo
+  ✓ Documentación Swagger incluida
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔐 SEGURIDAD:
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ @PreAuthorize("hasAuthority('dashboard_mesero')")
+✓ JWT Token requerido
+✓ Validación @NotNull en parámetros obligatorios
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📊 RESPUESTA ESPERADA:
+═══════════════════════════════════════════════════════════════════════════════
+
+{
+  "salesIdentifiedPercentage": 85.5,
+  "newClientsToday": 23,              ← En el rango de fechas
+  "ordersToday": 42,                  ← En el rango de fechas
+  "repurchaseRate": 72.3,
+  "totalSalesIdentified": 2540.50,
+  "totalSalesGeneral": 2970.00
+}
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🌐 LENGUAJES SOPORTADOS:
+═══════════════════════════════════════════════════════════════════════════════
+
+Ver archivo: NUEVO_ENDPOINT_BY_DATE_RANGE.txt
+
+Ejemplos incluidos para:
+  • CURL
+  • Postman
+  • JavaScript (Fetch)
+  • JavaScript (Axios)
+  • Python
+  • Java
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✨ CARACTERÍSTICAS:
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ Backward compatible: /summary original intacta
+✓ Flexible: from/to opcionales
+✓ Inteligente: Sin fechas = hoy automáticamente
+✓ Seguro: Mismo nivel de autenticación/autorización
+✓ Rápido: Queries optimizadas para rangos
+✓ Documentado: Swagger/OpenAPI completo
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                    ✅ IMPLEMENTACIÓN COMPLETA
+
+═══════════════════════════════════════════════════════════════════════════════

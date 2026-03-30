@@ -1,0 +1,106 @@
+
+╔═════════════════════════════════════════════════════════════════════════════╗
+║                  ✅ MIGRACION V31 CREADA EXITOSAMENTE                      ║
+║                                                                             ║
+║              Remover dashboard_kitchen de rol ADMIN                         ║
+║                                                                             ║
+╚═════════════════════════════════════════════════════════════════════════════╝
+
+
+📄 ARCHIVO NUEVO:
+═══════════════════════════════════════════════════════════════════════════════
+
+Nombre: V31__remove_dashboard_kitchen_from_admin_role.sql
+
+Ubicación: src/main/resources/db/migration/
+
+Contenido:
+──────────
+DELETE FROM role_permission 
+WHERE role = 'ADMIN' 
+AND permission_id = (SELECT id FROM permission WHERE code = 'dashboard_kitchen');
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔐 CAMBIO REALIZADO:
+═══════════════════════════════════════════════════════════════════════════════
+
+ANTES:
+  ROL ADMIN:
+    ├─ dashboard_kitchen ✅
+    └─ otros permisos...
+
+DESPUÉS:
+  ROL ADMIN:
+    ├─ dashboard_kitchen ❌ (REMOVIDO)
+    └─ otros permisos...
+
+ROL COCINA: (SIN CAMBIOS)
+  ├─ dashboard_kitchen ✅ (MANTIENE)
+  └─ otros permisos...
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ VALIDACIÓN:
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ Archivo creado correctamente
+✓ Sintaxis SQL válida
+✓ Nombre Flyway correcto (V31)
+✓ Query DELETE es segura
+✓ Mantiene dashboard_kitchen en COCINA
+✓ Solo remove de ADMIN
+✓ Sin efectos colaterales
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚀 PRÓXIMA EJECUCIÓN:
+═══════════════════════════════════════════════════════════════════════════════
+
+Al ejecutar:
+  $ mvn spring-boot:run
+
+Flyway ejecutará automáticamente V31 y:
+  • Buscará fila donde role='ADMIN' y permission=dashboard_kitchen
+  • La eliminará
+  • ADMIN perderá acceso a dashboard_kitchen
+  • COCINA mantiene acceso a dashboard_kitchen
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 VERIFICACIÓN EN BD:
+═══════════════════════════════════════════════════════════════════════════════
+
+Después de ejecutar V31, verificar:
+
+SELECT rp.*, p.code, p.name 
+FROM role_permission rp
+JOIN permission p ON rp.permission_id = p.id
+WHERE p.code = 'dashboard_kitchen';
+
+EXPECTED RESULT:
+┌────┬────────┬────────────────────┬────────────────────────┐
+│ id │ role   │ permission_id       │ code                   │
+├────┼────────┼────────────────────┼────────────────────────┤
+│ X  │ COCINA │ Y                  │ dashboard_kitchen      │
+└────┴────────┴────────────────────┴────────────────────────┘
+
+NOTA: ADMIN NO debe aparecer en el resultado
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎯 RESUMEN FINAL:
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ CREADO: V31__remove_dashboard_kitchen_from_admin_role.sql
+✅ ACCIÓN: DELETE FROM role_permission WHERE role='ADMIN' AND permission=dashboard_kitchen
+✅ RESULTADO: ADMIN pierde dashboard_kitchen, COCINA lo mantiene
+✅ ESTADO: Listo para ejecutarse
+
+
+═══════════════════════════════════════════════════════════════════════════════

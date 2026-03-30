@@ -1,0 +1,172 @@
+╔═════════════════════════════════════════════════════════════════════════════╗
+║                                                                             ║
+║             ✅ ERROR SQL CORREGIDO - PostgreSQL Syntax                      ║
+║                                                                             ║
+║             Cambio de MySQL DATE_SUB a PostgreSQL INTERVAL                 ║
+║                                                                             ║
+╚═════════════════════════════════════════════════════════════════════════════╝
+
+
+❌ PROBLEMA ENCONTRADO:
+═══════════════════════════════════════════════════════════════════════════════
+
+Error: "ERROR: error de sintaxis en o cerca de «7»"
+
+Causa: Estabas usando sintaxis de MySQL (DATE_SUB, INTERVAL) en PostgreSQL
+
+Endpoint afectado: GET /api/dashboard/waiter/vip-clients
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔧 SOLUCIÓN APLICADA:
+═══════════════════════════════════════════════════════════════════════════════
+
+CAMBIO 1: getVipClients() - Línea con HAVING
+
+ANTES (MySQL):
+───────────────
+HAVING MAX(co.fecha) IS NULL OR MAX(co.fecha) < DATE_SUB(NOW(), INTERVAL 7 DAY)
+
+DESPUÉS (PostgreSQL):
+──────────────────────
+HAVING MAX(co.fecha) IS NULL OR MAX(co.fecha) < (NOW() - INTERVAL '7 days')
+
+
+CAMBIO 2: getCrossSellProducts() - Línea con WHERE
+
+ANTES (MySQL):
+───────────────
+AND (co.fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY) OR co.id IS NULL)
+
+DESPUÉS (PostgreSQL):
+──────────────────────
+AND (co.fecha >= (NOW() - INTERVAL '30 days') OR co.id IS NULL)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📊 DIFERENCIAS ENTRE MYSQL Y POSTGRESQL:
+═══════════════════════════════════════════════════════════════════════════════
+
+OPERACIÓN: Restar 7 días de la fecha actual
+
+MYSQL:
+──────
+DATE_SUB(NOW(), INTERVAL 7 DAY)
+SELECT NOW() - INTERVAL 7 DAY;
+
+PostgreSQL:
+───────────
+NOW() - INTERVAL '7 days'
+current_date - INTERVAL '7 days'
+NOW() - '7 days'::interval
+
+
+OPERACIÓN: Restar 30 días de la fecha actual
+
+MYSQL:
+──────
+DATE_SUB(NOW(), INTERVAL 30 DAY)
+SELECT NOW() - INTERVAL 30 DAY;
+
+PostgreSQL:
+───────────
+NOW() - INTERVAL '30 days'
+current_date - INTERVAL '30 days'
+NOW() - '30 days'::interval
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ CAMBIOS REALIZADOS EN WaiterDashboardRepository.java:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Query: getVipClients()
+   Línea HAVING actualizada
+   ✓ Ahora usa sintaxis PostgreSQL
+
+2. Query: getCrossSellProducts()
+   Línea WHERE actualizada
+   ✓ Ahora usa sintaxis PostgreSQL
+
+3. Todas las demás queries por rango de fechas
+   ✓ Usan parámetros BETWEEN (agnóstico a BD)
+   ✓ No necesitaban cambios
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧪 PRUEBA EL ENDPOINT CORREGIDO:
+═══════════════════════════════════════════════════════════════════════════════
+
+Compila primero:
+$ mvn clean install
+
+Ejecuta:
+$ mvn spring-boot:run
+
+Prueba el endpoint:
+GET http://localhost:8080/api/dashboard/waiter/vip-clients?tenantId=36&userId=waiter_001
+
+Headers:
+  Authorization: Bearer {token}
+
+RESPUESTA ESPERADA (200 OK):
+[
+  {
+    "id": 1,
+    "name": "Cliente VIP",
+    "ltv": 2340.50,
+    "lastVisitDate": "2026-03-20T10:30:00",
+    "phone": "+56912345678",
+    "email": "cliente@example.com",
+    "visitCount": 45,
+    "averageTicket": 52.01
+  }
+]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📝 NOTAS IMPORTANTES:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. PostgreSQL usa INTERVAL con comillas simples: '7 days'
+2. El nombre del intervalo es plural: 'days', 'months', 'years'
+3. No uses DATE_SUB() en PostgreSQL, usa operador - (resta)
+4. NOW() retorna timestamp with timezone en PostgreSQL
+5. current_date retorna solo la fecha sin hora
+
+Opciones equivalentes en PostgreSQL:
+  • NOW() - INTERVAL '7 days'
+  • CURRENT_TIMESTAMP - INTERVAL '7 days'
+  • NOW()::date - INTERVAL '7 days'
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✨ QUERIES AHORA COMPATIBLES CON POSTGRESQL:
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ getVipClients()
+✓ getCrossSellProducts()
+✓ Todos los demás endpoints
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎯 PRÓXIMOS PASOS:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Compilar:
+   mvn clean install
+
+2. Ejecutar:
+   mvn spring-boot:run
+
+3. Probar endpoint /vip-clients
+   Debe retornar 200 OK sin errores SQL
+
+
+═══════════════════════════════════════════════════════════════════════════════

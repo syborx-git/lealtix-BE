@@ -1,0 +1,74 @@
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                    🎯 PETICIÓN RÁPIDA - GETSUMMARY
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+📍 INFORMACIÓN:
+───────────────────────────────────────────────────────────────────────────
+Método:           GET
+Endpoint:         /api/dashboard/waiter/summary
+URL Completa:     http://localhost:8080/api/dashboard/waiter/summary
+tenantId:         36
+userId:           waiter_001
+Fecha:            30/03/2026 (HOY)
+Seguridad:        JWT Token + Permiso dashboard_mesero
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔧 EJEMPLO SIMPLE (CURL):
+───────────────────────────────────────────────────────────────────────────
+
+curl -X GET "http://localhost:8080/api/dashboard/waiter/summary?tenantId=36&userId=waiter_001" \
+  -H "Authorization: Bearer {tu_token_aqui}" \
+  -H "Content-Type: application/json"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔧 EJEMPLO POSTMAN:
+───────────────────────────────────────────────────────────────────────────
+
+Method:     GET
+URL:        http://localhost:8080/api/dashboard/waiter/summary
+
+Query Params:
+  tenantId  = 36
+  userId    = waiter_001
+
+Headers:
+  Authorization = Bearer {token}
+  Content-Type  = application/json
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ RESPUESTA ESPERADA (200 OK):
+───────────────────────────────────────────────────────────────────────────
+
+{
+  "salesIdentifiedPercentage": 85.5,
+  "newClientsToday": 23,
+  "ordersToday": 42,
+  "repurchaseRate": 72.3,
+  "totalSalesIdentified": 2540.50,
+  "totalSalesGeneral": 2970.00
+}
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📚 PARA MÁS EJEMPLOS:
+───────────────────────────────────────────────────────────────────────────
+
+Ver archivo: EJEMPLO_PETICION_GETSUMMARY.txt
+  • JavaScript Fetch
+  • Axios
+  • Python
+  • Java
+  • Y muchos más...
+
+═══════════════════════════════════════════════════════════════════════════════
