@@ -393,27 +393,46 @@ public class DashboardServiceImpl implements DashboardService {
             return List.of();
         }
 
-        // Análisis de frecuencia de palabras clave
-        Map<String, Long> keywordFrequency = new HashMap<>();
+        // Análisis de frecuencia de frases compuestas y palabras clave
+        Map<String, Long> phraseFrequency = new HashMap<>();
         long totalComments = comments.size();
 
-        // Palabras clave comunes en personalización de alimentos
-        List<String> keywords = Arrays.asList(
-                "sin", "con", "extra", "poco", "mucho", "caliente", "frío", "fría",
-                "cebolla", "tomate", "lechuga", "queso", "salsa", "mayo", "mayonesa",
-                "picante", "no picante", "crudo", "cocido", "aparte", "solo", "sólo"
+        // Frases compuestas comunes en personalización (2-3 palabras)
+        List<String> compoundPhrases = Arrays.asList(
+                "sin cebolla", "sin tomate", "sin lechuga", "sin salsa", "sin mayo", "sin mayonesa",
+                "sin picante", "sin azúcar", "sin sal",
+                "con extra", "con doble", "con más",
+                "no picante", "poco picante", "muy picante",
+                "leche deslactosada", "leche de almendra", "leche de avena", "leche de coco",
+                "extra queso", "extra salsa", "extra hielo",
+                "bien cocido", "poco cocido", "crudo", "al dente",
+                "aparte la salsa", "aparte el dressing", "aparte la mayo"
         );
 
         for (String comment : comments) {
-            String lowerComment = comment.toLowerCase();
-            for (String keyword : keywords) {
-                if (lowerComment.contains(keyword)) {
-                    keywordFrequency.merge(keyword, 1L, Long::sum);
+            String lowerComment = comment.toLowerCase().trim();
+            
+            // Primero buscar frases compuestas (mayor prioridad)
+            boolean foundPhrase = false;
+            for (String phrase : compoundPhrases) {
+                if (lowerComment.contains(phrase)) {
+                    phraseFrequency.merge(phrase, 1L, Long::sum);
+                    foundPhrase = true;
+                    break; // Una frase por comentario
+                }
+            }
+            
+            // Si no encuentra una frase compuesta, extraer el comentario completo como frase personalizada
+            if (!foundPhrase && !lowerComment.isEmpty()) {
+                // Limpiar y normalizar comentarios completos
+                String cleanedComment = lowerComment.replaceAll("\\s+", " ").trim();
+                if (cleanedComment.length() >= 3) { // Mínimo 3 caracteres
+                    phraseFrequency.merge(cleanedComment, 1L, Long::sum);
                 }
             }
         }
 
-        return keywordFrequency.entrySet().stream()
+        return phraseFrequency.entrySet().stream()
                 .map(entry -> CustomizationAnalysisDTO.builder()
                         .keyword(entry.getKey())
                         .frequency(entry.getValue())
