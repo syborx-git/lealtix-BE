@@ -1,0 +1,209 @@
+╔═════════════════════════════════════════════════════════════════════════════╗
+║                                                                             ║
+║        ✅ QUERY CROSS-SELL ACTUALIZADO V2 - Incluye CATEGORY                ║
+║                                                                             ║
+╚═════════════════════════════════════════════════════════════════════════════╝
+
+
+🔄 CAMBIO REALIZADO:
+═══════════════════════════════════════════════════════════════════════════════
+
+MÉTODO: getCrossSellProducts()
+UBICACIÓN: WaiterDashboardRepository.java
+
+ACTUALIZACIÓN: Ahora el query retorna el campo CATEGORY
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ QUERY ANTERIOR (V1):
+═══════════════════════════════════════════════════════════════════════════════
+
+SELECT p.id, p.nombre, p.precio, p.img_url 
+FROM tenant_menu_product p 
+INNER JOIN product_cross_selling cs ON p.id = cs.suggested_product_id 
+INNER JOIN tenant_menu_category c ON p.category_id = c.id 
+WHERE cs.tenant_id = c.tenant_id 
+AND cs.tenant_id = :tenantId 
+GROUP BY p.id, p.nombre, p.precio, p.img_url 
+LIMIT :limit
+
+CAMPOS RETORNADOS: 4
+  [0] = id
+  [1] = nombre
+  [2] = precio
+  [3] = img_url
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ QUERY NUEVO (V2):
+═══════════════════════════════════════════════════════════════════════════════
+
+SELECT p.id, p.nombre, p.precio, p.img_url, 
+       COALESCE(c.nombre, 'Sin categoría') as category 
+FROM tenant_menu_product p 
+INNER JOIN product_cross_selling cs ON p.id = cs.suggested_product_id 
+INNER JOIN tenant_menu_category c ON p.category_id = c.id 
+WHERE cs.tenant_id = c.tenant_id 
+AND cs.tenant_id = :tenantId 
+GROUP BY p.id, p.nombre, p.precio, p.img_url, c.nombre 
+LIMIT :limit
+
+CAMPOS RETORNADOS: 5
+  [0] = id
+  [1] = nombre
+  [2] = precio
+  [3] = img_url
+  [4] = category (con COALESCE a 'Sin categoría')
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📝 CAMBIOS EN CÓDIGO:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. WaiterDashboardRepository.java - Query actualizado
+   ✓ Agregado SELECT de c.nombre (category)
+   ✓ Agregado COALESCE con valor por defecto 'Sin categoría'
+   ✓ Actualizado GROUP BY para incluir c.nombre
+   ✓ Comentario actualizado indicando 5 campos
+
+2. WaiterDashboardServiceImpl.java - Mapeo actualizado
+   ✓ row[4] ahora mapea a category
+   ✓ category sale del query (no es vacío)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎯 MAPEO DE CAMPOS ACTUALIZADO:
+═══════════════════════════════════════════════════════════════════════════════
+
+ANTES (V1):
+  row[0] → id (Long)
+  row[1] → name (String)
+  row[2] → price (BigDecimal)
+  row[3] → imageUrl (String)
+  row[4] → category ("")  ← VACÍO
+  row[5] → suggestedFor ("MESERO")
+  row[6] → stock (0L)
+
+AHORA (V2):
+  row[0] → id (Long)
+  row[1] → name (String)
+  row[2] → price (BigDecimal)
+  row[3] → imageUrl (String)
+  row[4] → category (String)  ← LLENO DEL QUERY
+  row[5] → suggestedFor ("MESERO")
+  row[6] → stock (0L)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📊 RESPUESTA DEL ENDPOINT (AHORA CON CATEGORY):
+═══════════════════════════════════════════════════════════════════════════════
+
+GET /api/dashboard/waiter/cross-sell?tenantId=24&limit=5
+
+RESPUESTA (200 OK):
+[
+  {
+    "id": 1,
+    "name": "Licor Premium",
+    "price": 25.99,
+    "imageUrl": "https://cdn.../licor.jpg",
+    "category": "Bebidas",           ← AHORA CON VALOR
+    "suggestedFor": "MESERO",
+    "stock": 0
+  },
+  {
+    "id": 5,
+    "name": "Agua Mineral",
+    "price": 2.50,
+    "imageUrl": "https://cdn.../agua.jpg",
+    "category": "Bebidas",           ← AHORA CON VALOR
+    "suggestedFor": "MESERO",
+    "stock": 0
+  },
+  {
+    "id": 8,
+    "name": "Postre Especial",
+    "price": 8.75,
+    "imageUrl": "https://cdn.../postre.jpg",
+    "category": "Postres",           ← AHORA CON VALOR
+    "suggestedFor": "MESERO",
+    "stock": 0
+  },
+  {
+    "id": 10,
+    "name": "Sin Categoría Asignada",
+    "price": 5.00,
+    "imageUrl": "https://cdn.../producto.jpg",
+    "category": "Sin categoría",     ← COALESCE DEFAULT
+    "suggestedFor": "MESERO",
+    "stock": 0
+  },
+  ...
+]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✨ MEJORAS CON ESTE CAMBIO:
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ category ya no viene vacío
+✓ Se pueden clasificar productos por categoría en el frontend
+✓ Usa COALESCE para manejar productos sin categoría
+✓ Más información en cada producto
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚀 PRUEBA EL CAMBIO:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Compilar:
+   mvn clean install
+
+2. Ejecutar:
+   mvn spring-boot:run
+
+3. Probar endpoint:
+   GET http://localhost:8080/api/dashboard/waiter/cross-sell?tenantId=24&limit=5
+
+   Headers:
+     Authorization: Bearer {token}
+
+4. Verificar respuesta:
+   - Status: 200 OK
+   - Array de productos
+   - 5 campos principales (id, name, price, imageUrl, category)
+   - category TIENE VALORES (no vacío)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 RESUMEN DE CAMBIOS:
+═══════════════════════════════════════════════════════════════════════════════
+
+ARCHIVO: WaiterDashboardRepository.java
+  • Query: Agregado COALESCE(c.nombre, 'Sin categoría') as category
+  • GROUP BY: Actualizado a incluir c.nombre
+  • Comentario: Actualizado indicando 5 campos
+
+ARCHIVO: WaiterDashboardServiceImpl.java
+  • Mapeo: row[4] ahora mapea a category del query
+  • Sin necesidad de valor por defecto vacío
+
+RESULTADO:
+  ✓ category populado desde BD
+  ✓ Manejo de nulls con COALESCE
+  ✓ Mejor información en respuesta
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ COMPLETADO Y LISTO PARA USAR
+
+═══════════════════════════════════════════════════════════════════════════════

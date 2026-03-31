@@ -214,7 +214,7 @@ public class WaiterDashboardServiceImpl implements IWaiterDashboardService {
     
     /**
      * Obtiene lista de productos recomendados para venta cruzada.
-     * Basados en los más ordenados en los últimos 30 días.
+     * Obtiene productos desde la tabla product_cross_selling.
      * 
      * @param tenantId ID del tenant
      * @param limit Cantidad máxima de productos a retornar
@@ -236,7 +236,7 @@ public class WaiterDashboardServiceImpl implements IWaiterDashboardService {
                             .imageUrl((String) row[3])
                             .category((String) row[4])
                             .suggestedFor("MESERO")
-                            .stock(0L) // Stock no disponible en query actual, colocar 0
+                            .stock(0L) // Stock no disponible en query
                             .build())
                     .collect(Collectors.toList());
         } catch (Exception e) {

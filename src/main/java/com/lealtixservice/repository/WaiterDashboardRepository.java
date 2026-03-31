@@ -108,20 +108,17 @@ public interface WaiterDashboardRepository extends JpaRepository<TenantMenuProdu
     List<Object[]> getVipClients(@Param("tenantId") Long tenantId, @Param("limit") int limit);
     
     /**
-     * Obtiene los productos más trending (mayor cantidad de ordenes en últimos 30 días).
-     * Retorna: [0]=id, [1]=name, [2]=price, [3]=imgUrl, [4]=category.name, [5]=timesOrdered
+     * Obtiene los productos recomendados para venta cruzada desde la tabla product_cross_selling.
+     * Retorna: [0]=id, [1]=nombre, [2]=precio, [3]=img_url, [4]=category
      */
-    @Query(value = "SELECT tmp.id, tmp.nombre, tmp.precio, tmp.img_url, " +
-           "COALESCE(tmc.nombre, 'Sin categoría') as category, " +
-           "COALESCE(COUNT(coi.id), 0) as timesOrdered " +
-           "FROM tenant_menu_product tmp " +
-           "LEFT JOIN tenant_menu_category tmc ON tmp.category_id = tmc.id " +
-           "LEFT JOIN client_order_item coi ON tmp.id = coi.product_id " +
-           "LEFT JOIN client_order co ON coi.order_id = co.id AND co.tenant_id = :tenantId " +
-           "WHERE tmp.is_active = true " +
-           "AND (co.fecha >= (NOW() - INTERVAL '30 days') OR co.id IS NULL) " +
-           "GROUP BY tmp.id, tmp.nombre, tmp.precio, tmp.img_url, tmc.nombre " +
-           "ORDER BY timesOrdered DESC, tmp.nombre ASC " +
+    @Query(value = "SELECT p.id, p.nombre, p.precio, p.img_url, " +
+           "COALESCE(c.nombre, 'Sin categoría') as category " +
+           "FROM tenant_menu_product p " +
+           "INNER JOIN product_cross_selling cs ON p.id = cs.suggested_product_id " +
+           "INNER JOIN tenant_menu_category c ON p.category_id = c.id " +
+           "WHERE cs.tenant_id = c.tenant_id " +
+           "AND cs.tenant_id = :tenantId " +
+           "GROUP BY p.id, p.nombre, p.precio, p.img_url, c.nombre " +
            "LIMIT :limit",
            nativeQuery = true)
     List<Object[]> getCrossSellProducts(@Param("tenantId") Long tenantId, @Param("limit") int limit);
