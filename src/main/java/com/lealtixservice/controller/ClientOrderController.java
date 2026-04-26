@@ -3,6 +3,7 @@ package com.lealtixservice.controller;
 import com.lealtixservice.dto.ClientOrderDTO;
 import com.lealtixservice.dto.CreateClientOrderRequest;
 import com.lealtixservice.dto.GenericResponse;
+import com.lealtixservice.dto.RecordPaymentRequest;
 import com.lealtixservice.dto.UpdateOrderStatusRequest;
 import com.lealtixservice.enums.OrderStatus;
 import com.lealtixservice.exception.ResourceNotFoundException;
@@ -192,7 +193,12 @@ public class ClientOrderController {
             @Valid @RequestBody UpdateOrderStatusRequest request) {
         try {
             log.info("Actualizando estado de orden {} a: {}", orderId, request.getEstado());
-            ClientOrderDTO order = clientOrderService.updateOrderStatus(orderId, request.getEstado());
+            ClientOrderDTO order = clientOrderService.updateOrderStatus(
+                    orderId, 
+                    request.getEstado(),
+                    request.getUserEmail(),
+                    request.getReason()
+            );
             return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
         } catch (ResourceNotFoundException ex) {
             log.warn("Orden no encontrada: {}", orderId);
@@ -306,6 +312,30 @@ public class ClientOrderController {
             return ResponseEntity.ok(new GenericResponse(200, "Cantidad obtenida", count));
         } catch (Exception e) {
             log.error("Error contando órdenes del tenant {} con estado {}", tenantId, estado, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Registrar pago de una orden")
+    @PatchMapping("/{orderId}/record-payment")
+    public ResponseEntity<GenericResponse> recordPayment(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody RecordPaymentRequest request) {
+        try {
+            log.info("Registrando pago para orden {} con método {}", orderId, request.getMethod());
+            ClientOrderDTO order = clientOrderService.recordPayment(orderId, request);
+            return ResponseEntity.ok(new GenericResponse(200, "Pago registrado exitosamente", order));
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Orden no encontrada: {}", orderId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Error de validación al registrar pago en orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error registrando pago para orden {}", orderId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno del servidor", null));
         }

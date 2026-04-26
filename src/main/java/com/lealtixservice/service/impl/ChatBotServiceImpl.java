@@ -37,6 +37,10 @@ import java.util.stream.Collectors;
 @Transactional
 public class ChatBotServiceImpl implements ChatBotService {
 
+    private static final String DEMO_TENANT_SLUG = "demo";
+    private static final String DEMO_TENANT_NAME = "Tenant Demo";
+    private static final String DEMO_TENANT_UID = "UID-DEMO";
+
     private final ChatBotSessionRepository sessionRepository;
     private final ChatBotMessageRepository messageRepository;
     private final TenantCustomerRepository customerRepository;
@@ -55,12 +59,10 @@ public class ChatBotServiceImpl implements ChatBotService {
     @Override
     public ChatBotSession getOrCreateSession(Long tenantId, String sessionId, String phone, String email) {
         log.info("Obteniendo o creando sesión ChatBot: sessionId={}, tenantId={}", sessionId, tenantId);
+        Tenant tenant = resolveChatBotTenant(tenantId);
         
         return sessionRepository.findBySessionId(sessionId)
                 .orElseGet(() -> {
-                    Tenant tenant = tenantRepository.findById(tenantId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Tenant no encontrado: " + tenantId));
-                    
                     ChatBotSession newSession = ChatBotSession.builder()
                             .sessionId(sessionId)
                             .tenant(tenant)
@@ -80,16 +82,17 @@ public class ChatBotServiceImpl implements ChatBotService {
     @Transactional(readOnly = true)
     public CustomerValidationResponseDTO validateCustomer(Long tenantId, String phone, String email) {
         log.info("Validando cliente en ChatBot: tenantId={}, phone={}, email={}", tenantId, phone, email);
+        Long resolvedTenantId = resolveExistingChatBotTenant(tenantId).getId();
         
         // Buscar cliente por teléfono o email
         Optional<TenantCustomer> customerOpt = Optional.empty();
         
         if (phone != null && !phone.trim().isEmpty()) {
-            customerOpt = customerRepository.findByPhoneAndTenantId(phone.trim(), tenantId);
+            customerOpt = customerRepository.findByPhoneAndTenantId(phone.trim(), resolvedTenantId);
         }
         
         if (customerOpt.isEmpty() && email != null && !email.trim().isEmpty()) {
-            customerOpt = customerRepository.findByEmailAndTenantId(email.trim(), tenantId);
+            customerOpt = customerRepository.findByEmailAndTenantId(email.trim(), resolvedTenantId);
         }
         
         if (customerOpt.isEmpty()) {
@@ -111,7 +114,7 @@ public class ChatBotServiceImpl implements ChatBotService {
         
         // Obtener "lo de siempre" (última orden)
         List<CustomerValidationResponseDTO.ProductSuggestionDTO> lastOrderProducts = 
-                getLastOrderProducts(customer.getId(), tenantId);
+                getLastOrderProducts(customer.getId(), resolvedTenantId);
         
         return CustomerValidationResponseDTO.builder()
                 .exists(true)
@@ -129,9 +132,7 @@ public class ChatBotServiceImpl implements ChatBotService {
         log.info("Registro rápido de cliente desde ChatBot: email={}, tenantId={}", 
                  request.getEmail(), request.getTenantId());
         
-        // Validar que el tenant existe
-        Tenant tenant = tenantRepository.findById(request.getTenantId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant no encontrado: " + request.getTenantId()));
+        Tenant tenant = resolveChatBotTenant(request.getTenantId());
         
         // Crear el cliente
         TenantCustomer customer = TenantCustomer.builder()
@@ -158,8 +159,9 @@ public class ChatBotServiceImpl implements ChatBotService {
     @Transactional(readOnly = true)
     public List<CustomerValidationResponseDTO.ProductSuggestionDTO> getLastOrderProducts(Long customerId, Long tenantId) {
         log.debug("Obteniendo productos de la última orden: customerId={}, tenantId={}", customerId, tenantId);
+        Long resolvedTenantId = resolveExistingChatBotTenant(tenantId).getId();
         
-        Optional<ClientOrder> lastOrderOpt = orderRepository.findFirstByCustomerIdAndTenantIdOrderByFechaDesc(customerId, tenantId);
+        Optional<ClientOrder> lastOrderOpt = orderRepository.findFirstByCustomerIdAndTenantIdOrderByFechaDesc(customerId, resolvedTenantId);
         
         if (lastOrderOpt.isEmpty()) {
             return Collections.emptyList();
@@ -184,8 +186,9 @@ public class ChatBotServiceImpl implements ChatBotService {
     @Transactional(readOnly = true)
     public List<CustomerValidationResponseDTO.ProductSuggestionDTO> getCrossSellingSuggestions(Long productId, Long tenantId) {
         log.debug("Obteniendo sugerencias de venta cruzada: productId={}, tenantId={}", productId, tenantId);
+        Long resolvedTenantId = resolveExistingChatBotTenant(tenantId).getId();
         
-        List<CrossSellingDTO> suggestions = crossSellingService.getSuggestionsByProduct(productId, tenantId);
+        List<CrossSellingDTO> suggestions = crossSellingService.getSuggestionsByProduct(productId, resolvedTenantId);
         
         return suggestions.stream()
                 .map(suggestion -> CustomerValidationResponseDTO.ProductSuggestionDTO.builder()
@@ -202,7 +205,8 @@ public class ChatBotServiceImpl implements ChatBotService {
     @Transactional(readOnly = true)
     public CouponValidationResponse validateCoupon(String couponCode, Long tenantId) {
         log.info("Validando cupón en ChatBot: couponCode={}, tenantId={}", couponCode, tenantId);
-        return couponValidationService.validateCouponByCode(couponCode, tenantId);
+        Long resolvedTenantId = resolveExistingChatBotTenant(tenantId).getId();
+        return couponValidationService.validateCouponByCode(couponCode, resolvedTenantId);
     }
 
     @Override
@@ -212,6 +216,8 @@ public class ChatBotServiceImpl implements ChatBotService {
                  request.getCouponCode(), request.getCustomerId(), request.getTenantId());
         
         try {
+            Long resolvedTenantId = resolveChatBotTenant(request.getTenantId()).getId();
+
             // Obtener el cliente
             TenantCustomer customer = customerRepository.findById(request.getCustomerId())
                     .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado: " + request.getCustomerId()));
@@ -235,7 +241,7 @@ public class ChatBotServiceImpl implements ChatBotService {
             RedemptionResponse redemptionResponse = couponRedemptionService.redeemCouponByCode(
                     request.getCouponCode(), 
                     redeemRequest, 
-                    request.getTenantId()
+                    resolvedTenantId
             );
             
             // Convertir RedemptionResponse a ChatBotCouponRedemptionResponse
@@ -281,6 +287,7 @@ public class ChatBotServiceImpl implements ChatBotService {
     public ClientOrderDTO createOrderFromChatBot(ChatBotOrderRequestDTO request) {
         log.info("Creando orden desde ChatBot: sessionId={}, tenantId={}", 
                  request.getSessionId(), request.getTenantId());
+        Long resolvedTenantId = resolveChatBotTenant(request.getTenantId()).getId();
         
         // Si no hay customerId pero hay información de cliente, registrar rápidamente
         Long customerId = request.getCustomerId();
@@ -288,7 +295,7 @@ public class ChatBotServiceImpl implements ChatBotService {
         if (customerId == null && request.getCustomerPhone() != null && request.getCustomerEmail() != null) {
             log.info("Cliente no identificado, realizando registro rápido");
             QuickCustomerRegistrationDTO quickReg = QuickCustomerRegistrationDTO.builder()
-                    .tenantId(request.getTenantId())
+                    .tenantId(resolvedTenantId)
                     .name(request.getCustomerName() != null ? request.getCustomerName() : "Cliente ChatBot")
                     .email(request.getCustomerEmail())
                     .phone(request.getCustomerPhone())
@@ -305,7 +312,7 @@ public class ChatBotServiceImpl implements ChatBotService {
         if (couponCode != null && !couponCode.isBlank()) {
             Coupon coupon = couponRepository.findByCodeWithRelations(couponCode)
                     .orElseThrow(() -> new IllegalArgumentException("Cupón no encontrado: " + couponCode));
-            if (coupon.getCampaign() != null && !coupon.getCampaign().getBusinessId().equals(request.getTenantId())) {
+            if (coupon.getCampaign() != null && !coupon.getCampaign().getBusinessId().equals(resolvedTenantId)) {
                 throw new IllegalArgumentException("El cupón no pertenece al tenant especificado");
             }
             couponId = coupon.getId();
@@ -314,7 +321,7 @@ public class ChatBotServiceImpl implements ChatBotService {
         // Crear el request para el servicio de órdenes
         CreateClientOrderRequest orderRequest = CreateClientOrderRequest.builder()
                 .customerId(customerId)
-                .tenantId(request.getTenantId())
+                .tenantId(resolvedTenantId)
                 .items(request.getItems().stream()
                         .map(item -> CreateClientOrderRequest.OrderItemRequest.builder()
                                 .productId(item.getProductId())
@@ -448,5 +455,45 @@ public class ChatBotServiceImpl implements ChatBotService {
             log.warn("Error al convertir objeto a JSON", e);
             return "{}";
         }
+    }
+
+    private Tenant resolveChatBotTenant(Long tenantId) {
+        if (tenantId != null && tenantId > 0) {
+            return tenantRepository.findById(tenantId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tenant no encontrado: " + tenantId));
+        }
+
+        return tenantRepository.getBySlug(DEMO_TENANT_SLUG)
+                .orElseGet(this::createDemoTenant);
+    }
+
+    private Tenant resolveExistingChatBotTenant(Long tenantId) {
+        if (tenantId != null && tenantId > 0) {
+            return tenantRepository.findById(tenantId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tenant no encontrado: " + tenantId));
+        }
+
+        return tenantRepository.getBySlug(DEMO_TENANT_SLUG)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant demo no encontrado"));
+    }
+
+    private Tenant createDemoTenant() {
+        Tenant demoTenant = Tenant.builder()
+                .nombreNegocio(DEMO_TENANT_NAME)
+                .direccion("Demo")
+                .telefono("0000000000")
+                .tipoNegocio("Demo")
+                .slug(DEMO_TENANT_SLUG)
+                .UIDTenant(DEMO_TENANT_UID)
+                .schedules("Demo")
+                .logoUrl("")
+                .slogan("Tenant de demostracion")
+                .kitchenModuleEnabled(false)
+                .isActive(true)
+                .build();
+
+        Tenant savedTenant = tenantRepository.save(demoTenant);
+        log.info("Tenant demo creado con id={}", savedTenant.getId());
+        return savedTenant;
     }
 }

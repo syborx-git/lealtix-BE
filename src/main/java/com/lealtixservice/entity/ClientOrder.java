@@ -1,6 +1,7 @@
 package com.lealtixservice.entity;
 
 import com.lealtixservice.enums.OrderStatus;
+import com.lealtixservice.enums.PaymentMethod;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -79,6 +80,31 @@ public class ClientOrder {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    // Campos de pago
+    @Column(name = "paid_method", length = 20)
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paidMethod;  // CASH, CARD, TRANSFER, MIXED
+
+    @Column(name = "payment_reference", length = 255)
+    private String paymentReference;  // Número autorización, UUID transferencia, etc.
+
+    @ManyToOne
+    @JoinColumn(name = "paid_by")
+    private AppUser paidBy;  // Usuario que registró el pago
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;  // Cuándo se registró el pago
+
+    // Campos de cancelación
+    @Column(name = "cancelled_by")
+    private String cancelledBy;  // Email del usuario que canceló (para auditoría)
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;  // Cuándo se canceló
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;  // Razón de la cancelación
 
     @PrePersist
     protected void onCreate() {
