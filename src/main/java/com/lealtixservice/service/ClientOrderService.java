@@ -2,6 +2,7 @@ package com.lealtixservice.service;
 
 import com.lealtixservice.dto.ClientOrderDTO;
 import com.lealtixservice.dto.CreateClientOrderRequest;
+import com.lealtixservice.dto.RecordPaymentRequest;
 import com.lealtixservice.entity.ClientOrder;
 import com.lealtixservice.enums.OrderStatus;
 import org.springframework.data.domain.Page;
@@ -53,6 +54,11 @@ public interface ClientOrderService {
     ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus);
 
     /**
+     * Actualiza el estado de una orden y registra auditoría de cancelación
+     */
+    ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason);
+
+    /**
      * Cancela una orden (cambia estado a CANCELADA)
      */
     ClientOrderDTO cancelOrder(UUID orderId);
@@ -76,4 +82,9 @@ public interface ClientOrderService {
      * Cuenta órdenes por estado en un tenant
      */
     Long countOrdersByStatus(Long tenantId, OrderStatus estado);
+
+    /**
+     * Registra el pago de una orden (transición LISTO → PAGADA)
+     */
+    ClientOrderDTO recordPayment(UUID orderId, RecordPaymentRequest request);
 }

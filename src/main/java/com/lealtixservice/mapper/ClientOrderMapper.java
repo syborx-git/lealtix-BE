@@ -97,6 +97,13 @@ public class ClientOrderMapper {
                 .readyAt(order.getReadyAt())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
+                .paidMethod(order.getPaidMethod())
+                .paymentReference(order.getPaymentReference())
+                .paidByName(order.getPaidBy() != null ? order.getPaidBy().getEmail() : null)
+                .paidAt(order.getPaidAt())
+                .cancelledBy(order.getCancelledBy())
+                .cancelledAt(order.getCancelledAt())
+                .cancellationReason(order.getCancellationReason())
                 .build();
     }
 
