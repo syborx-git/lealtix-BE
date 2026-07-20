@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -196,14 +197,14 @@ public class WaiterDashboardServiceImpl implements IWaiterDashboardService {
             
             return rawData.stream()
                     .map(row -> VipClientDTO.builder()
-                            .id((Long) row[0])
+                            .id(safeToLong(row[0], null))
                             .name((String) row[1])
                             .email((String) row[2])
                             .phone((String) row[3])
-                            .ltv(new BigDecimal(row[4].toString()))
-                            .lastVisitDate((LocalDateTime) row[5])
-                            .visitCount((Long) row[6])
-                            .averageTicket(new BigDecimal(row[7].toString()))
+                            .ltv(safeToBigDecimal(row[4], BigDecimal.ZERO))
+                            .lastVisitDate(safeToLocalDateTime(row[5]))
+                            .visitCount(safeToLong(row[6], 0L))
+                            .averageTicket(safeToBigDecimal(row[7], BigDecimal.ZERO))
                             .build())
                     .collect(Collectors.toList());
         } catch (Exception e) {
@@ -323,5 +324,48 @@ public class WaiterDashboardServiceImpl implements IWaiterDashboardService {
         }
         
         return messages;
+    }
+
+    private Long safeToLong(Object obj, Long defaultValue) {
+        if (obj == null) {
+            return defaultValue;
+        }
+        if (obj instanceof Number) {
+            return ((Number) obj).longValue();
+        }
+        try {
+            return Long.parseLong(obj.toString());
+        } catch (NumberFormatException e) {
+            log.warn("No se pudo convertir {} a Long, usando valor por defecto {}", obj, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private BigDecimal safeToBigDecimal(Object obj, BigDecimal defaultValue) {
+        if (obj == null) {
+            return defaultValue;
+        }
+        if (obj instanceof BigDecimal) {
+            return (BigDecimal) obj;
+        }
+        try {
+            return new BigDecimal(obj.toString());
+        } catch (NumberFormatException e) {
+            log.warn("No se pudo convertir {} a BigDecimal, usando valor por defecto {}", obj, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private LocalDateTime safeToLocalDateTime(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof LocalDateTime) {
+            return (LocalDateTime) obj;
+        }
+        if (obj instanceof Timestamp) {
+            return ((Timestamp) obj).toLocalDateTime();
+        }
+        throw new IllegalArgumentException("No se pudo convertir el valor a LocalDateTime: " + obj.getClass().getName());
     }
 }
