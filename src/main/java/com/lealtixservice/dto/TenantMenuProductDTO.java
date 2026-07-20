@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @Builder
@@ -24,4 +25,5 @@ public class TenantMenuProductDTO {
     private Boolean isActive;
     private BigDecimal price;
     private String imageUrl;
+    private List<CrossSellingDTO> crossSellingProducts;
 }

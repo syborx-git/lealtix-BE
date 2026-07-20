@@ -44,12 +44,18 @@ public class TenantMenuProductController {
         return ResponseEntity.ok(productService.findAll());
     }
 
-    @Operation(summary = "Obtener un producto por tenantId")
+    @Operation(summary = "Obtener un producto por tenantId con sugerencias de cross-selling")
     @GetMapping("/tenant/{tenantId}")
     public ResponseEntity<GenericResponseProd> getProductsByTenantId(@PathVariable Long tenantId) {
         try {
             List<TenantMenuProductDTO>  products = productService.getProductsByTenantId(tenantId);
             if (products != null && !products.isEmpty()) {
+                // Populate cross-selling suggestions for each product
+                products.forEach(product -> {
+                    List<CrossSellingDTO> suggestions = crossSellingService.getSuggestionsByProduct(product.getId(), tenantId);
+                    product.setCrossSellingProducts(suggestions);
+                });
+
                 List<TenantMenuProductDTO> sortedProducts = products.stream()
                         .sorted(Comparator.comparing(TenantMenuProductDTO::getCategoryDisplayOrder, Comparator.nullsLast(Comparator.naturalOrder()))
                                 .thenComparing(TenantMenuProductDTO::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
@@ -158,4 +164,3 @@ public class TenantMenuProductController {
         return ResponseEntity.noContent().build();
     }
 }
-
