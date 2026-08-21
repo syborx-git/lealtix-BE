@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -195,18 +196,25 @@ public class ImageServiceImpl implements ImageService {
         }
 
         private Map<String, Object> uploadToCloudinary(byte[] imageBytes, String folder, String logoName) throws IOException {
-            Map params = ObjectUtils.asMap(
-                "folder", folder,
-                "public_id", logoName,
-                "unique_filename", false,
-                "overwrite", true,
-                "transformation", new Transformation()
-                        .width(800)
-                        .height(800)
-                        .crop("limit")
-                        .quality("auto")
-                        .fetchFormat("auto")
-            );
-            return cloudinary.uploader().upload(imageBytes, params);
+            try {
+                Map params = ObjectUtils.asMap(
+                    "folder", folder,
+                    "public_id", logoName,
+                    "unique_filename", false,
+                    "overwrite", true,
+                    "transformation", new Transformation()
+                            .width(800)
+                            .height(800)
+                            .crop("limit")
+                            .quality("auto")
+                            .fetchFormat("auto")
+                );
+                return cloudinary.uploader().upload(imageBytes, params);
+            } catch (Exception e) {
+                log.warn("Cloudinary no disponible (claves sin configurar). Usando imagen de respaldo. {}", e.getMessage());
+                Map<String, Object> fallback = new HashMap<>();
+                fallback.put("secure_url", "https://res.cloudinary.com/lealtix-media/image/upload/q_auto/f_auto/v1759897289/lealtix_logo_transp_qcp5h9.png");
+                return fallback;
+            }
         }
 }
