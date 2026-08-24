@@ -13,10 +13,14 @@ import com.lealtixservice.service.ImageService;
 import com.lealtixservice.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
@@ -28,6 +32,9 @@ import java.util.Optional;
 public class ImageServiceImpl implements ImageService {
 
     private final Cloudinary cloudinary;
+
+    @Value("${lealtix.upload-dir:/home/nexus/lealtix/uploads}")
+    private String uploadDir;
 
     @Autowired
     private AppUserRepository appUserRepository;
@@ -84,27 +91,24 @@ public class ImageServiceImpl implements ImageService {
             validateImageDTO(imageDTO);
 
             AppUser user = appUserRepository.findByEmail(imageDTO.getEmail());
-            if (user == null) {
-                throw new IllegalArgumentException("Usuario no encontrado con el email proporcionado");
+            Tenant tenantEntity = null;
+            if (user != null) {
+                tenantEntity = tenantRepository.findByAppUserId(user.getId()).orElse(null);
+                if (tenantEntity == null) {
+                    tenantEntity = createAndSaveTenant(imageDTO, user);
+                }
             }
-            Tenant tenantEntity = tenantRepository.findByAppUserId(user.getId()).orElse(null);
-            if (tenantEntity == null) {
-                tenantEntity = createAndSaveTenant(imageDTO, user);
-            }
-            String logoName = "logo_" + tenantEntity.getSlug();
+            String logoName = "logo_" + (tenantEntity != null ? tenantEntity.getSlug() : "default");
             String folder = getFolderByType(imageDTO.getType());
 
             byte[] imageBytes = Base64.getDecoder().decode(imageDTO.getBase64File());
-            Map<String, Object> uploadResult = uploadToCloudinary(imageBytes, folder, logoName);
+            String url = resolveImageUrl(logoName, folder, imageBytes);
 
-            String url = (String) uploadResult.get("secure_url");
-            if (url == null) {
-                throw new IOException("No se pudo obtener la URL de la imagen subida");
+            if (tenantEntity != null) {
+                tenantEntity.setLogoUrl(url);
+                tenantEntity.setUIDTenant("UID-" + tenantEntity.getId());
+                tenantRepository.save(tenantEntity);
             }
-
-            tenantEntity.setLogoUrl(url);
-            tenantEntity.setUIDTenant("UID-" + tenantEntity.getId());
-            tenantRepository.save(tenantEntity);
 
             return url;
         }
@@ -125,14 +129,7 @@ public class ImageServiceImpl implements ImageService {
         String folder = getFolderByType(imageDTO.getType());
 
         byte[] imageBytes = Base64.getDecoder().decode(imageDTO.getBase64File());
-        Map<String, Object> uploadResult = uploadToCloudinary(imageBytes, folder, imgName);
-
-        String url = (String) uploadResult.get("secure_url");
-        if (url == null) {
-            throw new IOException("No se pudo obtener la URL de la imagen subida");
-        }
-
-        return url;
+        return resolveImageUrl(imgName, folder, imageBytes);
     }
 
     @Override
@@ -151,14 +148,7 @@ public class ImageServiceImpl implements ImageService {
         String folder = getFolderByType(imageDTO.getType());
 
         byte[] imageBytes = Base64.getDecoder().decode(imageDTO.getBase64File());
-        Map<String, Object> uploadResult = uploadToCloudinary(imageBytes, folder, imgName);
-
-        String url = (String) uploadResult.get("secure_url");
-        if (url == null) {
-            throw new IOException("No se pudo obtener la URL de la imagen subida");
-        }
-
-        return url;
+        return resolveImageUrl(imgName, folder, imageBytes);
     }
 
     private void validateImageDTO(ImageDTO imageDTO) {
@@ -196,25 +186,45 @@ public class ImageServiceImpl implements ImageService {
         }
 
         private Map<String, Object> uploadToCloudinary(byte[] imageBytes, String folder, String logoName) throws IOException {
+            Map params = ObjectUtils.asMap(
+                "folder", folder,
+                "public_id", logoName,
+                "unique_filename", false,
+                "overwrite", true,
+                "transformation", new Transformation()
+                        .width(800)
+                        .height(800)
+                        .crop("limit")
+                        .quality("auto")
+                        .fetchFormat("auto")
+            );
+            return cloudinary.uploader().upload(imageBytes, params);
+        }
+
+        /**
+         * Intenta subir a Cloudinary; si falla (claves no configuradas o red),
+         * guarda la imagen localmente y devuelve una URL relativa servida por el backend.
+         */
+        private String resolveImageUrl(String name, String folder, byte[] imageBytes) throws IOException {
             try {
-                Map params = ObjectUtils.asMap(
-                    "folder", folder,
-                    "public_id", logoName,
-                    "unique_filename", false,
-                    "overwrite", true,
-                    "transformation", new Transformation()
-                            .width(800)
-                            .height(800)
-                            .crop("limit")
-                            .quality("auto")
-                            .fetchFormat("auto")
-                );
-                return cloudinary.uploader().upload(imageBytes, params);
+                Map<String, Object> uploadResult = uploadToCloudinary(imageBytes, folder, name);
+                Object url = uploadResult.get("secure_url");
+                if (url != null && !url.toString().isBlank()) {
+                    return url.toString();
+                }
             } catch (Exception e) {
-                log.warn("Cloudinary no disponible (claves sin configurar). Usando imagen de respaldo. {}", e.getMessage());
-                Map<String, Object> fallback = new HashMap<>();
-                fallback.put("secure_url", "https://res.cloudinary.com/lealtix-media/image/upload/q_auto/f_auto/v1759897289/lealtix_logo_transp_qcp5h9.png");
-                return fallback;
+                log.warn("Cloudinary no disponible (claves sin configurar). Guardando imagen localmente. {}", e.getMessage());
             }
+            return saveImageLocally(imageBytes, name);
+        }
+
+        private String saveImageLocally(byte[] imageBytes, String name) throws IOException {
+            String safeName = name.replaceAll("[^a-zA-Z0-9._-]", "_") + "_" + System.currentTimeMillis() + ".png";
+            Path dir = Paths.get(uploadDir);
+            Files.createDirectories(dir);
+            Path file = dir.resolve(safeName);
+            Files.write(file, imageBytes);
+            log.info("Imagen guardada localmente: {}", file.toAbsolutePath());
+            return "/api/images/file/" + safeName;
         }
 }
