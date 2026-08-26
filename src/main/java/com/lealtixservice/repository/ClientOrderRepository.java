@@ -255,4 +255,62 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
     Object[] getSalesSummaryWithoutCoupon(@Param("tenantId") Long tenantId,
                                           @Param("from") LocalDateTime from,
                                           @Param("to") LocalDateTime to);
+
+    // ==================== QUERIES PARA KITCHEN DASHBOARD ====================
+
+    /**
+     * Contar órdenes completadas (estado = PAGADO o COMPLETADO)
+     */
+    @Query("SELECT COUNT(o) FROM ClientOrder o " +
+           "WHERE o.tenant.id = :tenantId " +
+           "AND (o.estado = 'PAGADO' OR o.estado = 'COMPLETADO') " +
+           "AND o.fecha BETWEEN :from AND :to")
+    Long countCompletedOrders(@Param("tenantId") Long tenantId,
+                              @Param("from") LocalDateTime from,
+                              @Param("to") LocalDateTime to);
+
+    /**
+     * Contar entregas exitosas (órdenes completadas y aceptadas)
+     */
+    @Query("SELECT COUNT(o) FROM ClientOrder o " +
+           "WHERE o.tenant.id = :tenantId " +
+           "AND (o.estado = 'PAGADO' OR o.estado = 'COMPLETADO') " +
+           "AND o.acceptedAt IS NOT NULL " +
+           "AND o.fecha BETWEEN :from AND :to")
+    Long countSuccessfulDeliveries(@Param("tenantId") Long tenantId,
+                                   @Param("from") LocalDateTime from,
+                                   @Param("to") LocalDateTime to);
+
+    /**
+     * Top 3 productos más pedidos por cantidad
+     */
+    @Query(value = "SELECT tmp.id, tmp.nombre, COUNT(coi.id) as quantity, " +
+           "COALESCE(SUM(tmp.precio), 0) as totalSales " +
+           "FROM client_order_item coi " +
+           "JOIN tenant_menu_product tmp ON coi.product_id = tmp.id " +
+           "JOIN client_order co ON coi.order_id = co.id " +
+           "WHERE co.tenant_id = :tenantId " +
+           "AND co.fecha BETWEEN :from AND :to " +
+           "GROUP BY tmp.id, tmp.nombre " +
+           "ORDER BY quantity DESC " +
+           "LIMIT 3",
+           nativeQuery = true)
+    List<Object[]> getTopDishes(@Param("tenantId") Long tenantId,
+                                @Param("from") LocalDateTime from,
+                                @Param("to") LocalDateTime to);
+
+    /**
+     * Cliente VIP activo (mayor LTV en el período)
+     */
+    @Query(value = "SELECT c.id, c.name, c.email, COALESCE(SUM(co.total), 0) as ltv " +
+           "FROM tenant_customer c " +
+           "LEFT JOIN client_order co ON c.id = co.customer_id AND co.tenant_id = :tenantId AND co.fecha BETWEEN :from AND :to " +
+           "WHERE c.tenant_id = :tenantId " +
+           "GROUP BY c.id, c.name, c.email " +
+           "ORDER BY ltv DESC " +
+           "LIMIT 1",
+           nativeQuery = true)
+    Object[] getVIPCustomer(@Param("tenantId") Long tenantId,
+                            @Param("from") LocalDateTime from,
+                            @Param("to") LocalDateTime to);
 }

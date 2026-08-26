@@ -2,28 +2,35 @@ package com.lealtixservice.service.impl;
 
 import com.lealtixservice.dto.ClientOrderDTO;
 import com.lealtixservice.dto.CreateClientOrderRequest;
+import com.lealtixservice.dto.RecordPaymentRequest;
 import com.lealtixservice.dto.RedeemCouponRequest;
 import com.lealtixservice.dto.RedemptionResponse;
+import com.lealtixservice.entity.AppUser;
 import com.lealtixservice.entity.ClientOrder;
 import com.lealtixservice.entity.ClientOrderItem;
 import com.lealtixservice.entity.Coupon;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantCustomer;
 import com.lealtixservice.entity.TenantMenuProduct;
+import com.lealtixservice.entity.TenantUser;
 import com.lealtixservice.enums.CouponStatus;
 import com.lealtixservice.enums.OrderStatus;
+import com.lealtixservice.enums.PaymentMethod;
 import com.lealtixservice.enums.RedemptionChannel;
 import com.lealtixservice.exception.ResourceNotFoundException;
 import com.lealtixservice.mapper.ClientOrderItemMapper;
 import com.lealtixservice.mapper.ClientOrderMapper;
+import com.lealtixservice.repository.AppUserRepository;
 import com.lealtixservice.repository.ClientOrderItemRepository;
 import com.lealtixservice.repository.ClientOrderRepository;
 import com.lealtixservice.repository.CouponRepository;
 import com.lealtixservice.repository.TenantCustomerRepository;
 import com.lealtixservice.repository.TenantMenuProductRepository;
 import com.lealtixservice.repository.TenantRepository;
+import com.lealtixservice.repository.TenantUserRepository;
 import com.lealtixservice.service.ClientOrderService;
 import com.lealtixservice.service.CouponRedemptionService;
+import com.lealtixservice.service.OrderSseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -50,7 +57,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     private final TenantMenuProductRepository tenantMenuProductRepository;
     private final TenantRepository tenantRepository;
     private final CouponRepository couponRepository;
+    private final AppUserRepository appUserRepository;
+    private final TenantUserRepository tenantUserRepository;
     private final CouponRedemptionService couponRedemptionService;
+    private final OrderSseService orderSseService;
 
     @Override
     public ClientOrderDTO createOrder(CreateClientOrderRequest request) {
@@ -120,7 +130,19 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         log.info("Orden creada exitosamente con ID: {}", order.getId());
-        return ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        
+        // Publicar evento SSE si la orden es de CHATBOT
+        if ("CHATBOT".equalsIgnoreCase(order.getSource())) {
+            try {
+                orderSseService.publishNewChatbotOrder(orderDTO);
+                log.info("Evento SSE publicado para orden {} del tenant {}", order.getId(), order.getTenant().getId());
+            } catch (Exception e) {
+                log.error("Error al publicar evento SSE para orden {}: {}", order.getId(), e.getMessage(), e);
+            }
+        }
+        
+        return orderDTO;
     }
 
     @Override
@@ -175,6 +197,11 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
     @Override
     public ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus) {
+        return updateOrderStatus(orderId, newStatus, null, null);
+    }
+
+    @Override
+    public ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason) {
         log.info("Actualizando estado de orden {} a: {}", orderId, newStatus);
 
         ClientOrder order = clientOrderRepository.findById(orderId)
@@ -183,9 +210,24 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         // Validar transiciones de estado permitidas
         validateStatusTransition(order.getEstado(), newStatus);
 
+        // Actualizar timestamps según transición
+        if (newStatus == OrderStatus.EN_PREPARACION && order.getAcceptedAt() == null) {
+            order.setAcceptedAt(LocalDateTime.now());
+        } else if (newStatus == OrderStatus.LISTO && order.getReadyAt() == null) {
+            order.setReadyAt(LocalDateTime.now());
+        }
+
         // Si se está confirmando/pagando la orden y hay un cupón asociado, redimirlo
         if (newStatus == OrderStatus.PAGADA && order.getCouponId() != null && order.getCustomer() != null) {
             redeemCouponOnOrderConfirmation(order);
+        }
+
+        // Si se está cancelando, registrar auditoría
+        if (newStatus == OrderStatus.CANCELADA) {
+            order.setCancelledBy(userEmail);
+            order.setCancelledAt(LocalDateTime.now());
+            order.setCancellationReason(reason);
+            log.info("Orden {} cancelada por {}. Razón: {}", orderId, userEmail, reason);
         }
 
         order.setEstado(newStatus);
@@ -204,7 +246,21 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
         
-        return ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        
+        // Publicar evento SSE para cambios de estado de cocina
+        if (newStatus == OrderStatus.EN_PREPARACION || newStatus == OrderStatus.LISTO) {
+            try {
+                orderSseService.publishOrderStatusChanged(orderDTO);
+                log.info("Evento SSE de cambio de estado publicado para orden {} del tenant {}", 
+                        orderId, order.getTenant().getId());
+            } catch (Exception e) {
+                log.error("Error al publicar evento SSE de cambio de estado para orden {}: {}", 
+                        orderId, e.getMessage(), e);
+            }
+        }
+        
+        return orderDTO;
     }
 
     @Override
@@ -268,10 +324,25 @@ public class ClientOrderServiceImpl implements ClientOrderService {
      * Valida las transiciones de estado permitidas
      */
     private void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-        // PENDIENTE puede ir a PAGADA o CANCELADA
+        // PENDIENTE puede ir a CONFIRMADA, PAGADA, CANCELADA o EN_PREPARACION
         if (currentStatus == OrderStatus.PENDIENTE) {
-            if (newStatus != OrderStatus.PAGADA && newStatus != OrderStatus.CANCELADA) {
+            if (newStatus != OrderStatus.CONFIRMADA &&
+                newStatus != OrderStatus.PAGADA && 
+                newStatus != OrderStatus.CANCELADA && 
+                newStatus != OrderStatus.EN_PREPARACION) {
                 throw new IllegalArgumentException("No se puede cambiar de PENDIENTE a " + newStatus);
+            }
+        }
+        // EN_PREPARACION puede ir a LISTO o CANCELADA
+        else if (currentStatus == OrderStatus.EN_PREPARACION) {
+            if (newStatus != OrderStatus.LISTO && newStatus != OrderStatus.CANCELADA) {
+                throw new IllegalArgumentException("No se puede cambiar de EN_PREPARACION a " + newStatus);
+            }
+        }
+        // LISTO solo puede ir a CANCELADA
+        else if (currentStatus == OrderStatus.LISTO) {
+            if (newStatus != OrderStatus.CANCELADA) {
+                throw new IllegalArgumentException("No se puede cambiar de LISTO a " + newStatus);
             }
         }
         // PAGADA solo puede ir a CANCELADA
@@ -373,6 +444,159 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         } catch (Exception e) {
             // No fallar el cambio de estado si la redención del cupón falla
             log.error("Error al redimir cupón {} para orden {}: {}", coupon.getCode(), order.getId(), e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ClientOrderDTO recordPayment(UUID orderId, RecordPaymentRequest request) {
+        log.info("Registrando pago para orden {} con método {}", orderId, request.getMethod());
+
+        // ===== FASE 1: VALIDAR ORDEN =====
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
+
+        if (order.getEstado() != OrderStatus.LISTO && order.getEstado() != OrderStatus.CONFIRMADA) {
+            throw new IllegalArgumentException(
+                    "Solo se puede registrar pago de órdenes en estado LISTO o CONFIRMADA. Estado actual: " + order.getEstado());
+        }
+
+        // Validar que referencia está presente para métodos que la requieren
+        if ((request.getMethod() == PaymentMethod.CARD ||
+             request.getMethod() == PaymentMethod.TRANSFER ||
+             request.getMethod() == PaymentMethod.MIXED) &&
+            (request.getReference() == null || request.getReference().isBlank())) {
+            throw new IllegalArgumentException(
+                    "Referencia obligatoria para método de pago: " + request.getMethod().getDescription());
+        }
+
+        if (order.getPaidAt() != null) {
+            throw new IllegalArgumentException(
+                    "La orden ya fue pagada el " + order.getPaidAt());
+        }
+
+        // ===== FASE 2: VALIDAR USUARIO =====
+        if (request.getUserEmail() == null || request.getUserEmail().isBlank()) {
+            throw new IllegalArgumentException("Email del usuario que registra el pago es requerido");
+        }
+
+        TenantUser tenantUser = tenantUserRepository.findByEmail(request.getUserEmail())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Usuario no encontrado en tenant con email: " + request.getUserEmail()));
+
+        AppUser paidByUser = appUserRepository.findByEmail(request.getUserEmail());
+        if (paidByUser == null) {
+            paidByUser = AppUser.builder()
+                    .email(request.getUserEmail())
+                    .fullName(tenantUser.getNombre())
+                    .isActive(true)
+                    .build();
+            paidByUser = appUserRepository.save(paidByUser);
+        }
+
+        // ===== FASE 3: REGISTRAR PAGO (TRANSACCIÓN PRINCIPAL) =====
+        order.setPaidMethod(request.getMethod());
+        order.setPaymentReference(request.getReference());
+        order.setPaidBy(paidByUser);
+        order.setPaidAt(LocalDateTime.now());
+        order.setEstado(OrderStatus.PAGADA);
+
+        order = clientOrderRepository.save(order);
+        log.info("Pago registrado exitosamente para orden {} por usuario {}. Método: {}", 
+                orderId, paidByUser.getEmail(), request.getMethod());
+
+        // ===== FASE 4: REDIMIR CUPÓN (TRANSACCIÓN SEPARADA - BEST EFFORT) =====
+        String couponRedemptionError = null;
+        if (order.getCouponId() != null) {
+            couponRedemptionError = attemptCouponRedemption(order, paidByUser);
+            if (couponRedemptionError != null) {
+                log.warn("Advertencia: No se pudo redimir el cupón de la orden {}. Razón: {}", orderId, couponRedemptionError);
+            }
+        }
+
+        // ===== FASE 5: PUBLICAR EVENTO SSE =====
+        try {
+            ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order);
+            orderSseService.publishOrderStatusChanged(orderDTO);
+            log.info("Evento SSE publicado para orden {} en estado PAGADA del tenant {}", 
+                    orderId, order.getTenant().getId());
+        } catch (Exception e) {
+            log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
+        }
+
+        // ===== CONSTRUIR RESPUESTA =====
+        ClientOrderDTO response = ClientOrderMapper.toDTO(order);
+        
+        // Agregar advertencia de cupón en la respuesta si hubo error
+        if (couponRedemptionError != null) {
+            log.info("Orden {} pagada exitosamente, pero error al redimir cupón: {}", orderId, couponRedemptionError);
+            // Nota: Si quieres agregar el error a la respuesta, puedes crear un campo en ClientOrderDTO
+        }
+
+        return response;
+    }
+
+    /**
+     * Intenta redimir el cupón de una orden pagada.
+     * Si falla por cualquier razón, retorna el mensaje de error pero NO falla el pago.
+     *
+     * @return null si se redimió exitosamente, o el mensaje de error si falló
+     */
+    private String attemptCouponRedemption(ClientOrder order, AppUser paidByUser) {
+        try {
+            // Buscar el cupón
+            Coupon coupon = couponRepository.findById(order.getCouponId())
+                    .orElse(null);
+
+            if (coupon == null) {
+                return "Cupón con ID " + order.getCouponId() + " no encontrado";
+            }
+
+            log.info("Intentando redimir cupón {} para orden {}", coupon.getCode(), order.getId());
+
+            // Preparar request de redención
+            // IMPORTANTE: NO pasar originalAmount aquí porque:
+            // 1. El descuento YA fue calculado y aplicado por el Frontend
+            // 2. Si pasamos originalAmount, el servicio recalcula el descuento (DOBLE DESCUENTO)
+            // 3. Solo necesitamos marcar el cupón como "redimido" en auditoría
+            // El email de redención solo mostrará que fue redimido, sin recalcular descuentos
+            RedeemCouponRequest redemptionRequest = RedeemCouponRequest.builder()
+                    .originalAmount(null)  // NULL: Solo marcar como redimido, sin recalcular
+                    .redeemedBy(paidByUser.getEmail())
+                    .channel(RedemptionChannel.COMANDIX)
+                    .metadata("OrderId: " + order.getId())
+                    .build();
+
+            // Intentar redimir el cupón
+            RedemptionResponse redemptionResponse = couponRedemptionService.redeemCouponByCode(
+                    coupon.getCode(),
+                    redemptionRequest,
+                    order.getTenant().getId()
+            );
+
+            // Verificar si la redención fue exitosa
+            if (redemptionResponse.isSuccess()) {
+                log.info("Cupón {} redimido exitosamente para orden {}. Descuento: {}", 
+                        coupon.getCode(), order.getId(), redemptionResponse.getDiscountAmount());
+                return null; // Éxito
+            } else {
+                // Redención fallida pero no crítica
+                String errorMsg = redemptionResponse.getMessage();
+                log.warn("Fallo de redención para cupón {}: {}", coupon.getCode(), errorMsg);
+                return errorMsg;
+            }
+
+        } catch (IllegalArgumentException ex) {
+            // Cupón inválido, ya redimido, etc.
+            String errorMsg = ex.getMessage();
+            log.warn("Error de validación al redimir cupón: {}", errorMsg);
+            return errorMsg;
+
+        } catch (Exception ex) {
+            // Error inesperado - no fallar el pago
+            String errorMsg = "Error inesperado: " + ex.getMessage();
+            log.error("Error inesperado al redimir cupón para orden {}: {}", order.getId(), errorMsg, ex);
+            return errorMsg;
         }
     }
 }

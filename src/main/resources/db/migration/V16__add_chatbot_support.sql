@@ -6,16 +6,16 @@
 
 -- 1. Agregar campo source a client_order
 ALTER TABLE client_order 
-ADD COLUMN source VARCHAR(20) DEFAULT 'MANUAL';
+ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'MANUAL';
 
 -- Crear índice para filtrar órdenes por origen
-CREATE INDEX idx_client_order_source ON client_order(source);
+CREATE INDEX IF NOT EXISTS idx_client_order_source ON client_order(source);
 
 -- Crear índice compuesto para dashboard (tenant + source)
-CREATE INDEX idx_client_order_tenant_source ON client_order(tenant_id, source);
+CREATE INDEX IF NOT EXISTS idx_client_order_tenant_source ON client_order(tenant_id, source);
 
 -- 2. Crear tabla de sesiones de ChatBot
-CREATE TABLE chatbot_session (
+CREATE TABLE IF NOT EXISTS chatbot_session (
     id BIGSERIAL PRIMARY KEY,
     session_id VARCHAR(100) NOT NULL UNIQUE,
     tenant_id BIGINT NOT NULL,
@@ -35,14 +35,14 @@ CREATE TABLE chatbot_session (
 );
 
 -- Índices para chatbot_session
-CREATE INDEX idx_chatbot_session_tenant ON chatbot_session(tenant_id);
-CREATE INDEX idx_chatbot_session_customer ON chatbot_session(customer_id);
-CREATE INDEX idx_chatbot_session_status ON chatbot_session(status);
-CREATE INDEX idx_chatbot_session_started_at ON chatbot_session(started_at);
-CREATE INDEX idx_chatbot_session_last_interaction ON chatbot_session(last_interaction_at);
+CREATE INDEX IF NOT EXISTS idx_chatbot_session_tenant ON chatbot_session(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_chatbot_session_customer ON chatbot_session(customer_id);
+CREATE INDEX IF NOT EXISTS idx_chatbot_session_status ON chatbot_session(status);
+CREATE INDEX IF NOT EXISTS idx_chatbot_session_started_at ON chatbot_session(started_at);
+CREATE INDEX IF NOT EXISTS idx_chatbot_session_last_interaction ON chatbot_session(last_interaction_at);
 
 -- 3. Crear tabla de mensajes de ChatBot
-CREATE TABLE chatbot_message (
+CREATE TABLE IF NOT EXISTS chatbot_message (
     id BIGSERIAL PRIMARY KEY,
     session_id BIGINT NOT NULL,
     message_type VARCHAR(20) NOT NULL,
@@ -57,9 +57,9 @@ CREATE TABLE chatbot_message (
 );
 
 -- Índices para chatbot_message
-CREATE INDEX idx_chatbot_message_session ON chatbot_message(session_id);
-CREATE INDEX idx_chatbot_message_timestamp ON chatbot_message(timestamp);
-CREATE INDEX idx_chatbot_message_type ON chatbot_message(message_type);
+CREATE INDEX IF NOT EXISTS idx_chatbot_message_session ON chatbot_message(session_id);
+CREATE INDEX IF NOT EXISTS idx_chatbot_message_timestamp ON chatbot_message(timestamp);
+CREATE INDEX IF NOT EXISTS idx_chatbot_message_type ON chatbot_message(message_type);
 
 -- 4. Comentarios en las tablas
 COMMENT ON TABLE chatbot_session IS 'Sesiones de conversación del ChatBot (Mesero Virtual)';

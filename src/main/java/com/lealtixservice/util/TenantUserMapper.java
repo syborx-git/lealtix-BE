@@ -49,7 +49,6 @@ public class TenantUserMapper {
                 .fechaNacimiento(user.getFechaNacimiento())
                 .telefono(user.getTelefono())
                 .email(user.getEmail())
-                .password(EncrypUtils.decrypPassword(user.getPasswordHash()))
                 .isActive(user.isActive())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
@@ -64,7 +63,7 @@ public class TenantUserMapper {
                 .fechaNacimiento(dto.getFechaNacimiento())
                 .telefono(dto.getTelefono())
                 .email(dto.getEmail())
-                .passwordHash(EncrypUtils.encryptPassword(dto.getPassword()))
+                .passwordHash(dto.getPassword() != null ? EncrypUtils.encryptPassword(dto.getPassword()) : null)
                 .isActive(dto.isActive())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
@@ -75,7 +74,7 @@ public class TenantUserMapper {
         if (tenantConfig == null) return null;
         return TenantConfigDTO.builder()
                 .id(tenantConfig.getId())
-                .tenantId(tenantConfig.getTenant().getId())
+                .tenantId(tenantConfig.getTenant() != null ? tenantConfig.getTenant().getId() : null)
                 .history(tenantConfig.getHistory())
                 .vision(tenantConfig.getVision())
                 .bussinesEmail(tenantConfig.getBussinesEmail())
@@ -84,6 +83,8 @@ public class TenantUserMapper {
                 .linkedin(tenantConfig.getLinkedin())
                 .instagram(tenantConfig.getInstagram())
                 .tiktok(tenantConfig.getTiktok())
+                .kitchenModuleEnabled(tenantConfig.getKitchenModuleEnabled())
+                .kitchenEnabledAt(tenantConfig.getKitchenEnabledAt())
                 .createdAt(tenantConfig.getCreatedAt())
                 .updatedAt(tenantConfig.getUpdatedAt())
                 .build();
@@ -101,6 +102,8 @@ public class TenantUserMapper {
             dto.setX(tenantConfig.getTwitter());
             dto.setTiktok(tenantConfig.getTiktok());
             dto.setLinkedin(tenantConfig.getLinkedin());
+            dto.setKitchenModuleEnabled(tenantConfig.getKitchenModuleEnabled());
+            dto.setKitchenEnabledAt(tenantConfig.getKitchenEnabledAt());
         }
         return dto;
     }

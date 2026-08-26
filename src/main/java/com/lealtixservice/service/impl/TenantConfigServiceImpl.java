@@ -33,6 +33,12 @@ public class TenantConfigServiceImpl implements TenantConfigService {
             tenantConfig.setLinkedin(dto.getLinkedin() == null || dto.getLinkedin().isBlank() ? tenantConfig.getLinkedin() : dto.getLinkedin());
             tenantConfig.setTiktok(dto.getTiktok() == null || dto.getTiktok().isBlank() ? tenantConfig.getTiktok() : dto.getTiktok());
             tenantConfig.setTwitter(dto.getTwitter() == null || dto.getTwitter().isBlank() ? tenantConfig.getTwitter() : dto.getTwitter());
+            if (dto.getKitchenModuleEnabled() != null) {
+                tenantConfig.setKitchenModuleEnabled(dto.getKitchenModuleEnabled());
+                if (dto.getKitchenModuleEnabled() && tenantConfig.getKitchenEnabledAt() == null) {
+                    tenantConfig.setKitchenEnabledAt(java.time.LocalDateTime.now());
+                }
+            }
         }else{
             tenantConfig = toEntity(dto, tenant);
         }
@@ -65,6 +71,8 @@ public class TenantConfigServiceImpl implements TenantConfigService {
                 .linkedin(entity.getLinkedin())
                 .instagram(entity.getInstagram())
                 .tiktok(entity.getTiktok())
+                .kitchenModuleEnabled(entity.getKitchenModuleEnabled())
+                .kitchenEnabledAt(entity.getKitchenEnabledAt())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
@@ -82,6 +90,8 @@ public class TenantConfigServiceImpl implements TenantConfigService {
                 .linkedin(dto.getLinkedin())
                 .instagram(dto.getInstagram())
                 .tiktok(dto.getTiktok())
+                .kitchenModuleEnabled(dto.getKitchenModuleEnabled() != null ? dto.getKitchenModuleEnabled() : false)
+                .kitchenEnabledAt(dto.getKitchenEnabledAt())
                 .build();
         return entity;
     }

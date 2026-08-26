@@ -39,6 +39,8 @@ public class TenantAuthController {
     @Operation(summary = "Login de usuario tenant", description = "Autentica usuario tenant por email y contraseña. El tenantId se obtiene automáticamente del backend.")
     @PostMapping("/login")
     public ResponseEntity<GenericResponse> login(@RequestBody TenantLoginRequest request) {
+
+        Long tenantId = 0L;
         try {
             log.info("Tenant login attempt - email: {}", request.getEmail());
 
@@ -56,6 +58,11 @@ public class TenantAuthController {
                 throw new BusinessRuleException("Usuario o contraseña incorrectos");
             }
 
+            if(user != null && user.getTenant() != null) {
+                tenantId =  user.getTenant().getId();
+            }else{
+
+            }
             // Generar token JWT
             String token = jwtUtil.generateToken(user.getEmail());
 
@@ -66,7 +73,10 @@ public class TenantAuthController {
             JwtResponse jwtResponse = JwtResponse.builder()
                     .accessToken(token)
                     .userEmail(user.getEmail())
+                    .userName(user.getNombre())
+                    .role(user.getRol().name())
                     .userId(user.getId())
+                    .tenantId(tenantId)
                     .permissions(permissions)
                     .build();
 

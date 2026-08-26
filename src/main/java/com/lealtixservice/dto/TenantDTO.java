@@ -36,6 +36,8 @@ public class TenantDTO {
     private String x;
     private String tiktok;
     private String schedules;
+    private Boolean kitchenModuleEnabled;
+    private LocalDateTime kitchenEnabledAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

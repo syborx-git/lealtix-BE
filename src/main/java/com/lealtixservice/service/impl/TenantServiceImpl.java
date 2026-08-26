@@ -91,6 +91,12 @@ public class TenantServiceImpl implements TenantService {
                 if (existingTenant.getCreatedAt() == null) {
                     existingTenant.setCreatedAt(LocalDateTime.now());
                 }
+                if (dto.getKitchenModuleEnabled() != null) {
+                    existingTenant.setKitchenModuleEnabled(dto.getKitchenModuleEnabled());
+                    if (dto.getKitchenModuleEnabled() && existingTenant.getKitchenEnabledAt() == null) {
+                        existingTenant.setKitchenEnabledAt(LocalDateTime.now());
+                    }
+                }
                 existingTenant.setUpdatedAt(LocalDateTime.now());
                 existingTenant.setActive(true);
                 return tenantRepository.save(existingTenant);
@@ -177,6 +183,14 @@ public class TenantServiceImpl implements TenantService {
                             tenant.setUIDTenant(tenantDto.getUIDTenant());
                         } else if (tenant.getUIDTenant() == null || tenant.getUIDTenant().isBlank()) {
                             tenant.setUIDTenant("UID-" + tenantId);
+                        }
+                    }
+
+                    // Validar y configurar kitchenModuleEnabled
+                    if (tenantDto.getKitchenModuleEnabled() != null) {
+                        tenant.setKitchenModuleEnabled(tenantDto.getKitchenModuleEnabled());
+                        if (tenantDto.getKitchenModuleEnabled()) {
+                            tenant.setKitchenEnabledAt(LocalDateTime.now());
                         }
                     }
 
