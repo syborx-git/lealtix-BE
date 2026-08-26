@@ -12,7 +12,11 @@ public class EncrypUtils {
 
     public static String decrypPassword(String encrypted) {
         if (encrypted == null) return null;
-        byte[] decodedBytes = Base64.getDecoder().decode(encrypted);
-        return new String(decodedBytes, StandardCharsets.UTF_8);
+        try {
+            byte[] decodedBytes = Base64.getDecoder().decode(encrypted);
+            return new String(decodedBytes, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
