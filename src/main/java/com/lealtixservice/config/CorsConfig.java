@@ -32,15 +32,22 @@ public class CorsConfig {
                 .collect(Collectors.toList());
     }
 
+    private List<String> allowedPatterns() {
+        List<String> origins = parseAllowedOrigins();
+        // Permite los túneles públicos de cloudflared (pruebas/uso remoto)
+        origins.add("https://*.trycloudflare.com");
+        return origins;
+    }
+
     @Bean
     public WebMvcConfigurer corsConfigurer() {
-        List<String> origins = parseAllowedOrigins();
+        List<String> origins = allowedPatterns();
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 // Mantener mappings existentes y añadir/usar la lista de orígenes desde properties
                 registry.addMapping("/api/**")
-                        .allowedOrigins(origins.toArray(new String[0]))
+                        .allowedOriginPatterns(origins.toArray(new String[0]))
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .exposedHeaders("Authorization", "Content-Type")
@@ -49,7 +56,7 @@ public class CorsConfig {
 
                 // SSE endpoint requiere allowCredentials y cache control propio
                 registry.addMapping("/api/sse/**")
-                        .allowedOrigins(origins.toArray(new String[0]))
+                        .allowedOriginPatterns(origins.toArray(new String[0]))
                         .allowedMethods("GET", "OPTIONS")
                         .allowedHeaders("*")
                         .exposedHeaders("Content-Type", "Cache-Control", "X-Accel-Buffering")
@@ -57,7 +64,7 @@ public class CorsConfig {
                         .maxAge(0);
 
                 registry.addMapping("/stripe/**")
-                        .allowedOrigins(origins.toArray(new String[0]))
+                        .allowedOriginPatterns(origins.toArray(new String[0]))
                         .allowedMethods("GET", "POST", "OPTIONS")
                         .allowedHeaders("*")
                         .exposedHeaders("Content-Type")
@@ -72,10 +79,10 @@ public class CorsConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        List<String> origins = parseAllowedOrigins();
+        List<String> origins = allowedPatterns();
 
         CorsConfiguration apiConfig = new CorsConfiguration();
-        apiConfig.setAllowedOrigins(origins);
+        apiConfig.setAllowedOriginPatterns(origins);
         apiConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         apiConfig.setAllowedHeaders(List.of("*"));
         apiConfig.setExposedHeaders(List.of("Authorization", "Content-Type"));
@@ -83,7 +90,7 @@ public class CorsConfig {
         apiConfig.setMaxAge(3600L);
 
         CorsConfiguration sseConfig = new CorsConfiguration();
-        sseConfig.setAllowedOrigins(origins);
+        sseConfig.setAllowedOriginPatterns(origins);
         sseConfig.setAllowedMethods(List.of("GET", "OPTIONS"));
         sseConfig.setAllowedHeaders(List.of("*"));
         sseConfig.setExposedHeaders(List.of("Content-Type", "Cache-Control", "X-Accel-Buffering"));
@@ -91,7 +98,7 @@ public class CorsConfig {
         sseConfig.setMaxAge(0L);
 
         CorsConfiguration stripeConfig = new CorsConfiguration();
-        stripeConfig.setAllowedOrigins(origins);
+        stripeConfig.setAllowedOriginPatterns(origins);
         stripeConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
         stripeConfig.setAllowedHeaders(List.of("*"));
         stripeConfig.setExposedHeaders(List.of("Content-Type"));
@@ -111,9 +118,9 @@ public class CorsConfig {
     // También registrar un filtro global CORS por si acaso algún componente no respeta CorsConfigurationSource
     @Bean
     public CorsFilter corsFilter() {
-        List<String> origins = parseAllowedOrigins();
+        List<String> origins = allowedPatterns();
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(origins);
+        cfg.setAllowedOriginPatterns(origins);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);
