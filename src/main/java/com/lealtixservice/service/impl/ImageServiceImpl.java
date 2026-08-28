@@ -33,7 +33,7 @@ public class ImageServiceImpl implements ImageService {
 
     private final Cloudinary cloudinary;
 
-    @Value("${lealtix.upload-dir:/home/nexus/lealtix/uploads}")
+    @Value("${lealtix.upload-dir:/app/uploads}")
     private String uploadDir;
 
     @Autowired

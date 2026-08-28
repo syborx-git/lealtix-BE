@@ -29,7 +29,7 @@ public class ImageController {
     @Autowired
     private  ImageService imageService;
 
-    @Value("${lealtix.upload-dir:/home/nexus/lealtix/uploads}")
+    @Value("${lealtix.upload-dir:/app/uploads}")
     private String uploadDir;
 
     private String toAbsoluteUrl(HttpServletRequest request, String url) {
