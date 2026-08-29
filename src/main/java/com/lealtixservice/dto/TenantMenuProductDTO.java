@@ -27,6 +27,11 @@ public class TenantMenuProductDTO {
     private String imageUrl;
     private List<CrossSellingDTO> crossSellingProducts;
 
+    /** Stock disponible (dinámico para platillos con receta) */
+    private Double stock;
+    private Double stockMinimo;
+    private String unidad;
+
     public TenantMenuProductDTO(
             Long id,
             Long categoryId,

@@ -30,6 +30,7 @@ import com.lealtixservice.repository.TenantRepository;
 import com.lealtixservice.repository.TenantUserRepository;
 import com.lealtixservice.service.ClientOrderService;
 import com.lealtixservice.service.CouponRedemptionService;
+import com.lealtixservice.service.InventoryService;
 import com.lealtixservice.service.OrderSseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +62,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     private final TenantUserRepository tenantUserRepository;
     private final CouponRedemptionService couponRedemptionService;
     private final OrderSseService orderSseService;
+    private final InventoryService inventoryService;
 
     @Override
     public ClientOrderDTO createOrder(CreateClientOrderRequest request) {
@@ -87,6 +89,16 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("La orden debe contener al menos un item");
         }
 
+        // Validar stock disponible antes de crear la orden
+        for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+            TenantMenuProduct prod = tenantMenuProductRepository.findById(itemRequest.getProductId()).orElse(null);
+            if (prod == null) continue;
+            double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
+            if (!inventoryService.hasStock(itemRequest.getProductId(), qty)) {
+                throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' está agotado o no hay stock suficiente");
+            }
+        }
+
         // Crear la orden
         ClientOrder order = ClientOrderMapper.toEntity(request, customer, tenant);
 
@@ -108,6 +120,20 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
         items = clientOrderItemRepository.saveAll(items);
         order.setItems(items);
+
+        // Descontar stock del inventario conforme se confirma la comanda
+        try {
+            for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+                Double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
+                inventoryService.deductForOrder(
+                        itemRequest.getProductId(),
+                        qty,
+                        itemRequest.getExcludedIngredientIds(),
+                        itemRequest.getAdditionalIngredientIds());
+            }
+        } catch (Exception e) {
+            log.error("Error descontando inventario para la orden {}: {}", order.getId(), e.getMessage(), e);
+        }
 
         // Calcular montos
         BigDecimal subtotal = ClientOrderMapper.calculateSubtotal(items);

@@ -41,7 +41,18 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api/**",
                                 "/stripe/webhook",
-                                "/error"
+                                "/error",
+                                "/landing-page/**",
+                                "/index.html",
+                                "/favicon.ico",
+                                "/*.js",
+                                "/*.css",
+                                "/*.map",
+                                "/*.ttf",
+                                "/*.eot",
+                                "/*.woff*",
+                                "/assets/**",
+                                "/media/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

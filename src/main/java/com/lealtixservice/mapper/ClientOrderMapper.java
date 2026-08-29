@@ -43,6 +43,13 @@ public class ClientOrderMapper {
             acceptedAt = java.time.LocalDateTime.now();  // Registrar cuándo fue aceptada
         }
         
+        // Determinar el source: prioridad a request.getSource() (ej. "CHATBOT"),
+        // fallback al canal de redención y por defecto MANUAL.
+        String source = request.getSource();
+        if (source == null || source.isBlank()) {
+            source = request.getRedemptionChannel() != null ? request.getRedemptionChannel().name() : "MANUAL";
+        }
+
         return ClientOrder.builder()
                 .customer(customer)
                 .tenant(tenant)
@@ -53,7 +60,7 @@ public class ClientOrderMapper {
                 .total(total)
                 .couponId(request.getCouponId())
                 .fecha(java.time.LocalDateTime.now())  // Establecer la fecha actual
-                .source(request.getRedemptionChannel() != null ? request.getRedemptionChannel().name() : "MANUAL")  // Soporte para source
+                .source(source)
                 .build();
     }
 

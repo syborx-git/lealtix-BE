@@ -110,7 +110,7 @@ public class TenantServiceImpl implements TenantService {
                     }
 
                     Tenant tenant = new Tenant();
-                    if(tenantDto.getId() > 0){
+                    if(tenantDto.getId() != null && tenantDto.getId() > 0){
                         tenant = tenantRepository.findById(tenantDto.getId())
                                 .orElseThrow(() -> new IllegalArgumentException("Tenant not found with id: " + tenantDto.getId()));
                     }else{

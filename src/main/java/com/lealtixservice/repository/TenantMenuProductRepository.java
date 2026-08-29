@@ -18,4 +18,7 @@ public interface TenantMenuProductRepository extends JpaRepository<TenantMenuPro
            "where t.id = :tenantId "+
            "order by c.displayOrder asc, c.nombre asc")
     List<TenantMenuProductDTO> findByCategoryTenantId(@Param("tenantId") Long tenantId);
+
+    @Query("select p from TenantMenuProduct p join p.category c join c.tenant t where t.id = :tenantId order by p.nombre asc")
+    List<TenantMenuProduct> findAllByTenantId(@Param("tenantId") Long tenantId);
 }

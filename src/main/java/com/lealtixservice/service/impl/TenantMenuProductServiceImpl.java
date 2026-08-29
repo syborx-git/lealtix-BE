@@ -4,9 +4,11 @@ import com.lealtixservice.dto.BulkProductRequest;
 import com.lealtixservice.dto.BulkProductResponse;
 import com.lealtixservice.dto.TenantMenuCategoryDTO;
 import com.lealtixservice.dto.TenantMenuProductDTO;
+import com.lealtixservice.entity.ProductRecipe;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantMenuCategory;
 import com.lealtixservice.entity.TenantMenuProduct;
+import com.lealtixservice.repository.ProductRecipeRepository;
 import com.lealtixservice.repository.TenantMenuProductRepository;
 import com.lealtixservice.repository.TenantRepository;
 import com.lealtixservice.service.TenantMenuCategoryService;
@@ -18,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -32,6 +36,9 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
 
     @Autowired
     private TenantRepository tenantRepository;
+
+    @Autowired
+    private ProductRecipeRepository recipeRepository;
 
     @Override
     public TenantMenuProduct save(TenantMenuProduct product) {
@@ -131,9 +138,38 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TenantMenuProductDTO> getProductsByTenantId(Long tenantId) {
         List<TenantMenuProductDTO> products = productRepository.findByCategoryTenantId(tenantId);
         if (products == null) return List.of();
+
+        // Enriquecer con stock disponible (dinámico para platillos con receta)
+        Map<Long, TenantMenuProduct> entities = new HashMap<>();
+        for (TenantMenuProduct p : productRepository.findAllByTenantId(tenantId)) {
+            entities.put(p.getId(), p);
+        }
+        for (TenantMenuProductDTO dto : products) {
+            TenantMenuProduct entity = entities.get(dto.getId());
+            if (entity == null) continue;
+            List<ProductRecipe> recipes = recipeRepository.findByDishId(entity.getId());
+            double stock;
+            if (!recipes.isEmpty()) {
+                double min = Double.MAX_VALUE;
+                for (ProductRecipe r : recipes) {
+                    double qty = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+                    if (qty <= 0) continue;
+                    double insumoStock = r.getInsumo().getStock() != null ? r.getInsumo().getStock() : 0.0;
+                    min = Math.min(min, Math.floor(insumoStock / qty));
+                }
+                stock = min == Double.MAX_VALUE ? 0.0 : Math.max(0.0, min);
+            } else {
+                stock = entity.getStock() != null ? entity.getStock() : 0.0;
+            }
+            dto.setStock(stock);
+            dto.setStockMinimo(entity.getStockMinimo() != null ? entity.getStockMinimo() : 0.0);
+            dto.setUnidad(entity.getUnidad() != null ? entity.getUnidad() : "pieza");
+        }
+
         products.sort((p1, p2) -> {
             Integer order1 = p1.getCategoryDisplayOrder() != null ? p1.getCategoryDisplayOrder() : Integer.MAX_VALUE;
             Integer order2 = p2.getCategoryDisplayOrder() != null ? p2.getCategoryDisplayOrder() : Integer.MAX_VALUE;

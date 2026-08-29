@@ -65,5 +65,11 @@ public class CreateClientOrderRequest {
         private BigDecimal precioUnitario;
         
         private String comentarios;
+
+        /** Ingredientes modificables que el cliente pidió quitar (no se descuentan) */
+        private List<Long> excludedIngredientIds;
+
+        /** Insumos adicionales seleccionados por el cliente (se descuentan) */
+        private List<Long> additionalIngredientIds;
     }
 }
