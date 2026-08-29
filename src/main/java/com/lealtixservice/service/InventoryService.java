@@ -66,9 +66,14 @@ public interface InventoryService {
     GenericResponse getAdditionalsByDish(Long dishId);
 
     /**
-     * Adicionales: permitir insumo adicional.
+     * Adicionales: permitir insumo adicional con un precio extra.
      */
-    GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad);
+    GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio);
+
+    /**
+     * Adicionales: actualizar cantidad / precio de un adicional permitido.
+     */
+    GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio);
 
     /**
      * Adicionales: quitar adicional permitido.
@@ -79,6 +84,11 @@ public interface InventoryService {
      * Descuenta stock de los insumos al confirmar una comanda.
      */
     GenericResponse deductForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds);
+
+    /**
+     * Restaura el stock de los insumos al cancelar una comanda (inverso de deductForOrder).
+     */
+    GenericResponse restoreForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds);
 
     /**
      * Verifica si hay stock suficiente de un producto (dinámico si es platillo con receta).

@@ -32,6 +32,8 @@ public class ClientOrderItemMapper {
                 .cantidad(request.getCantidad())
                 .precioUnitario(precioUnitario)
                 .comentarios(request.getComentarios())
+                .excludedIngredientIds(request.getExcludedIngredientIds())
+                .additionalIngredientIds(request.getAdditionalIngredientIds())
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

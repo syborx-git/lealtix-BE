@@ -69,5 +69,11 @@ public class ChatBotOrderRequestDTO {
         private BigDecimal precioUnitario;
 
         private String comentarios;
+
+        /** Insumos modificables que el cliente pidió quitar (no se descuentan) */
+        private java.util.List<Long> excludedIngredientIds;
+
+        /** Insumos adicionales que el cliente agregó (se descuentan) */
+        private java.util.List<Long> additionalIngredientIds;
     }
 }

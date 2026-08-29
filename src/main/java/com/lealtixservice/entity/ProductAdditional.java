@@ -30,4 +30,8 @@ public class ProductAdditional {
     /** Cantidad fija del adicional */
     @Column(precision = 10, scale = 2, nullable = false)
     private BigDecimal cantidad;
+
+    /** Precio extra que se cobra al cliente por este adicional */
+    @Builder.Default
+    private BigDecimal precio = BigDecimal.ZERO;
 }

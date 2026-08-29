@@ -1,11 +1,13 @@
 package com.lealtixservice.entity;
 
+import com.lealtixservice.util.JsonLongListConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -45,6 +47,14 @@ public class ClientOrderItem {
 
     @Column(name = "comentarios", columnDefinition = "TEXT")
     private String comentarios;
+
+    @Convert(converter = JsonLongListConverter.class)
+    @Column(name = "excluded_ingredient_ids", columnDefinition = "TEXT")
+    private List<Long> excludedIngredientIds;
+
+    @Convert(converter = JsonLongListConverter.class)
+    @Column(name = "additional_ingredient_ids", columnDefinition = "TEXT")
+    private List<Long> additionalIngredientIds;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
