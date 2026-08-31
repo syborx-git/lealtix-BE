@@ -98,6 +98,57 @@ public class DashboardController {
         return ResponseEntity.ok(summary);
     }
 
+    @Operation(summary = "Ventas por periodo (día/semana/mes) con desglose identificadas vs generales")
+    @GetMapping("/sales/by-period")
+    public ResponseEntity<?> getSalesByPeriod(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Periodo: day, week o month") @RequestParam(defaultValue = "week") String period,
+            @Parameter(description = "Fecha inicio") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        try {
+            log.info("GET /api/dashboard/sales/by-period - tenantId={}, period={}, from={}, to={}", tenantId, period, from, to);
+            return ResponseEntity.ok(dashboardService.getSalesByPeriod(tenantId, period, from, to));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error obteniendo ventas por periodo", e);
+            return ResponseEntity.internalServerError().body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Productos más vendidos por tenant en un periodo")
+    @GetMapping("/sales/top-products")
+    public ResponseEntity<?> getTopProducts(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Fecha inicio") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        try {
+            log.info("GET /api/dashboard/sales/top-products - tenantId={}, from={}, to={}", tenantId, from, to);
+            return ResponseEntity.ok(dashboardService.getTopProducts(tenantId, from, to));
+        } catch (Exception e) {
+            log.error("Error obteniendo productos más vendidos", e);
+            return ResponseEntity.internalServerError().body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Ventas agrupadas por categoría de producto")
+    @GetMapping("/sales/by-category")
+    public ResponseEntity<?> getSalesByCategory(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Fecha inicio") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        try {
+            log.info("GET /api/dashboard/sales/by-category - tenantId={}, from={}, to={}", tenantId, from, to);
+            return ResponseEntity.ok(dashboardService.getSalesByCategory(tenantId, from, to));
+        } catch (Exception e) {
+            log.error("Error obteniendo ventas por categoría", e);
+            return ResponseEntity.internalServerError().body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
     @Operation(summary = "KPI 7: Rendimiento por campaña",
                description = "Obtiene tabla resumen completa de performance de campañas con todas las métricas")
     @GetMapping("/campaigns/performance")

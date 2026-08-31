@@ -36,6 +36,37 @@ public interface ClientOrderItemRepository extends JpaRepository<ClientOrderItem
     // ==================== NUEVAS QUERIES PARA ANÁLISIS DE PERSONALIZACIÓN ====================
 
     /**
+     * Ventas agrupadas por categoría de producto por tenant en un periodo.
+     * Retorna: [0]=categoryName, [1]=totalSales
+     */
+    @Query("SELECT c.nombre, SUM(i.cantidad * i.precioUnitario) " +
+           "FROM ClientOrderItem i " +
+           "JOIN i.product p " +
+           "JOIN p.category c " +
+           "WHERE i.order.tenant.id = :tenantId " +
+           "AND i.order.fecha BETWEEN :from AND :to " +
+           "GROUP BY c.nombre " +
+           "ORDER BY SUM(i.cantidad * i.precioUnitario) DESC")
+    List<Object[]> findSalesByCategory(@Param("tenantId") Long tenantId,
+                                       @Param("from") LocalDateTime from,
+                                       @Param("to") LocalDateTime to);
+
+    /**
+     * Productos más vendidos por tenant en un periodo.
+     * Retorna: [0]=productName, [1]=totalQuantity, [2]=totalRevenue
+     */
+    @Query("SELECT p.nombre, SUM(i.cantidad), SUM(i.cantidad * i.precioUnitario) " +
+           "FROM ClientOrderItem i " +
+           "JOIN i.product p " +
+           "WHERE i.order.tenant.id = :tenantId " +
+           "AND i.order.fecha BETWEEN :from AND :to " +
+           "GROUP BY p.nombre " +
+           "ORDER BY SUM(i.cantidad) DESC")
+    List<Object[]> findTopProducts(@Param("tenantId") Long tenantId,
+                                   @Param("from") LocalDateTime from,
+                                   @Param("to") LocalDateTime to);
+
+    /**
      * KPI 5: Análisis de Personalización - Obtener todos los comentarios no nulos
      * Se usa para análisis de frecuencia de palabras clave en el servicio
      */

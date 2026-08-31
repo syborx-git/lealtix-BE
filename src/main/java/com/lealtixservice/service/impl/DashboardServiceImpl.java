@@ -33,6 +33,13 @@ public class DashboardServiceImpl implements DashboardService {
     private final ClientOrderItemRepository clientOrderItemRepository;
 
     /**
+     * Devuelve la primera fila de una consulta de resumen (lista de arreglos).
+     */
+    private Object[] firstRow(List<Object[]> rows) {
+        return (rows == null || rows.isEmpty()) ? null : rows.get(0);
+    }
+
+    /**
      * Método auxiliar para convertir un Object a Number de forma segura
      */
     private Long safeToLong(Object obj, Long defaultValue) {
@@ -163,13 +170,13 @@ public class DashboardServiceImpl implements DashboardService {
         log.info("Obteniendo resumen de ventas para tenant {} entre {} y {}", tenantId, from, to);
 
         // Obtener estadísticas de TODAS las órdenes (con o sin cliente, con o sin cupón)
-        Object[] totalStats = clientOrderRepository.getSalesSummary(tenantId, from, to);
+        Object[] totalStats = firstRow(clientOrderRepository.getSalesSummary(tenantId, from, to));
         
         // Obtener estadísticas de órdenes con cupón
-        Object[] withCouponStats = clientOrderRepository.getSalesSummaryWithCoupon(tenantId, from, to);
+        Object[] withCouponStats = firstRow(clientOrderRepository.getSalesSummaryWithCoupon(tenantId, from, to));
         
         // Obtener estadísticas de órdenes sin cupón
-        Object[] withoutCouponStats = clientOrderRepository.getSalesSummaryWithoutCoupon(tenantId, from, to);
+        Object[] withoutCouponStats = firstRow(clientOrderRepository.getSalesSummaryWithoutCoupon(tenantId, from, to));
 
         log.info("Total Stats: {}", totalStats != null ? Arrays.toString(totalStats) : "null");
         log.info("With Coupon Stats: {}", withCouponStats != null ? Arrays.toString(withCouponStats) : "null");
@@ -188,6 +195,52 @@ public class DashboardServiceImpl implements DashboardService {
                 totalSales, avgTicket, transactionCount);
 
         return new SalesSummaryDTO(totalSales, avgTicket, transactionCount);
+    }
+
+    @Override
+    public List<SalesByPeriodDTO> getSalesByPeriod(Long tenantId, String period, LocalDateTime from, LocalDateTime to) {
+        log.debug("Obteniendo ventas por {} para tenant {} entre {} y {}", period, tenantId, from, to);
+
+        if (!List.of("day", "week", "month", "year").contains(period.toLowerCase())) {
+            throw new IllegalArgumentException("Period debe ser 'day', 'week', 'month' o 'year'");
+        }
+
+        List<Object[]> results = clientOrderRepository.findSalesByPeriod(tenantId, period.toLowerCase(), from, to);
+
+        return results.stream()
+                .map(row -> new SalesByPeriodDTO(
+                        row[0] != null ? ((Date) row[0]).toLocalDate() : null,
+                        safeToBigDecimal(row[1], BigDecimal.ZERO),
+                        safeToBigDecimal(row[2], BigDecimal.ZERO),
+                        safeToBigDecimal(row[3], BigDecimal.ZERO)
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<TopProductDTO> getTopProducts(Long tenantId, LocalDateTime from, LocalDateTime to) {
+        List<Object[]> rows = clientOrderItemRepository.findTopProducts(tenantId, from, to);
+        if (rows == null || rows.isEmpty()) return List.of();
+        return rows.stream()
+                .limit(10)
+                .map(row -> new TopProductDTO(
+                        row[0] != null ? row[0].toString() : "Producto",
+                        safeToLong(row[1], 0L),
+                        safeToBigDecimal(row[2], BigDecimal.ZERO)
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<SalesByCategoryDTO> getSalesByCategory(Long tenantId, LocalDateTime from, LocalDateTime to) {
+        List<Object[]> rows = clientOrderItemRepository.findSalesByCategory(tenantId, from, to);
+        if (rows == null || rows.isEmpty()) return List.of();
+        return rows.stream()
+                .map(row -> new SalesByCategoryDTO(
+                        row[0] != null ? row[0].toString() : "Sin categoría",
+                        safeToBigDecimal(row[1], BigDecimal.ZERO)
+                ))
+                .toList();
     }
 
     @Override
