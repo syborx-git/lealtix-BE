@@ -20,6 +20,8 @@ public class TokenService {
     private String secretKey;
     // Expiración de 3 meses en milisegundos
     private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24 * 30 * 3; // 3 meses
+    // Expiración de 24 horas en milisegundos
+    private static final long LOGIN_EXPIRATION_TIME = 1000L * 60 * 60 * 24; // 24 horas
 
     private Key getKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
@@ -40,6 +42,27 @@ public class TokenService {
                 .setClaims(claims)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(getKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Genera un token JWT de login con duración de 24 horas.
+     * @param tenantId identificador del tenant (puede ser null para app_user)
+     * @param email email del usuario
+     * @return token JWT
+     */
+    public String generateLoginToken(Long tenantId, String email) {
+        Map<String, Object> claims = new HashMap<>();
+        if (tenantId != null) {
+            claims.put("tenantId", tenantId);
+        }
+        claims.put("email", email);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + LOGIN_EXPIRATION_TIME))
                 .signWith(getKey(), SignatureAlgorithm.HS256)
                 .compact();
     }

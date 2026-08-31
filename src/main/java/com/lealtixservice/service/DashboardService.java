@@ -38,6 +38,26 @@ public interface DashboardService {
     SalesSummaryDTO getSalesSummary(Long tenantId, LocalDateTime from, LocalDateTime to);
 
     /**
+     * Ventas por periodo (día/semana/mes) con desglose identificadas vs generales.
+     */
+    List<SalesByPeriodDTO> getSalesByPeriod(
+            Long tenantId,
+            String period,
+            LocalDateTime from,
+            LocalDateTime to
+    );
+
+    /**
+     * Productos más vendidos por tenant en un periodo.
+     */
+    List<TopProductDTO> getTopProducts(Long tenantId, LocalDateTime from, LocalDateTime to);
+
+    /**
+     * Ventas agrupadas por categoría de producto.
+     */
+    List<SalesByCategoryDTO> getSalesByCategory(Long tenantId, LocalDateTime from, LocalDateTime to);
+
+    /**
      * KPI 7: Rendimiento por campaña (tabla resumen completa).
      */
     List<CampaignPerformanceDTO> getCampaignPerformance(

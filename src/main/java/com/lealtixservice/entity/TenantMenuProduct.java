@@ -32,6 +32,22 @@ public class TenantMenuProduct {
     @Column(length = 500)
     private String descripcion;
 
+    /** Stock actual del producto (inventario) */
+    @Builder.Default
+    private Double stock = 0.0;
+
+    /** Stock mínimo para alertas */
+    @Builder.Default
+    private Double stockMinimo = 0.0;
+
+    /** Unidad de medida: gramos, mililitros, pieza */
+    @Column(length = 20)
+    private String unidad;
+
+    /** true = Platillo (su stock se calcula de sus ingredientes), false = Insumo */
+    @Builder.Default
+    private Boolean ventaIndividual = false;
+
     @Builder.Default
     private boolean isActive = true;
 

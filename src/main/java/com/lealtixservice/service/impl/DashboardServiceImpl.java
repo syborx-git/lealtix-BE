@@ -33,6 +33,13 @@ public class DashboardServiceImpl implements DashboardService {
     private final ClientOrderItemRepository clientOrderItemRepository;
 
     /**
+     * Devuelve la primera fila de una consulta de resumen (lista de arreglos).
+     */
+    private Object[] firstRow(List<Object[]> rows) {
+        return (rows == null || rows.isEmpty()) ? null : rows.get(0);
+    }
+
+    /**
      * Método auxiliar para convertir un Object a Number de forma segura
      */
     private Long safeToLong(Object obj, Long defaultValue) {
@@ -163,13 +170,13 @@ public class DashboardServiceImpl implements DashboardService {
         log.info("Obteniendo resumen de ventas para tenant {} entre {} y {}", tenantId, from, to);
 
         // Obtener estadísticas de TODAS las órdenes (con o sin cliente, con o sin cupón)
-        Object[] totalStats = clientOrderRepository.getSalesSummary(tenantId, from, to);
+        Object[] totalStats = firstRow(clientOrderRepository.getSalesSummary(tenantId, from, to));
         
         // Obtener estadísticas de órdenes con cupón
-        Object[] withCouponStats = clientOrderRepository.getSalesSummaryWithCoupon(tenantId, from, to);
+        Object[] withCouponStats = firstRow(clientOrderRepository.getSalesSummaryWithCoupon(tenantId, from, to));
         
         // Obtener estadísticas de órdenes sin cupón
-        Object[] withoutCouponStats = clientOrderRepository.getSalesSummaryWithoutCoupon(tenantId, from, to);
+        Object[] withoutCouponStats = firstRow(clientOrderRepository.getSalesSummaryWithoutCoupon(tenantId, from, to));
 
         log.info("Total Stats: {}", totalStats != null ? Arrays.toString(totalStats) : "null");
         log.info("With Coupon Stats: {}", withCouponStats != null ? Arrays.toString(withCouponStats) : "null");
@@ -188,6 +195,52 @@ public class DashboardServiceImpl implements DashboardService {
                 totalSales, avgTicket, transactionCount);
 
         return new SalesSummaryDTO(totalSales, avgTicket, transactionCount);
+    }
+
+    @Override
+    public List<SalesByPeriodDTO> getSalesByPeriod(Long tenantId, String period, LocalDateTime from, LocalDateTime to) {
+        log.debug("Obteniendo ventas por {} para tenant {} entre {} y {}", period, tenantId, from, to);
+
+        if (!List.of("day", "week", "month", "year").contains(period.toLowerCase())) {
+            throw new IllegalArgumentException("Period debe ser 'day', 'week', 'month' o 'year'");
+        }
+
+        List<Object[]> results = clientOrderRepository.findSalesByPeriod(tenantId, period.toLowerCase(), from, to);
+
+        return results.stream()
+                .map(row -> new SalesByPeriodDTO(
+                        row[0] != null ? ((Date) row[0]).toLocalDate() : null,
+                        safeToBigDecimal(row[1], BigDecimal.ZERO),
+                        safeToBigDecimal(row[2], BigDecimal.ZERO),
+                        safeToBigDecimal(row[3], BigDecimal.ZERO)
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<TopProductDTO> getTopProducts(Long tenantId, LocalDateTime from, LocalDateTime to) {
+        List<Object[]> rows = clientOrderItemRepository.findTopProducts(tenantId, from, to);
+        if (rows == null || rows.isEmpty()) return List.of();
+        return rows.stream()
+                .limit(10)
+                .map(row -> new TopProductDTO(
+                        row[0] != null ? row[0].toString() : "Producto",
+                        safeToLong(row[1], 0L),
+                        safeToBigDecimal(row[2], BigDecimal.ZERO)
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<SalesByCategoryDTO> getSalesByCategory(Long tenantId, LocalDateTime from, LocalDateTime to) {
+        List<Object[]> rows = clientOrderItemRepository.findSalesByCategory(tenantId, from, to);
+        if (rows == null || rows.isEmpty()) return List.of();
+        return rows.stream()
+                .map(row -> new SalesByCategoryDTO(
+                        row[0] != null ? row[0].toString() : "Sin categoría",
+                        safeToBigDecimal(row[1], BigDecimal.ZERO)
+                ))
+                .toList();
     }
 
     @Override
@@ -393,27 +446,46 @@ public class DashboardServiceImpl implements DashboardService {
             return List.of();
         }
 
-        // Análisis de frecuencia de palabras clave
-        Map<String, Long> keywordFrequency = new HashMap<>();
+        // Análisis de frecuencia de frases compuestas y palabras clave
+        Map<String, Long> phraseFrequency = new HashMap<>();
         long totalComments = comments.size();
 
-        // Palabras clave comunes en personalización de alimentos
-        List<String> keywords = Arrays.asList(
-                "sin", "con", "extra", "poco", "mucho", "caliente", "frío", "fría",
-                "cebolla", "tomate", "lechuga", "queso", "salsa", "mayo", "mayonesa",
-                "picante", "no picante", "crudo", "cocido", "aparte", "solo", "sólo"
+        // Frases compuestas comunes en personalización (2-3 palabras)
+        List<String> compoundPhrases = Arrays.asList(
+                "sin cebolla", "sin tomate", "sin lechuga", "sin salsa", "sin mayo", "sin mayonesa",
+                "sin picante", "sin azúcar", "sin sal",
+                "con extra", "con doble", "con más",
+                "no picante", "poco picante", "muy picante",
+                "leche deslactosada", "leche de almendra", "leche de avena", "leche de coco",
+                "extra queso", "extra salsa", "extra hielo",
+                "bien cocido", "poco cocido", "crudo", "al dente",
+                "aparte la salsa", "aparte el dressing", "aparte la mayo"
         );
 
         for (String comment : comments) {
-            String lowerComment = comment.toLowerCase();
-            for (String keyword : keywords) {
-                if (lowerComment.contains(keyword)) {
-                    keywordFrequency.merge(keyword, 1L, Long::sum);
+            String lowerComment = comment.toLowerCase().trim();
+            
+            // Primero buscar frases compuestas (mayor prioridad)
+            boolean foundPhrase = false;
+            for (String phrase : compoundPhrases) {
+                if (lowerComment.contains(phrase)) {
+                    phraseFrequency.merge(phrase, 1L, Long::sum);
+                    foundPhrase = true;
+                    break; // Una frase por comentario
+                }
+            }
+            
+            // Si no encuentra una frase compuesta, extraer el comentario completo como frase personalizada
+            if (!foundPhrase && !lowerComment.isEmpty()) {
+                // Limpiar y normalizar comentarios completos
+                String cleanedComment = lowerComment.replaceAll("\\s+", " ").trim();
+                if (cleanedComment.length() >= 3) { // Mínimo 3 caracteres
+                    phraseFrequency.merge(cleanedComment, 1L, Long::sum);
                 }
             }
         }
 
-        return keywordFrequency.entrySet().stream()
+        return phraseFrequency.entrySet().stream()
                 .map(entry -> CustomizationAnalysisDTO.builder()
                         .keyword(entry.getKey())
                         .frequency(entry.getValue())

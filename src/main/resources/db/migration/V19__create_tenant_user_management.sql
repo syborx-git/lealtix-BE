@@ -5,7 +5,7 @@
 -- =====================================================
 
 -- 1. Crear tabla tenant_user
-CREATE TABLE tenant_user (
+CREATE TABLE IF NOT EXISTS tenant_user (
     id BIGSERIAL PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     nombre VARCHAR(100) NOT NULL,
@@ -25,14 +25,14 @@ CREATE TABLE tenant_user (
 );
 
 -- Índices para tenant_user
-CREATE INDEX idx_tenant_user_tenant ON tenant_user(tenant_id);
-CREATE INDEX idx_tenant_user_email ON tenant_user(email);
-CREATE INDEX idx_tenant_user_activo ON tenant_user(activo);
-CREATE INDEX idx_tenant_user_rol ON tenant_user(rol);
-CREATE INDEX idx_tenant_user_tenant_activo ON tenant_user(tenant_id, activo);
+CREATE INDEX IF NOT EXISTS idx_tenant_user_tenant ON tenant_user(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_user_email ON tenant_user(email);
+CREATE INDEX IF NOT EXISTS idx_tenant_user_activo ON tenant_user(activo);
+CREATE INDEX IF NOT EXISTS idx_tenant_user_rol ON tenant_user(rol);
+CREATE INDEX IF NOT EXISTS idx_tenant_user_tenant_activo ON tenant_user(tenant_id, activo);
 
 -- 2. Crear tabla user_permission
-CREATE TABLE user_permission (
+CREATE TABLE IF NOT EXISTS user_permission (
     id BIGSERIAL PRIMARY KEY,
     tenant_user_id BIGINT NOT NULL,
     permission VARCHAR(100) NOT NULL,
@@ -43,5 +43,5 @@ CREATE TABLE user_permission (
 );
 
 -- Índices para user_permission
-CREATE INDEX idx_user_permission_tenant_user ON user_permission(tenant_user_id);
-CREATE INDEX idx_user_permission_permission ON user_permission(permission);
+CREATE INDEX IF NOT EXISTS idx_user_permission_tenant_user ON user_permission(tenant_user_id);
+CREATE INDEX IF NOT EXISTS idx_user_permission_permission ON user_permission(permission);

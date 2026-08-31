@@ -14,7 +14,10 @@ import java.util.List;
 public class JwtResponse {
     private String accessToken;
     private String userEmail;
+    private String userName;
+    private String role;
     private Long userId;
+    private Long tenantId;
     private List<String> permissions;
 
     // Constructores adicionales para backwards compatibility

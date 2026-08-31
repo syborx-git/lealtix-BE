@@ -6,7 +6,7 @@
 
 -- 1. Crear columna business_id nuevamente
 ALTER TABLE campaign 
-ADD COLUMN business_id BIGINT;
+ADD COLUMN IF NOT EXISTS business_id BIGINT;
 
 -- 2. Copiar datos de tenant_id a business_id
 UPDATE campaign 
@@ -21,8 +21,8 @@ DROP INDEX IF EXISTS idx_campaign_tenant;
 DROP INDEX IF EXISTS idx_campaign_tenant_draft;
 
 -- 5. Crear índices originales (business_id)
-CREATE INDEX idx_campaign_business ON campaign(business_id);
-CREATE INDEX idx_campaign_business_draft ON campaign(business_id, is_draft);
+CREATE INDEX IF NOT EXISTS idx_campaign_business ON campaign(business_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_business_draft ON campaign(business_id, is_draft);
 
 -- 6. Eliminar columna tenant_id
 ALTER TABLE campaign 

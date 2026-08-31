@@ -1,9 +1,7 @@
 package com.lealtixservice.service;
 
-import com.lealtixservice.dto.CreateUserRequest;
-import com.lealtixservice.dto.UpdateUserRequest;
-import com.lealtixservice.dto.UserDTO;
-import com.lealtixservice.dto.UserListResponse;
+import com.lealtixservice.dto.*;
+import com.lealtixservice.entity.TenantUser;
 import org.springframework.data.domain.Pageable;
 
 public interface TenantUserService {
@@ -12,4 +10,8 @@ public interface TenantUserService {
     void deleteUser(Long id, Long tenantId, String deletedBy);
     UserDTO getUserById(Long id, Long tenantId);
     UserListResponse listUsers(Long tenantId, int page, int pageSize, String search);
+
+    UserDTO getByEmail(String email);
+    
+    TenantUser getTenantUserByEmail(String email);
 }

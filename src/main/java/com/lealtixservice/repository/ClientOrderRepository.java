@@ -226,9 +226,9 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
            "FROM ClientOrder o " +
            "WHERE o.tenant.id = :tenantId " +
            "AND o.fecha BETWEEN :from AND :to")
-    Object[] getSalesSummary(@Param("tenantId") Long tenantId,
-                             @Param("from") LocalDateTime from,
-                             @Param("to") LocalDateTime to);
+    List<Object[]> getSalesSummary(@Param("tenantId") Long tenantId,
+                                   @Param("from") LocalDateTime from,
+                                   @Param("to") LocalDateTime to);
 
     /**
      * Resumen de ventas con cupón redimido
@@ -239,9 +239,9 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
            "WHERE o.tenant.id = :tenantId " +
            "AND o.couponId IS NOT NULL " +
            "AND o.fecha BETWEEN :from AND :to")
-    Object[] getSalesSummaryWithCoupon(@Param("tenantId") Long tenantId,
-                                       @Param("from") LocalDateTime from,
-                                       @Param("to") LocalDateTime to);
+    List<Object[]> getSalesSummaryWithCoupon(@Param("tenantId") Long tenantId,
+                                             @Param("from") LocalDateTime from,
+                                             @Param("to") LocalDateTime to);
 
     /**
      * Resumen de ventas sin cupón
@@ -252,7 +252,87 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
            "WHERE o.tenant.id = :tenantId " +
            "AND o.couponId IS NULL " +
            "AND o.fecha BETWEEN :from AND :to")
-    Object[] getSalesSummaryWithoutCoupon(@Param("tenantId") Long tenantId,
-                                          @Param("from") LocalDateTime from,
-                                          @Param("to") LocalDateTime to);
+    List<Object[]> getSalesSummaryWithoutCoupon(@Param("tenantId") Long tenantId,
+                                                @Param("from") LocalDateTime from,
+                                                @Param("to") LocalDateTime to);
+
+    // ==================== QUERIES PARA KITCHEN DASHBOARD ====================
+
+    /**
+     * Ventas agrupadas por periodo (día/semana/mes) con desglose identificadas vs generales.
+     * Retorna: [0]=periodStart, [1]=totalSales, [2]=identifiedSales, [3]=generalSales
+     */
+    @Query(value = """
+            SELECT CAST(date_trunc(:period, fecha) AS DATE) AS periodStart,
+                   COALESCE(SUM(total), 0) AS totalSales,
+                   COALESCE(SUM(total) FILTER (WHERE customer_id IS NOT NULL), 0) AS identifiedSales,
+                   COALESCE(SUM(total) FILTER (WHERE customer_id IS NULL), 0) AS generalSales
+            FROM client_order
+            WHERE tenant_id = :tenantId
+              AND fecha BETWEEN :from AND :to
+            GROUP BY periodStart
+            ORDER BY periodStart
+            """, nativeQuery = true)
+    List<Object[]> findSalesByPeriod(
+            @Param("tenantId") Long tenantId,
+            @Param("period") String period, // 'day', 'week', 'month'
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    /**
+     * Contar órdenes completadas (estado = PAGADO o COMPLETADO)
+     */
+    @Query("SELECT COUNT(o) FROM ClientOrder o " +
+           "WHERE o.tenant.id = :tenantId " +
+           "AND (o.estado = 'PAGADO' OR o.estado = 'COMPLETADO') " +
+           "AND o.fecha BETWEEN :from AND :to")
+    Long countCompletedOrders(@Param("tenantId") Long tenantId,
+                              @Param("from") LocalDateTime from,
+                              @Param("to") LocalDateTime to);
+
+    /**
+     * Contar entregas exitosas (órdenes completadas y aceptadas)
+     */
+    @Query("SELECT COUNT(o) FROM ClientOrder o " +
+           "WHERE o.tenant.id = :tenantId " +
+           "AND (o.estado = 'PAGADO' OR o.estado = 'COMPLETADO') " +
+           "AND o.acceptedAt IS NOT NULL " +
+           "AND o.fecha BETWEEN :from AND :to")
+    Long countSuccessfulDeliveries(@Param("tenantId") Long tenantId,
+                                   @Param("from") LocalDateTime from,
+                                   @Param("to") LocalDateTime to);
+
+    /**
+     * Top 3 productos más pedidos por cantidad
+     */
+    @Query(value = "SELECT tmp.id, tmp.nombre, COUNT(coi.id) as quantity, " +
+           "COALESCE(SUM(tmp.precio), 0) as totalSales " +
+           "FROM client_order_item coi " +
+           "JOIN tenant_menu_product tmp ON coi.product_id = tmp.id " +
+           "JOIN client_order co ON coi.order_id = co.id " +
+           "WHERE co.tenant_id = :tenantId " +
+           "AND co.fecha BETWEEN :from AND :to " +
+           "GROUP BY tmp.id, tmp.nombre " +
+           "ORDER BY quantity DESC " +
+           "LIMIT 3",
+           nativeQuery = true)
+    List<Object[]> getTopDishes(@Param("tenantId") Long tenantId,
+                                @Param("from") LocalDateTime from,
+                                @Param("to") LocalDateTime to);
+
+    /**
+     * Cliente VIP activo (mayor LTV en el período)
+     */
+    @Query(value = "SELECT c.id, c.name, c.email, COALESCE(SUM(co.total), 0) as ltv " +
+           "FROM tenant_customer c " +
+           "LEFT JOIN client_order co ON c.id = co.customer_id AND co.tenant_id = :tenantId AND co.fecha BETWEEN :from AND :to " +
+           "WHERE c.tenant_id = :tenantId " +
+           "GROUP BY c.id, c.name, c.email " +
+           "ORDER BY ltv DESC " +
+           "LIMIT 1",
+           nativeQuery = true)
+    Object[] getVIPCustomer(@Param("tenantId") Long tenantId,
+                            @Param("from") LocalDateTime from,
+                            @Param("to") LocalDateTime to);
 }

@@ -78,10 +78,8 @@ public class TenantServiceImpl implements TenantService {
                 } else if (existingTenant.getLogoUrl() == null) {
                     existingTenant.setLogoUrl(""); // Valor por defecto
                 }
-                if (dto.getNombreNegocio() != null && !dto.getNombreNegocio().isBlank()) {
-                    existingTenant.setSlug(StringUtils.createSlug(dto.getNombreNegocio(), id));
-                } else if (existingTenant.getSlug() == null || existingTenant.getSlug().isBlank()) {
-                    existingTenant.setSlug(StringUtils.createSlug(existingTenant.getNombreNegocio(), id));
+                if (existingTenant.getSlug() == null || existingTenant.getSlug().isBlank()) {
+                    existingTenant.setSlug(StringUtils.createSlug(dto.getNombreNegocio() != null ? dto.getNombreNegocio() : existingTenant.getNombreNegocio(), id));
                 }
                 if (dto.getUIDTenant() != null && !dto.getUIDTenant().isBlank()) {
                     existingTenant.setUIDTenant(dto.getUIDTenant());
@@ -90,6 +88,12 @@ public class TenantServiceImpl implements TenantService {
                 }
                 if (existingTenant.getCreatedAt() == null) {
                     existingTenant.setCreatedAt(LocalDateTime.now());
+                }
+                if (dto.getKitchenModuleEnabled() != null) {
+                    existingTenant.setKitchenModuleEnabled(dto.getKitchenModuleEnabled());
+                    if (dto.getKitchenModuleEnabled() && existingTenant.getKitchenEnabledAt() == null) {
+                        existingTenant.setKitchenEnabledAt(LocalDateTime.now());
+                    }
                 }
                 existingTenant.setUpdatedAt(LocalDateTime.now());
                 existingTenant.setActive(true);
@@ -106,7 +110,7 @@ public class TenantServiceImpl implements TenantService {
                     }
 
                     Tenant tenant = new Tenant();
-                    if(tenantDto.getId() > 0){
+                    if(tenantDto.getId() != null && tenantDto.getId() > 0){
                         tenant = tenantRepository.findById(tenantDto.getId())
                                 .orElseThrow(() -> new IllegalArgumentException("Tenant not found with id: " + tenantDto.getId()));
                     }else{
@@ -177,6 +181,14 @@ public class TenantServiceImpl implements TenantService {
                             tenant.setUIDTenant(tenantDto.getUIDTenant());
                         } else if (tenant.getUIDTenant() == null || tenant.getUIDTenant().isBlank()) {
                             tenant.setUIDTenant("UID-" + tenantId);
+                        }
+                    }
+
+                    // Validar y configurar kitchenModuleEnabled
+                    if (tenantDto.getKitchenModuleEnabled() != null) {
+                        tenant.setKitchenModuleEnabled(tenantDto.getKitchenModuleEnabled());
+                        if (tenantDto.getKitchenModuleEnabled()) {
+                            tenant.setKitchenEnabledAt(LocalDateTime.now());
                         }
                     }
 

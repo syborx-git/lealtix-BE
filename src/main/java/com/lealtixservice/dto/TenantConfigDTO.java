@@ -20,6 +20,8 @@ public class TenantConfigDTO {
     private String instagram;
     private String tiktok;
     private boolean SMisActive;
+    private Boolean kitchenModuleEnabled;
+    private LocalDateTime kitchenEnabledAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

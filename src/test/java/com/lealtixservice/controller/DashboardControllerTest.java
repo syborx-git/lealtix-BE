@@ -1,6 +1,7 @@
 package com.lealtixservice.controller;
 
 import com.lealtixservice.service.DashboardService;
+import com.lealtixservice.service.KitchenDashboardService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,6 +29,9 @@ class DashboardControllerTest {
 
     @MockBean
     private DashboardService dashboardService;
+
+    @MockBean
+    private KitchenDashboardService kitchenDashboardService;
 
     @Test
     void testGetTotalCustomers_FormatoSimple() throws Exception {

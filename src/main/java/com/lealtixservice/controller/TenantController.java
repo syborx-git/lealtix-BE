@@ -4,6 +4,7 @@ import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.TenantDTO;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.service.TenantService;
+import com.lealtixservice.service.TenantUserService;
 import com.lealtixservice.util.TenantUserMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +26,9 @@ public class TenantController {
 
     @Autowired
     private TenantService tenantService;
+
+    @Autowired
+    private TenantUserService  tenantUserService;
 
     /**
      * Crea un nuevo Tenant.
@@ -90,12 +94,20 @@ public class TenantController {
     public ResponseEntity<GenericResponse> getByEmail(@PathVariable String email) {
         try {
             var resp = tenantService.getByEmail(email);
-            if (resp == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new GenericResponse(404, "NOT FOUND", null));
+            if (resp != null) {
+                return ResponseEntity.status(HttpStatus.OK)
+                        .body(new GenericResponse(200, "SUCCESS", resp));
             }
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body(new GenericResponse(200, "SUCCESS", resp));
+            
+            // Si no es un Tenant, busca si es un usuario creado por un Tenant
+            var tenantUserResp = tenantUserService.getByEmail(email);
+            if (tenantUserResp != null) {
+                return ResponseEntity.status(HttpStatus.OK)
+                        .body(new GenericResponse(200, "SUCCESS", tenantUserResp));
+            }
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, "NOT FOUND", null));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, e.getMessage(), null));

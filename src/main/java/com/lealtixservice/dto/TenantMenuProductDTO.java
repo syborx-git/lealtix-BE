@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @Builder
@@ -24,4 +25,38 @@ public class TenantMenuProductDTO {
     private Boolean isActive;
     private BigDecimal price;
     private String imageUrl;
+    private List<CrossSellingDTO> crossSellingProducts;
+
+    /** Stock disponible (dinámico para platillos con receta) */
+    private Double stock;
+    private Double stockMinimo;
+    private String unidad;
+
+    public TenantMenuProductDTO(
+            Long id,
+            Long categoryId,
+            String categoryName,
+            String categoryDescription,
+            Boolean categoryIsActive,
+            Integer categoryDisplayOrder,
+            Long tenantId,
+            String name,
+            String description,
+            Boolean isActive,
+            BigDecimal price,
+            String imageUrl) {
+        this.id = id;
+        this.categoryId = categoryId;
+        this.categoryName = categoryName;
+        this.categoryDescription = categoryDescription;
+        this.categoryIsActive = categoryIsActive;
+        this.categoryDisplayOrder = categoryDisplayOrder;
+        this.tenantId = tenantId;
+        this.name = name;
+        this.description = description;
+        this.isActive = isActive;
+        this.price = price;
+        this.imageUrl = imageUrl;
+        this.crossSellingProducts = List.of();
+    }
 }

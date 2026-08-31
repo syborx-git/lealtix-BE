@@ -1,16 +1,24 @@
 package com.lealtixservice.controller;
 
+import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.dashboard.*;
 import com.lealtixservice.service.DashboardService;
+import com.lealtixservice.service.KitchenDashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -25,10 +33,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Dashboard", description = "Endpoints para reportes y KPIs del dashboard de negocio")
 public class DashboardController {
 
     private final DashboardService dashboardService;
+    private final KitchenDashboardService kitchenDashboardService;
 
     @Operation(summary = "KPI 1: Total de clientes registrados",
                description = "Obtiene el total de clientes registrados en un rango de fechas")
@@ -86,6 +96,57 @@ public class DashboardController {
         log.info("GET /api/dashboard/sales/summary - tenantId={}, from={}, to={}", tenantId, from, to);
         SalesSummaryDTO summary = dashboardService.getSalesSummary(tenantId, from, to);
         return ResponseEntity.ok(summary);
+    }
+
+    @Operation(summary = "Ventas por periodo (día/semana/mes) con desglose identificadas vs generales")
+    @GetMapping("/sales/by-period")
+    public ResponseEntity<?> getSalesByPeriod(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Periodo: day, week o month") @RequestParam(defaultValue = "week") String period,
+            @Parameter(description = "Fecha inicio") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        try {
+            log.info("GET /api/dashboard/sales/by-period - tenantId={}, period={}, from={}, to={}", tenantId, period, from, to);
+            return ResponseEntity.ok(dashboardService.getSalesByPeriod(tenantId, period, from, to));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error obteniendo ventas por periodo", e);
+            return ResponseEntity.internalServerError().body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Productos más vendidos por tenant en un periodo")
+    @GetMapping("/sales/top-products")
+    public ResponseEntity<?> getTopProducts(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Fecha inicio") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        try {
+            log.info("GET /api/dashboard/sales/top-products - tenantId={}, from={}, to={}", tenantId, from, to);
+            return ResponseEntity.ok(dashboardService.getTopProducts(tenantId, from, to));
+        } catch (Exception e) {
+            log.error("Error obteniendo productos más vendidos", e);
+            return ResponseEntity.internalServerError().body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Ventas agrupadas por categoría de producto")
+    @GetMapping("/sales/by-category")
+    public ResponseEntity<?> getSalesByCategory(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Fecha inicio") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        try {
+            log.info("GET /api/dashboard/sales/by-category - tenantId={}, from={}, to={}", tenantId, from, to);
+            return ResponseEntity.ok(dashboardService.getSalesByCategory(tenantId, from, to));
+        } catch (Exception e) {
+            log.error("Error obteniendo ventas por categoría", e);
+            return ResponseEntity.internalServerError().body(new GenericResponse(500, "Error interno del servidor", null));
+        }
     }
 
     @Operation(summary = "KPI 7: Rendimiento por campaña",
@@ -232,6 +293,33 @@ public class DashboardController {
         } catch (Exception e) {
             log.error("Error en debug endpoint", e);
             throw e;
+        }
+    }
+
+    // ==================== ENDPOINTS DE KITCHEN DASHBOARD ====================
+
+    @Operation(summary = "Dashboard resumen de cocina",
+               description = "Obtiene resumen agregado de métricas operativas y motivacionales para equipos de cocina. " +
+                       "Incluye top 3 productos, tasa de recompra, órdenes completadas, análisis de personalización y alerta VIP. " +
+                       "Si from/to no vienen, usa hoy desde 00:00 hasta ahora.")
+    //@PreAuthorize("hasAuthority('dashboard_kitchen')")
+    @GetMapping("/kitchen/summary")
+    public ResponseEntity<GenericResponse> getKitchenSummary(
+            @Parameter(description = "ID del tenant") @RequestParam @NotNull(message = "tenantId is required") Long tenantId,
+            @Parameter(description = "Fecha inicio (formato: yyyy-MM-dd'T'HH:mm:ss), opcional")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (formato: yyyy-MM-dd'T'HH:mm:ss), opcional")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        try {
+            log.info("GET /api/dashboard/kitchen/summary - tenantId={}, from={}, to={}", tenantId, from, to);
+            KitchenDashboardSummaryDTO summary = kitchenDashboardService.getSummary(tenantId, from, to);
+            GenericResponse response = new GenericResponse(200, "Kitchen dashboard summary", summary);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error en kitchen dashboard summary endpoint", e);
+            GenericResponse errorResponse = new GenericResponse(500, "Error obteniendo resumen del dashboard de cocina", null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.lealtixservice.dto;
 
 import com.lealtixservice.enums.OrderStatus;
+import com.lealtixservice.enums.PaymentMethod;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,6 +35,17 @@ public class ClientOrderDTO {
     private String couponCode;  // Código del cupón aplicado (ej: "SUMMER20")
     private Long couponId;  // ID del cupón aplicado
     private BigDecimal couponDiscount;  // Descuento específico del cupón
+    private LocalDateTime acceptedAt;  // Timestamp cuando fue aceptado en cocina
+    private LocalDateTime readyAt;  // Timestamp cuando estuvo listo
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private PaymentMethod paidMethod;  // Método de pago: CASH, CARD, TRANSFER, MIXED
+    private String paymentReference;  // Referencia del comprobante
+    private String paidByName;  // Nombre del usuario que registró el pago
+    private LocalDateTime paidAt;  // Timestamp cuando se registró el pago
+    
+    // Campos de cancelación
+    private String cancelledBy;  // Email del usuario que canceló
+    private LocalDateTime cancelledAt;  // Timestamp de cancelación
+    private String cancellationReason;  // Razón de la cancelación
 }

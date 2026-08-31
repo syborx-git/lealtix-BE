@@ -21,4 +21,5 @@ public class UserDTO {
     private Boolean activo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Boolean kitchenModuleEnabled;
 }
