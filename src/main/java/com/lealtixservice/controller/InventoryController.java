@@ -154,7 +154,18 @@ public class InventoryController {
             @RequestBody Map<String, Object> body) {
         Long insumoId = toLong(body.get("insumoId"));
         Double cantidad = toDouble(body.get("cantidad"));
-        return ResponseEntity.ok(inventoryService.addAdditional(dishId, insumoId, cantidad));
+        Double precio = toDouble(body.get("precio"));
+        return ResponseEntity.ok(inventoryService.addAdditional(dishId, insumoId, cantidad, precio));
+    }
+
+    @Operation(summary = "Actualizar cantidad/precio de un adicional permitido")
+    @PutMapping("/additionals/{additionalId}")
+    public ResponseEntity<GenericResponse> updateAdditional(
+            @PathVariable Long additionalId,
+            @RequestBody Map<String, Object> body) {
+        Double cantidad = toDouble(body.get("cantidad"));
+        Double precio = toDouble(body.get("precio"));
+        return ResponseEntity.ok(inventoryService.updateAdditional(additionalId, cantidad, precio));
     }
 
     @Operation(summary = "Quitar adicional permitido")

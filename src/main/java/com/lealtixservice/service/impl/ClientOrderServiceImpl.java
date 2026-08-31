@@ -248,11 +248,14 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             redeemCouponOnOrderConfirmation(order);
         }
 
-        // Si se está cancelando, registrar auditoría
+        // Si se está cancelando, registrar auditoría y restaurar inventario
         if (newStatus == OrderStatus.CANCELADA) {
             order.setCancelledBy(userEmail);
             order.setCancelledAt(LocalDateTime.now());
             order.setCancellationReason(reason);
+            if (order.getEstado() != OrderStatus.CANCELADA) {
+                restoreStockForOrder(order);
+            }
             log.info("Orden {} cancelada por {}. Razón: {}", orderId, userEmail, reason);
         }
 
@@ -293,6 +296,25 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     public ClientOrderDTO cancelOrder(UUID orderId) {
         log.info("Cancelando orden: {}", orderId);
         return updateOrderStatus(orderId, OrderStatus.CANCELADA);
+    }
+
+    /**
+     * Restaura el inventario descontado de cada ítem al cancelar la comanda.
+     */
+    private void restoreStockForOrder(ClientOrder order) {
+        try {
+            List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(order.getId());
+            for (ClientOrderItem item : items) {
+                Integer qty = item.getCantidad() != null ? item.getCantidad() : 1;
+                inventoryService.restoreForOrder(
+                        item.getProduct().getId(),
+                        qty.doubleValue(),
+                        item.getExcludedIngredientIds(),
+                        item.getAdditionalIngredientIds());
+            }
+        } catch (Exception e) {
+            log.error("Error restaurando inventario al cancelar orden {}: {}", order.getId(), e.getMessage(), e);
+        }
     }
 
     @Override

@@ -284,6 +284,7 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("insumoName", a.getInsumo().getNombre());
             item.put("cantidad", a.getCantidad());
             item.put("unidad", a.getInsumo().getUnidad() != null ? a.getInsumo().getUnidad() : "pieza");
+            item.put("precio", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
             items.add(item);
         }
         return new GenericResponse(200, "Adicionales obtenidos", items);
@@ -291,7 +292,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad) {
+    public GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio) {
         if (insumoId == null || cantidad == null || cantidad <= 0) {
             return new GenericResponse(400, "Insumo y cantidad (mayor a 0) son requeridos", null);
         }
@@ -302,13 +303,33 @@ public class InventoryServiceImpl implements InventoryService {
         if (exists) {
             return new GenericResponse(400, "El adicional ya está permitido", null);
         }
+        BigDecimal precioValue = precio != null ? BigDecimal.valueOf(precio) : BigDecimal.ZERO;
         ProductAdditional additional = ProductAdditional.builder()
                 .dish(dish)
                 .insumo(insumo)
                 .cantidad(BigDecimal.valueOf(cantidad))
+                .precio(precioValue)
                 .build();
         additionalRepository.save(additional);
         return new GenericResponse(200, "Adicional permitido agregado", additional.getId());
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio) {
+        ProductAdditional additional = additionalRepository.findById(additionalId)
+                .orElse(null);
+        if (additional == null) {
+            return new GenericResponse(404, "Adicional no encontrado", null);
+        }
+        if (cantidad != null && cantidad > 0) {
+            additional.setCantidad(BigDecimal.valueOf(cantidad));
+        }
+        if (precio != null && precio >= 0) {
+            additional.setPrecio(BigDecimal.valueOf(precio));
+        }
+        additionalRepository.save(additional);
+        return new GenericResponse(200, "Adicional actualizado", additional.getId());
     }
 
     @Override
@@ -360,6 +381,45 @@ public class InventoryServiceImpl implements InventoryService {
                 "Stock descontado: " + deducted.size() + " insumo(s) de " + product.getNombre(), deducted);
     }
 
+    /* ============ Restauración al cancelar comanda ============ */
+
+    @Override
+    @Transactional
+    public GenericResponse restoreForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds) {
+        TenantMenuProduct product = findProduct(productId);
+        double units = cantidad != null ? cantidad : 1.0;
+        List<Map<String, Object>> restored = new ArrayList<>();
+
+        List<ProductRecipe> recipes = recipeRepository.findByDishId(productId);
+        if (recipes.isEmpty()) {
+            restoreProduct(product, units, restored);
+            return new GenericResponse(200, "Stock restaurado de " + product.getNombre(), restored);
+        }
+
+        for (ProductRecipe r : recipes) {
+            boolean excluded = r.getModificable() != null && r.getModificable()
+                    && excludedInsumoIds != null && excludedInsumoIds.contains(r.getInsumo().getId());
+            if (excluded) {
+                continue;
+            }
+            double qty = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+            if (qty <= 0) continue;
+            restoreInsumo(r.getInsumo(), qty * units, restored);
+        }
+
+        if (additionalInsumoIds != null) {
+            for (ProductAdditional a : additionalRepository.findByDishId(productId)) {
+                if (additionalInsumoIds.contains(a.getInsumo().getId())) {
+                    double qty = a.getCantidad() != null ? a.getCantidad().doubleValue() : 1.0;
+                    restoreInsumo(a.getInsumo(), qty * units, restored);
+                }
+            }
+        }
+
+        return new GenericResponse(200,
+                "Stock restaurado: " + restored.size() + " insumo(s) de " + product.getNombre(), restored);
+    }
+
     /* ============ Helpers ============ */
 
     private List<Map<String, Object>> buildInsumosList(Long dishId) {
@@ -388,6 +448,7 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("insumoName", a.getInsumo().getNombre());
             item.put("unidad", a.getInsumo().getUnidad() != null ? a.getInsumo().getUnidad() : "pieza");
             item.put("cantidad", a.getCantidad());
+            item.put("precio", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
             item.put("stock", a.getInsumo().getStock() != null ? a.getInsumo().getStock() : 0.0);
             list.add(item);
         }
@@ -493,6 +554,32 @@ public class InventoryServiceImpl implements InventoryService {
         d.put("despues", despues);
         d.put("suficiente", antes >= qty);
         deducted.add(d);
+    }
+
+    private void restoreInsumo(Insumo insumo, double qty, List<Map<String, Object>> restored) {
+        double antes = insumo.getStock() != null ? insumo.getStock() : 0.0;
+        double despues = Math.round((antes + qty) * 1000) / 1000.0;
+        insumo.setStock(despues);
+        insumoRepository.save(insumo);
+        Map<String, Object> d = new LinkedHashMap<>();
+        d.put("nombre", insumo.getNombre());
+        d.put("unidad", insumo.getUnidad() != null ? insumo.getUnidad() : "pieza");
+        d.put("antes", antes);
+        d.put("despues", despues);
+        restored.add(d);
+    }
+
+    private void restoreProduct(TenantMenuProduct product, double qty, List<Map<String, Object>> restored) {
+        double antes = safeStock(product);
+        double despues = Math.round((antes + qty) * 1000) / 1000.0;
+        product.setStock(despues);
+        productRepository.save(product);
+        Map<String, Object> d = new LinkedHashMap<>();
+        d.put("nombre", product.getNombre());
+        d.put("unidad", product.getUnidad() != null ? product.getUnidad() : "pieza");
+        d.put("antes", antes);
+        d.put("despues", despues);
+        restored.add(d);
     }
 
     private TenantMenuProduct findProduct(Long productId) {

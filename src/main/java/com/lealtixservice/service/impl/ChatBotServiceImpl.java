@@ -328,6 +328,8 @@ public class ChatBotServiceImpl implements ChatBotService {
                                 .cantidad(item.getCantidad())
                                 .precioUnitario(item.getPrecioUnitario())
                                 .comentarios(item.getComentarios())
+                                .excludedIngredientIds(item.getExcludedIngredientIds())
+                                .additionalIngredientIds(item.getAdditionalIngredientIds())
                                 .build())
                         .collect(Collectors.toList()))
                 .descuento(request.getDescuento())

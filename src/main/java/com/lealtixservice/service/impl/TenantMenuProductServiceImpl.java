@@ -4,10 +4,12 @@ import com.lealtixservice.dto.BulkProductRequest;
 import com.lealtixservice.dto.BulkProductResponse;
 import com.lealtixservice.dto.TenantMenuCategoryDTO;
 import com.lealtixservice.dto.TenantMenuProductDTO;
+import com.lealtixservice.entity.ProductAdditional;
 import com.lealtixservice.entity.ProductRecipe;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantMenuCategory;
 import com.lealtixservice.entity.TenantMenuProduct;
+import com.lealtixservice.repository.ProductAdditionalRepository;
 import com.lealtixservice.repository.ProductRecipeRepository;
 import com.lealtixservice.repository.TenantMenuProductRepository;
 import com.lealtixservice.repository.TenantRepository;
@@ -21,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +42,9 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
 
     @Autowired
     private ProductRecipeRepository recipeRepository;
+
+    @Autowired
+    private ProductAdditionalRepository additionalRepository;
 
     @Override
     public TenantMenuProduct save(TenantMenuProduct product) {
@@ -168,6 +174,33 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             dto.setStock(stock);
             dto.setStockMinimo(entity.getStockMinimo() != null ? entity.getStockMinimo() : 0.0);
             dto.setUnidad(entity.getUnidad() != null ? entity.getUnidad() : "pieza");
+
+            // Receta (ingredientes base/modificables) y adicionales para el menú
+            List<Map<String, Object>> recipeList = new ArrayList<>();
+            for (ProductRecipe r : recipeRepository.findByDishId(entity.getId())) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("insumoId", r.getInsumo().getId());
+                item.put("insumoName", r.getInsumo().getNombre());
+                item.put("cantidad", r.getCantidad());
+                item.put("unidad", r.getInsumo().getUnidad() != null ? r.getInsumo().getUnidad() : "pieza");
+                item.put("modificable", r.getModificable() != null && r.getModificable());
+                item.put("tipoIngrediente", (r.getModificable() != null && r.getModificable()) ? "MODIFICABLE" : "BASE");
+                recipeList.add(item);
+            }
+            dto.setRecipes(recipeList);
+
+            List<Map<String, Object>> additionalList = new ArrayList<>();
+            for (ProductAdditional a : additionalRepository.findByDishId(entity.getId())) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("insumoId", a.getInsumo().getId());
+                item.put("insumoName", a.getInsumo().getNombre());
+                item.put("cantidad", a.getCantidad());
+                item.put("unidad", a.getInsumo().getUnidad() != null ? a.getInsumo().getUnidad() : "pieza");
+                item.put("precio", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
+                item.put("tipoIngrediente", "ADICIONAL");
+                additionalList.add(item);
+            }
+            dto.setAdditionals(additionalList);
         }
 
         products.sort((p1, p2) -> {

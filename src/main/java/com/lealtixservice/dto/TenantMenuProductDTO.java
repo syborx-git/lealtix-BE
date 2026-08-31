@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -26,6 +27,12 @@ public class TenantMenuProductDTO {
     private BigDecimal price;
     private String imageUrl;
     private List<CrossSellingDTO> crossSellingProducts;
+
+    /** Ingredientes de la receta (base / modificables) para mostrar opciones */
+    private List<Map<String, Object>> recipes;
+
+    /** Adicionales disponibles (insumo + cantidad + precio extra) */
+    private List<Map<String, Object>> additionals;
 
     /** Stock disponible (dinámico para platillos con receta) */
     private Double stock;
