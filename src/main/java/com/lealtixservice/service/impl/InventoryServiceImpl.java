@@ -169,7 +169,26 @@ public class InventoryServiceImpl implements InventoryService {
                 .collect(java.util.stream.Collectors.toList());
         List<Map<String, Object>> items = new ArrayList<>();
         for (Insumo b : bebidas) {
-            items.add(insumoToMap(b));
+            Map<String, Object> item = insumoToMap(b);
+            // Bebidas sin categorías asignadas (ej. creadas antes de la multicategoría):
+            // mostrar la categoría del producto de menú enlazado.
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> cats = (List<Map<String, Object>>) item.get("categories");
+            @SuppressWarnings("unchecked")
+            List<Long> ids = (List<Long>) item.get("categoryIds");
+            if ((cats == null || cats.isEmpty()) && b.getProductoId() != null) {
+                productRepository.findById(b.getProductoId()).ifPresent(p -> {
+                    if (p != null && p.getCategory() != null && p.getCategory().getId() != null
+                            && p.getCategory().getNombre() != null) {
+                        Map<String, Object> cm = new LinkedHashMap<>();
+                        cm.put("id", p.getCategory().getId());
+                        cm.put("name", p.getCategory().getNombre());
+                        cats.add(cm);
+                        ids.add(p.getCategory().getId());
+                    }
+                });
+            }
+            items.add(item);
         }
         return new GenericResponse(200, "Bebidas obtenidas", items);
     }
@@ -192,21 +211,19 @@ public class InventoryServiceImpl implements InventoryService {
                 .build();
 
         List<TenantMenuCategory> cats = resolveCategories(tenantId, categoryIds);
+        if (cats.isEmpty()) {
+            // Sin categorías asignadas: la bebida pertenece a la categoría "Bebidas".
+            TenantMenuCategory fb = obtenerOCrearCategoriaBebidas(tenantId);
+            cats = new ArrayList<>();
+            cats.add(fb);
+        }
         insumo.setCategories(new ArrayList<>(cats));
         insumoRepository.save(insumo);
 
         // Crear el producto de menú enlazado y su receta de 1 unidad,
         // para que la bebida aparezca y se venda en el POS Comandix.
-        TenantMenuCategory primaryCat;
-        List<TenantMenuCategory> productCats;
-        if (cats.isEmpty()) {
-            primaryCat = obtenerOCrearCategoriaBebidas(tenantId);
-            productCats = new ArrayList<>();
-            productCats.add(primaryCat);
-        } else {
-            primaryCat = cats.get(0);
-            productCats = new ArrayList<>(cats);
-        }
+        TenantMenuCategory primaryCat = cats.get(0);
+        List<TenantMenuCategory> productCats = new ArrayList<>(cats);
         TenantMenuProduct product = TenantMenuProduct.builder()
                 .category(primaryCat)
                 .categories(productCats)
