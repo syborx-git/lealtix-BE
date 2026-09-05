@@ -39,6 +39,12 @@ public class TenantMenuProductDTO {
     private Double stockMinimo;
     private String unidad;
 
+    /** IDs de todas las categorías del producto (principal + extras) */
+    private List<Long> categoryIds;
+
+    /** Categorías completas del producto [{id, name}] */
+    private List<Map<String, Object>> categories;
+
     public TenantMenuProductDTO(
             Long id,
             Long categoryId,
@@ -65,5 +71,7 @@ public class TenantMenuProductDTO {
         this.price = price;
         this.imageUrl = imageUrl;
         this.crossSellingProducts = List.of();
+        this.categoryIds = List.of();
+        this.categories = List.of();
     }
 }

@@ -11,7 +11,9 @@ import java.util.List;
 
 @Repository
 public interface TenantMenuProductRepository extends JpaRepository<TenantMenuProduct, Long> {
-    List<TenantMenuProduct> findByCategoryId(Long id);
+    @Query("select distinct p from TenantMenuProduct p left join p.categories c " +
+           "where (c.id = :categoryId or p.category.id = :categoryId) order by p.nombre asc")
+    List<TenantMenuProduct> findByCategoryId(@Param("categoryId") Long categoryId);
 
     @Query("select new com.lealtixservice.dto.TenantMenuProductDTO(p.id, c.id, c.nombre, c.descripcion, c.isActive, c.displayOrder, t.id, p.nombre, p.descripcion, p.isActive, p.precio, p.imgUrl) " +
            "from TenantMenuProduct p join p.category c join c.tenant t " +
@@ -19,6 +21,7 @@ public interface TenantMenuProductRepository extends JpaRepository<TenantMenuPro
            "order by c.displayOrder asc, c.nombre asc")
     List<TenantMenuProductDTO> findByCategoryTenantId(@Param("tenantId") Long tenantId);
 
-    @Query("select p from TenantMenuProduct p join p.category c join c.tenant t where t.id = :tenantId order by p.nombre asc")
+    @Query("select distinct p from TenantMenuProduct p left join fetch p.categories pc join p.category c join c.tenant t " +
+           "where t.id = :tenantId order by p.nombre asc")
     List<TenantMenuProduct> findAllByTenantId(@Param("tenantId") Long tenantId);
 }

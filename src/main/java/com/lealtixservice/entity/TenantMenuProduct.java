@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tenant_menu_product")
@@ -19,6 +21,17 @@ public class TenantMenuProduct {
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private TenantMenuCategory category;
+
+    /** Todas las categorías a las que pertenece el producto (principal + extras) */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tenant_menu_product_category",
+            joinColumns = @JoinColumn(name = "product_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    private List<TenantMenuCategory> categories = new ArrayList<>();
 
     @Column(precision = 10, scale = 2, nullable = false)
     private BigDecimal precio;

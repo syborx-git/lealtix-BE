@@ -42,7 +42,8 @@ public class InventoryController {
         String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
         Double stock = toDouble(body.get("stock"));
         Double stockMinimo = toDouble(body.get("stockMinimo"));
-        return ResponseEntity.ok(inventoryService.createInsumo(tenantId, nombre, unidad, stock, stockMinimo));
+        List<Long> categoryIds = toLongList(body.get("categoryIds"));
+        return ResponseEntity.ok(inventoryService.createInsumo(tenantId, nombre, unidad, stock, stockMinimo, categoryIds));
     }
 
     @Operation(summary = "Actualizar insumo")
@@ -54,7 +55,8 @@ public class InventoryController {
         String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
         Double stock = toDouble(body.get("stock"));
         Double stockMinimo = toDouble(body.get("stockMinimo"));
-        return ResponseEntity.ok(inventoryService.updateInsumo(insumoId, nombre, unidad, stock, stockMinimo));
+        List<Long> categoryIds = toLongList(body.get("categoryIds"));
+        return ResponseEntity.ok(inventoryService.updateInsumo(insumoId, nombre, unidad, stock, stockMinimo, categoryIds));
     }
 
     @Operation(summary = "Eliminar insumo")
@@ -90,7 +92,8 @@ public class InventoryController {
         Double stock = toDouble(body.get("stock"));
         Double stockMinimo = toDouble(body.get("stockMinimo"));
         Double precioVenta = toDouble(body.get("precioVenta"));
-        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta));
+        List<Long> categoryIds = toLongList(body.get("categoryIds"));
+        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds));
     }
 
     @Operation(summary = "Actualizar bebida")
@@ -103,7 +106,8 @@ public class InventoryController {
         Double stock = toDouble(body.get("stock"));
         Double stockMinimo = toDouble(body.get("stockMinimo"));
         Double precioVenta = toDouble(body.get("precioVenta"));
-        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta));
+        List<Long> categoryIds = toLongList(body.get("categoryIds"));
+        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds));
     }
 
     @Operation(summary = "Eliminar bebida")

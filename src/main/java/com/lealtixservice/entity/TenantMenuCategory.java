@@ -1,8 +1,11 @@
 package com.lealtixservice.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tenant_menu_category")
@@ -18,6 +21,12 @@ public class TenantMenuCategory {
     @ManyToOne
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
+
+    /** Productos asignados a esta categoría (lado inverso de la multicategoría) */
+    @ManyToMany(mappedBy = "categories")
+    @JsonIgnore
+    @Builder.Default
+    private List<TenantMenuProduct> products = new ArrayList<>();
 
     @Column(length = 100, nullable = false)
     private String nombre;

@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "insumo")
@@ -20,6 +22,17 @@ public class Insumo {
 
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
+
+    /** Categorías a las que pertenece el insumo (o la bebida si esBebida=true) */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "insumo_category",
+            joinColumns = @JoinColumn(name = "insumo_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    private List<TenantMenuCategory> categories = new ArrayList<>();
 
     @Column(length = 100, nullable = false)
     private String nombre;

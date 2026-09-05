@@ -17,9 +17,9 @@ public interface InventoryService {
      */
     GenericResponse getInsumosByTenant(Long tenantId);
 
-    GenericResponse createInsumo(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo);
+    GenericResponse createInsumo(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, List<Long> categoryIds);
 
-    GenericResponse updateInsumo(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo);
+    GenericResponse updateInsumo(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, List<Long> categoryIds);
 
     GenericResponse deleteInsumo(Long insumoId);
 
@@ -34,12 +34,12 @@ public interface InventoryService {
      * Crea una bebida: registra el insumo marcado como bebida (pieza o mililitros) con su stock
      * y crea el producto de menú enlazado (con receta de 1 unidad) para que se venda en Comandix.
      */
-    GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta);
+    GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds);
 
     /**
      * Actualiza los datos de una bebida (insumo + producto de menú enlazado).
      */
-    GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta);
+    GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds);
 
     /**
      * Elimina una bebida (insumo y su producto de menú enlazado).

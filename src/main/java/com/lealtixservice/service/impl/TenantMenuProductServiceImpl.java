@@ -140,7 +140,39 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             productEntity.setActive(dto.getIsActive());
         }
 
+        syncCategories(productEntity, dto);
+
         return productEntity;
+    }
+
+    /**
+     * Sincroniza la lista completa de categorías del producto: la categoría principal
+     * (category) más las categorías extra indicadas en categoryIds (many-to-many).
+     */
+    private void syncCategories(TenantMenuProduct productEntity, TenantMenuProductDTO dto) {
+        List<TenantMenuCategory> cats = new ArrayList<>();
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+
+        if (productEntity.getCategory() != null && productEntity.getCategory().getId() != null) {
+            cats.add(productEntity.getCategory());
+            seen.add(productEntity.getCategory().getId());
+        }
+
+        if (dto != null && dto.getCategoryIds() != null && dto.getTenantId() != null) {
+            for (Long cid : dto.getCategoryIds()) {
+                if (cid == null || seen.contains(cid)) continue;
+                Optional<TenantMenuCategory> catOpt = categoryService.findById(cid);
+                if (catOpt.isPresent()) {
+                    TenantMenuCategory cat = catOpt.get();
+                    if (cat.getTenant() != null && dto.getTenantId().equals(cat.getTenant().getId())) {
+                        cats.add(cat);
+                        seen.add(cid);
+                    }
+                }
+            }
+        }
+
+        productEntity.setCategories(cats);
     }
 
     @Override
@@ -174,6 +206,22 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             dto.setStock(stock);
             dto.setStockMinimo(entity.getStockMinimo() != null ? entity.getStockMinimo() : 0.0);
             dto.setUnidad(entity.getUnidad() != null ? entity.getUnidad() : "pieza");
+
+            // Todas las categorías del producto (principal + extras) para la UI
+            List<Long> categoryIds = new ArrayList<>();
+            List<Map<String, Object>> categories = new ArrayList<>();
+            if (entity.getCategories() != null) {
+                for (TenantMenuCategory cat : entity.getCategories()) {
+                    if (cat == null || cat.getId() == null) continue;
+                    categoryIds.add(cat.getId());
+                    Map<String, Object> catMap = new LinkedHashMap<>();
+                    catMap.put("id", cat.getId());
+                    catMap.put("name", cat.getNombre() != null ? cat.getNombre() : "");
+                    categories.add(catMap);
+                }
+            }
+            dto.setCategoryIds(categoryIds);
+            dto.setCategories(categories);
 
             // Receta (ingredientes base/modificables) y adicionales para el menú
             List<Map<String, Object>> recipeList = new ArrayList<>();

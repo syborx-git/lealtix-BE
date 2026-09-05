@@ -53,6 +53,8 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("description", p.getDescripcion());
             item.put("categoryId", p.getCategory() != null ? p.getCategory().getId() : null);
             item.put("categoryName", p.getCategory() != null ? p.getCategory().getNombre() : null);
+            item.put("categories", buildCategoryMaps(p.getCategories()));
+            item.put("categoryIds", buildCategoryIds(p.getCategories()));
             item.put("price", p.getPrecio());
             item.put("imageUrl", p.getImgUrl());
             item.put("stock", stock);
@@ -71,6 +73,7 @@ public class InventoryServiceImpl implements InventoryService {
     /* ============ Insumos (catálogo compartido) ============ */
 
     @Override
+    @Transactional(readOnly = true)
     public GenericResponse getInsumosByTenant(Long tenantId) {
         List<Insumo> insumos = insumoRepository.findByTenantIdAndIsActiveTrueOrderByNombreAsc(tenantId).stream()
                 .filter(i -> !i.isEsBebida())
@@ -84,7 +87,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse createInsumo(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo) {
+    public GenericResponse createInsumo(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, List<Long> categoryIds) {
         if (tenantId == null || nombre == null || nombre.isBlank()) {
             return new GenericResponse(400, "Tenant y nombre son requeridos", null);
         }
@@ -96,18 +99,22 @@ public class InventoryServiceImpl implements InventoryService {
                 .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
                 .isActive(true)
                 .build();
+        insumo.setCategories(resolveCategories(tenantId, categoryIds));
         insumoRepository.save(insumo);
         return new GenericResponse(200, "Insumo creado", insumoToMap(insumo));
     }
 
     @Override
     @Transactional
-    public GenericResponse updateInsumo(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo) {
+    public GenericResponse updateInsumo(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, List<Long> categoryIds) {
         Insumo insumo = findInsumo(insumoId);
         if (nombre != null && !nombre.isBlank()) insumo.setNombre(nombre.trim());
         if (unidad != null && !unidad.isBlank()) insumo.setUnidad(unidad);
         if (stock != null) insumo.setStock(Math.max(0, stock));
         if (stockMinimo != null) insumo.setStockMinimo(Math.max(0, stockMinimo));
+        if (categoryIds != null) {
+            insumo.setCategories(resolveCategories(insumo.getTenantId(), categoryIds));
+        }
         insumoRepository.save(insumo);
         return new GenericResponse(200, "Insumo actualizado", insumoToMap(insumo));
     }
@@ -155,6 +162,7 @@ public class InventoryServiceImpl implements InventoryService {
     /* ============ Bebidas (insumos marcados como bebida, vendibles en Comandix) ============ */
 
     @Override
+    @Transactional(readOnly = true)
     public GenericResponse getBebidasByTenant(Long tenantId) {
         List<Insumo> bebidas = insumoRepository.findByTenantIdAndIsActiveTrueOrderByNombreAsc(tenantId).stream()
                 .filter(Insumo::isEsBebida)
@@ -168,7 +176,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta) {
+    public GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
         if (tenantId == null || nombre == null || nombre.isBlank()) {
             return new GenericResponse(400, "Tenant y nombre son requeridos", null);
         }
@@ -182,13 +190,26 @@ public class InventoryServiceImpl implements InventoryService {
                 .precioVenta(precioVenta != null ? BigDecimal.valueOf(precioVenta) : BigDecimal.ZERO)
                 .isActive(true)
                 .build();
+
+        List<TenantMenuCategory> cats = resolveCategories(tenantId, categoryIds);
+        insumo.setCategories(new ArrayList<>(cats));
         insumoRepository.save(insumo);
 
-        // Crear el producto de menú enlazado en la categoría "Bebidas" y su receta de 1 unidad,
+        // Crear el producto de menú enlazado y su receta de 1 unidad,
         // para que la bebida aparezca y se venda en el POS Comandix.
-        TenantMenuCategory categoria = obtenerOCrearCategoriaBebidas(tenantId);
+        TenantMenuCategory primaryCat;
+        List<TenantMenuCategory> productCats;
+        if (cats.isEmpty()) {
+            primaryCat = obtenerOCrearCategoriaBebidas(tenantId);
+            productCats = new ArrayList<>();
+            productCats.add(primaryCat);
+        } else {
+            primaryCat = cats.get(0);
+            productCats = new ArrayList<>(cats);
+        }
         TenantMenuProduct product = TenantMenuProduct.builder()
-                .category(categoria)
+                .category(primaryCat)
+                .categories(productCats)
                 .precio(insumo.getPrecioVenta())
                 .nombre(insumo.getNombre())
                 .descripcion("Bebida")
@@ -215,7 +236,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta) {
+    public GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
         Insumo insumo = findInsumo(insumoId);
         if (!insumo.isEsBebida()) {
             return new GenericResponse(400, "El insumo no es una bebida", null);
@@ -233,6 +254,19 @@ public class InventoryServiceImpl implements InventoryService {
             product.setNombre(insumo.getNombre());
             product.setPrecio(insumo.getPrecioVenta());
             product.setUnidad(insumo.getUnidad());
+            if (categoryIds != null) {
+                List<TenantMenuCategory> cats = resolveCategories(insumo.getTenantId(), categoryIds);
+                if (cats.isEmpty() && product.getCategory() != null) {
+                    // Sin categorías asignadas: conservar la categoría actual del producto enlazado
+                    cats = new ArrayList<>();
+                    cats.add(product.getCategory());
+                }
+                insumo.setCategories(new ArrayList<>(cats));
+                if (!cats.isEmpty()) {
+                    product.setCategory(cats.get(0));
+                }
+                product.setCategories(new ArrayList<>(cats));
+            }
             productRepository.save(product);
         }
         return new GenericResponse(200, "Bebida actualizada", insumoToMap(insumo));
@@ -604,7 +638,50 @@ public class InventoryServiceImpl implements InventoryService {
         m.put("esBebida", i.isEsBebida());
         m.put("precioVenta", i.getPrecioVenta() != null ? i.getPrecioVenta() : java.math.BigDecimal.ZERO);
         m.put("productoId", i.getProductoId());
+        m.put("categories", buildCategoryMaps(i.getCategories()));
+        m.put("categoryIds", buildCategoryIds(i.getCategories()));
         return m;
+    }
+
+    private List<Map<String, Object>> buildCategoryMaps(List<TenantMenuCategory> cats) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        if (cats != null) {
+            for (TenantMenuCategory c : cats) {
+                if (c == null || c.getId() == null) continue;
+                Map<String, Object> cm = new LinkedHashMap<>();
+                cm.put("id", c.getId());
+                cm.put("name", c.getNombre() != null ? c.getNombre() : "");
+                list.add(cm);
+            }
+        }
+        return list;
+    }
+
+    private List<Long> buildCategoryIds(List<TenantMenuCategory> cats) {
+        List<Long> ids = new ArrayList<>();
+        if (cats != null) {
+            for (TenantMenuCategory c : cats) {
+                if (c != null && c.getId() != null) ids.add(c.getId());
+            }
+        }
+        return ids;
+    }
+
+    /** Resuelve los IDs de categoría a entidades TenantMenuCategory validando que pertenezcan al tenant. */
+    private List<TenantMenuCategory> resolveCategories(Long tenantId, List<Long> categoryIds) {
+        List<TenantMenuCategory> cats = new ArrayList<>();
+        if (categoryIds == null || tenantId == null) return cats;
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        for (Long cid : categoryIds) {
+            if (cid == null || seen.contains(cid)) continue;
+            categoryRepository.findById(cid).ifPresent(c -> {
+                if (c.getTenant() != null && tenantId.equals(c.getTenant().getId())) {
+                    cats.add(c);
+                    seen.add(cid);
+                }
+            });
+        }
+        return cats;
     }
 
     private boolean isDish(TenantMenuProduct p) {
