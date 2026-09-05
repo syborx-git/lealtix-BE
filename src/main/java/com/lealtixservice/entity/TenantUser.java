@@ -42,6 +42,11 @@ public class TenantUser {
     @Builder.Default
     private Boolean activo = true;
 
+    /** Sueldo mensual del miembro (para costos operacionales de recurso humano). */
+    @Builder.Default
+    @Column(name = "sueldo_mensual")
+    private Double sueldoMensual = 100.0;
+
     @Column(name = "created_by")
     private String createdBy;
 

@@ -3,6 +3,7 @@ package com.lealtixservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,6 +27,16 @@ public class Insumo {
     /** Unidad de medida: gramos, mililitros, pieza */
     @Column(length = 20)
     private String unidad;
+
+    /** true = es una bebida (vendible en el POS Comandix); false = insumo de receta */
+    @Builder.Default
+    private boolean esBebida = false;
+
+    /** Precio de venta al público (solo para bebidas) */
+    private BigDecimal precioVenta;
+
+    /** Id del producto de menú (tenant_menu_product) enlazado, solo para bebidas vendibles */
+    private Long productoId;
 
     /** Stock actual del insumo */
     @Builder.Default

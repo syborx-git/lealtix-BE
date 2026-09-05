@@ -4,6 +4,7 @@ import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.dashboard.*;
 import com.lealtixservice.service.DashboardService;
 import com.lealtixservice.service.KitchenDashboardService;
+import com.lealtixservice.service.OperationalCostsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,6 +40,7 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
     private final KitchenDashboardService kitchenDashboardService;
+    private final OperationalCostsService operationalCostsService;
 
     @Operation(summary = "KPI 1: Total de clientes registrados",
                description = "Obtiene el total de clientes registrados en un rango de fechas")
@@ -96,6 +98,20 @@ public class DashboardController {
         log.info("GET /api/dashboard/sales/summary - tenantId={}, from={}, to={}", tenantId, from, to);
         SalesSummaryDTO summary = dashboardService.getSalesSummary(tenantId, from, to);
         return ResponseEntity.ok(summary);
+    }
+
+    @Operation(summary = "Costos operacionales automáticos",
+               description = "Calcula costos operacionales con datos reales de los últimos meses: gasto en restock de insumos (materia prima), " +
+                       "suma de sueldos (recurso humano) y ventas totales, junto con las ganancias resultantes.")
+    @GetMapping("/costs/automatic")
+    public ResponseEntity<OperationalCostsDTO> getOperationalCosts(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Meses hacia atrás a considerar (default 2)")
+            @RequestParam(defaultValue = "2") int months
+    ) {
+        log.info("GET /api/dashboard/costs/automatic - tenantId={}, months={}", tenantId, months);
+        OperationalCostsDTO costs = operationalCostsService.calculate(tenantId, months);
+        return ResponseEntity.ok(costs);
     }
 
     @Operation(summary = "Ventas por periodo (día/semana/mes) con desglose identificadas vs generales")

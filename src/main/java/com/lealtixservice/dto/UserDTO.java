@@ -22,4 +22,5 @@ public class UserDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean kitchenModuleEnabled;
+    private Double sueldoMensual;
 }

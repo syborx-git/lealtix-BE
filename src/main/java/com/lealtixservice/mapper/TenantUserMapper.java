@@ -21,6 +21,7 @@ public class TenantUserMapper {
                 .activo(entity.getActivo())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
+                .sueldoMensual(entity.getSueldoMensual())
                 .build();
     }
 
@@ -32,6 +33,7 @@ public class TenantUserMapper {
                 .passwordHash(passwordHash)
                 .rol(RoleEnum.valueOf(request.getRol().toUpperCase()))
                 .activo(true)
+                .sueldoMensual(request.getSueldoMensual() != null ? request.getSueldoMensual() : 100.0)
                 .build();
     }
 
@@ -45,6 +47,9 @@ public class TenantUserMapper {
         }
         if (request.getRol() != null && !request.getRol().isBlank()) {
             entity.setRol(RoleEnum.valueOf(request.getRol().toUpperCase()));
+        }
+        if (request.getSueldoMensual() != null) {
+            entity.setSueldoMensual(Math.max(0, request.getSueldoMensual()));
         }
     }
 }

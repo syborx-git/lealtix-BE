@@ -69,7 +69,47 @@ public class InventoryController {
             @PathVariable Long insumoId,
             @RequestBody Map<String, Object> body) {
         Double cantidad = toDouble(body.get("cantidad"));
-        return ResponseEntity.ok(inventoryService.restockInsumo(insumoId, cantidad));
+        Double costoTotal = body.get("costoTotal") != null ? toDouble(body.get("costoTotal")) : 0.0;
+        return ResponseEntity.ok(inventoryService.restockInsumo(insumoId, cantidad, costoTotal));
+    }
+
+    /* ============ Bebidas (insumos marcados como bebida, vendibles en Comandix) ============ */
+
+    @Operation(summary = "Obtener bebidas de un tenant")
+    @GetMapping("/bebidas/tenant/{tenantId}")
+    public ResponseEntity<GenericResponse> getBebidas(@PathVariable Long tenantId) {
+        return ResponseEntity.ok(inventoryService.getBebidasByTenant(tenantId));
+    }
+
+    @Operation(summary = "Crear bebida (insumo + producto de menú enlazado)")
+    @PostMapping("/bebidas")
+    public ResponseEntity<GenericResponse> createBebida(@RequestBody Map<String, Object> body) {
+        Long tenantId = toLong(body.get("tenantId"));
+        String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+        String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
+        Double stock = toDouble(body.get("stock"));
+        Double stockMinimo = toDouble(body.get("stockMinimo"));
+        Double precioVenta = toDouble(body.get("precioVenta"));
+        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta));
+    }
+
+    @Operation(summary = "Actualizar bebida")
+    @PutMapping("/bebidas/{insumoId}")
+    public ResponseEntity<GenericResponse> updateBebida(
+            @PathVariable Long insumoId,
+            @RequestBody Map<String, Object> body) {
+        String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+        String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
+        Double stock = toDouble(body.get("stock"));
+        Double stockMinimo = toDouble(body.get("stockMinimo"));
+        Double precioVenta = toDouble(body.get("precioVenta"));
+        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta));
+    }
+
+    @Operation(summary = "Eliminar bebida")
+    @DeleteMapping("/bebidas/{insumoId}")
+    public ResponseEntity<GenericResponse> deleteBebida(@PathVariable Long insumoId) {
+        return ResponseEntity.ok(inventoryService.deleteBebida(insumoId));
     }
 
     /* ============ Stock directo de producto sin receta ============ */
