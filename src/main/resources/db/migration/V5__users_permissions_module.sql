@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS tenant_user (
     password_hash  VARCHAR(255) NOT NULL,
     rol            VARCHAR(50)  NOT NULL,
     activo         BOOLEAN      DEFAULT TRUE,
-    sueldo_mensual NUMERIC(12,2) NOT NULL DEFAULT 100.00,
+    sueldo_mensual DOUBLE PRECISION DEFAULT 100.0,
     created_by     VARCHAR(150),
     updated_by     VARCHAR(150),
     created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,

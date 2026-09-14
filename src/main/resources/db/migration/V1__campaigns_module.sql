@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS campaign_email (
     provider_error_code     VARCHAR(100),
     provider_error_message  TEXT,
     correlation_id          VARCHAR(100),
+    coupon_id               BIGINT,
     created_at              TIMESTAMP       NOT NULL,
     updated_at              TIMESTAMP       NOT NULL,
     CONSTRAINT fk_campaign_email_campaign

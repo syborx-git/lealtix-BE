@@ -6,6 +6,7 @@ Flyway migrations consolidadas. Cada archivo agrupa un módulo de negocio comple
 
 | Versión | Módulo | Describe |
 |---------|--------|----------|
+| V0 | Esquema Base Fundacional | Crea las 19 tablas del modelo base pre-existentes (`app_user`, `role`, `user_role`, `tenant`, `tenant_config`, `tenant_payment`, `pre_registro`, `invitations`, `email_log`, `tenant_customer`, `campaign_template`, `campaign`, `campaign_result`, `coupon_redemption`, `tenant_menu_category`, `tenant_menu_product`, `insumo`, `product_recipe`, `product_additional`) |
 | V1 | Campañas | `campaign` (columnas finales, constraints), `promotion_reward`, `campaign_result`, `campaign_email`, `campaign_email_payload` |
 | V2 | Lealtad / Clientes | `tenant_customer` (accepted_promotions, active), `coupon` (estado final), `coupon_redemption` (campos de cálculo) |
 | V3 | Comandix — Órdenes | `client_order` (estado final completo, 18+ columnas), `client_order_item` |

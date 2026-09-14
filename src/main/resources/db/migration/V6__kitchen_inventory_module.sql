@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS restock_history (
     tenant_id     BIGINT        NOT NULL,
     insumo_id     BIGINT,
     insumo_nombre VARCHAR(100),
-    cantidad      NUMERIC(14,2) NOT NULL DEFAULT 0,
-    costo_total   NUMERIC(14,2) NOT NULL DEFAULT 0,
+    cantidad      DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    costo_total   DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_restock_history_tenant FOREIGN KEY (tenant_id)  REFERENCES tenant(id)  ON DELETE CASCADE,

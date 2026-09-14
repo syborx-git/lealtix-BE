@@ -14,25 +14,49 @@
 -- =====================================================================
 
 -- -----------------------------------------------------------------------
--- 0. Tenant demo
---    Nota: insertar solo si no existe ya un tenant con slug 'demo'
 -- -----------------------------------------------------------------------
+-- 0. Usuario propietario y Tenant demo
+-- -----------------------------------------------------------------------
+INSERT INTO app_user (
+    full_name, fecha_nacimiento, telefono, email,
+    password_hash, is_active, created_at, updated_at
+)
+VALUES (
+    'Demo Admin Lealtix',
+    '1990-05-15',
+    '+52 55 1234 5678',
+    'admin@demo.com',
+    'YWRtaW4xMjM=',
+    TRUE,
+    NOW(),
+    NOW()
+)
+ON CONFLICT (email) DO NOTHING;
+
 INSERT INTO tenant (
-    name, email, phone, slug, active, plan,
+    nombre_negocio, direccion, telefono, tipo_negocio,
+    slug, uid_tenant, schedules,
+    logo_url, slogan,
     kitchen_module_enabled, kitchen_enabled_at,
-    created_at, updated_at
+    is_active, created_at, updated_at,
+    user_id
 )
 SELECT
     'Restaurante Demo',
-    'demo@lealtix.com',
+    'Av. Insurgentes Sur 1234, Col. Del Valle, CDMX',
     '+52 55 1234 5678',
+    'Restaurante',
     'demo',
+    'UID-DEMO',
+    'Lun-Vie: 08:00-22:00 | Sab-Dom: 09:00-23:00',
+    'https://res.cloudinary.com/demo/image/upload/v1/lealtix/logo_demo.png',
+    'Los mejores platillos de la ciudad',
     TRUE,
-    'PREMIUM',
+    NOW(),
     TRUE,
     NOW(),
     NOW(),
-    NOW()
+    (SELECT id FROM app_user WHERE email = 'admin@demo.com' LIMIT 1)
 WHERE NOT EXISTS (SELECT 1 FROM tenant WHERE slug = 'demo');
 
 -- -----------------------------------------------------------------------
