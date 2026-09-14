@@ -62,6 +62,8 @@ public class ClientOrderItemMapper {
                 .precioUnitario(item.getPrecioUnitario())
                 .subtotal(subtotal)
                 .comentarios(item.getComentarios())
+                .excludedIngredientIds(item.getExcludedIngredientIds())
+                .additionalIngredientIds(item.getAdditionalIngredientIds())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
                 .build();
