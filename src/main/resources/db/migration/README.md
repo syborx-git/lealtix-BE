@@ -16,6 +16,7 @@ Flyway migrations consolidadas. Cada archivo agrupa un módulo de negocio comple
 | V7 | Hostess | `mesa`, `reserva` |
 | V8 | Mermas y Alergias | `merma`, `allergy`, `tenant_customer_allergy` |
 | V9 | Demo Seed | Tenant "Restaurante Demo", usuarios por rol, config y mesas (**solo local**) |
+| V10 | Plantillas de Campañas Base | Catálogo de las 11 plantillas por defecto (Bienvenida, Cumpleaños, etc.) y sincronización de secuencia |
 
 ## Credenciales Demo (solo local)
 
