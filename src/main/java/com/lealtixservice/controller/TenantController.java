@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -108,6 +109,21 @@ public class TenantController {
             
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new GenericResponse(404, "NOT FOUND", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Guarda el HTML del sitio personalizado (Web Studio) de un tenant.
+     */
+    @Operation(summary = "Guardar sitio personalizado", description = "Guarda el HTML/CSS del sitio web diseñado por el tenant.")
+    @PutMapping("/{id}/custom-site")
+    public ResponseEntity<GenericResponse> saveCustomSite(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        try {
+            tenantService.saveCustomSite(id, body.get("html"));
+            return ResponseEntity.ok(new GenericResponse(200, "Sitio guardado", null));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, e.getMessage(), null));

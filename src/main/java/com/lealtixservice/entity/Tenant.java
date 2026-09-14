@@ -37,6 +37,9 @@ public class Tenant {
     @Column(name = "slogan")
     private String slogan;
 
+    @Column(name = "custom_site_html", columnDefinition = "TEXT")
+    private String customSiteHtml;
+
     @Column(name = "kitchen_module_enabled")
     private Boolean kitchenModuleEnabled;
 

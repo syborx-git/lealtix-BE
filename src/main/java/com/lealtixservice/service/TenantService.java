@@ -19,5 +19,7 @@ public interface TenantService {
     TenantWizardDTO getBySlug(String slug);
 
     TenantDTO getByEmail(String email);
+
+    void saveCustomSite(Long id, String html);
 }
 

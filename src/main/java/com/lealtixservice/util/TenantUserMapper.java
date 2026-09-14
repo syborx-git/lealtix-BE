@@ -18,6 +18,7 @@ public class TenantUserMapper {
                 .slug(tenant.getSlug())
                 .UIDTenant(tenant.getUIDTenant())
                 .slogan(tenant.getSlogan())
+                .customSiteHtml(tenant.getCustomSiteHtml())
                 .logoUrl(tenant.getLogoUrl())
                 .isActive(tenant.isActive())
                 .schedules(tenant.getSchedules())

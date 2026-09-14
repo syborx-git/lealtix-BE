@@ -24,6 +24,7 @@ public class TenantDTO {
     private String slug;
     private String logoUrl;
     private String slogan;
+    private String customSiteHtml;
     private String UIDTenant;
     private String email;
     private String bussinessEmail;

@@ -237,4 +237,13 @@ public class TenantServiceImpl implements TenantService {
         }
         return null;
     }
+
+    @Override
+    @Transactional
+    public void saveCustomSite(Long id, String html) {
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Tenant no encontrado: " + id));
+        tenant.setCustomSiteHtml(html);
+        tenantRepository.save(tenant);
+    }
 }
