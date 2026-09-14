@@ -1,15 +1,37 @@
-Migration guidelines
+# DB Migrations — Lealtix Service
 
-- Never edit an existing versioned migration file (V__*.sql) that may have already been applied in any environment.
-- To change schema or seeded data, create a new versioned migration (e.g. V010__add_new_column.sql).
-- Use `spring.flyway.baseline-on-migrate=true` only in non-prod/dev environments when first adopting Flyway against an existing database.
-- Flyway must run only through Spring Boot at application startup.
+Flyway migrations consolidadas. Cada archivo agrupa un módulo de negocio completo.
 
-Recommended local commands:
+## Archivos
 
-- Start the application using the active profile (dev/local as needed):
-  mvn -Dspring-boot.run.profiles=dev spring-boot:run
+| Versión | Módulo | Describe |
+|---------|--------|----------|
+| V1 | Campañas | `campaign` (columnas finales, constraints), `promotion_reward`, `campaign_result`, `campaign_email`, `campaign_email_payload` |
+| V2 | Lealtad / Clientes | `tenant_customer` (accepted_promotions, active), `coupon` (estado final), `coupon_redemption` (campos de cálculo) |
+| V3 | Comandix — Órdenes | `client_order` (estado final completo, 18+ columnas), `client_order_item` |
+| V4 | ChatBot + Cross-Selling | `product_cross_selling`, `chatbot_session`, `chatbot_message` |
+| V5 | Usuarios, Roles y Permisos | `tenant` (kitchen), `tenant_config`, `tenant_user` (con HOSTESS + sueldo_mensual), `user_permission`, `permission` (catálogo completo), `role_permission` (asignaciones finales) |
+| V6 | Cocina e Inventario | `product_additional.precio`, `insumo` (bebidas), `tenant_menu_product_category`, `insumo_category`, `tenant_menu_product` (auto_availability, es_sub_receta), `product_sub_receta`, `restock_history` |
+| V7 | Hostess | `mesa`, `reserva` |
+| V8 | Mermas y Alergias | `merma`, `allergy`, `tenant_customer_allergy` |
+| V9 | Demo Seed | Tenant "Restaurante Demo", usuarios por rol, config y mesas (**solo local**) |
 
-Notes:
-- Avoid committing database credentials to version control. Prefer environment variables or secret management in CI.
-- If you need a dev-only migration set, use a dev profile-specific location (e.g. application-dev.properties -> spring.flyway.locations=classpath:db/migration_clean) but avoid having two logical Flyway instances active at the same time.
+## Credenciales Demo (solo local)
+
+Endpoint: `POST /api/tenant/auth/login`
+Body: `{ "email": "...", "password": "..." }`
+
+| Rol | Email | Password |
+|-----|-------|----------|
+| ADMIN | admin@demo.com | admin123 |
+| MESERO | mesero@demo.com | mesero123 |
+| COCINA | cocina@demo.com | cocina123 |
+| CAJA | caja@demo.com | caja123 |
+| MARKETING | marketing@demo.com | marketing123 |
+| HOSTESS | hostess@demo.com | hostess123 |
+
+## Notas de consolidación
+
+- **V17+V18 eliminadas**: se cancelaban entre sí (neto cero sobre `business_id`).
+- **V6 duplicado eliminado**: `V6__ensure_promotion_reward_description_length.sql` era redundante — `description VARCHAR(500)` ya estaba definida desde V3.
+- Los archivos anteriores están en `db/migration_backup_<timestamp>/` como respaldo.
