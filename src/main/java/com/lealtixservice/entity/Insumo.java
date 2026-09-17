@@ -51,9 +51,21 @@ public class Insumo {
     /** Id del producto de menú (tenant_menu_product) enlazado, solo para bebidas vendibles */
     private Long productoId;
 
-    /** Stock actual del insumo */
+    /** Stock distribuido (cocina + barra) del insumo, usado por el POS para ventas/disponibilidad */
     @Builder.Default
     private Double stock = 0.0;
+
+    /** Stock en bodega (almacén central; no se vende desde aquí) */
+    @Builder.Default
+    private Double stockBodega = 0.0;
+
+    /** Stock distribuido hacia la cocina */
+    @Builder.Default
+    private Double stockCocina = 0.0;
+
+    /** Stock distribuido hacia la barra */
+    @Builder.Default
+    private Double stockBarra = 0.0;
 
     /** Stock mínimo para alertas */
     @Builder.Default

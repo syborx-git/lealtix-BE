@@ -6,6 +6,7 @@ import com.lealtixservice.entity.ProductAdditional;
 import com.lealtixservice.entity.ProductRecipe;
 import com.lealtixservice.entity.ProductSubReceta;
 import com.lealtixservice.entity.RestockHistory;
+import com.lealtixservice.entity.StockTransfer;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantMenuCategory;
 import com.lealtixservice.entity.TenantMenuProduct;
@@ -15,6 +16,7 @@ import com.lealtixservice.repository.ProductAdditionalRepository;
 import com.lealtixservice.repository.ProductRecipeRepository;
 import com.lealtixservice.repository.ProductSubRecetaRepository;
 import com.lealtixservice.repository.RestockHistoryRepository;
+import com.lealtixservice.repository.StockTransferRepository;
 import com.lealtixservice.repository.TenantMenuCategoryRepository;
 import com.lealtixservice.repository.TenantMenuProductRepository;
 import com.lealtixservice.service.InventoryService;
@@ -40,6 +42,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final ProductSubRecetaRepository subRecetaRepository;
     private final InsumoRepository insumoRepository;
     private final RestockHistoryRepository restockHistoryRepository;
+    private final StockTransferRepository stockTransferRepository;
     private final TenantMenuCategoryRepository categoryRepository;
 
     @Override
@@ -101,6 +104,9 @@ public class InventoryServiceImpl implements InventoryService {
                 .nombre(nombre.trim())
                 .unidad(unidad != null ? unidad : "pieza")
                 .stock(stock != null ? stock : 0.0)
+                .stockBodega(0.0)
+                .stockCocina(stock != null ? stock : 0.0)
+                .stockBarra(0.0)
                 .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
                 .isActive(true)
                 .build();
@@ -115,7 +121,9 @@ public class InventoryServiceImpl implements InventoryService {
         Insumo insumo = findInsumo(insumoId);
         if (nombre != null && !nombre.isBlank()) insumo.setNombre(nombre.trim());
         if (unidad != null && !unidad.isBlank()) insumo.setUnidad(unidad);
-        if (stock != null) insumo.setStock(Math.max(0, stock));
+        if (stock != null) {
+            aplicarStockDistribuido(insumo, Math.max(0, stock), false);
+        }
         if (stockMinimo != null) insumo.setStockMinimo(Math.max(0, stockMinimo));
         if (categoryIds != null) {
             insumo.setCategories(resolveCategories(insumo.getTenantId(), categoryIds));
@@ -149,6 +157,7 @@ public class InventoryServiceImpl implements InventoryService {
         Insumo insumo = findInsumo(insumoId);
         double current = insumo.getStock() != null ? insumo.getStock() : 0.0;
         insumo.setStock(current + cantidad);
+        rebalancearDistribucion(insumo);
         insumoRepository.save(insumo);
 
         // Registrar el historial de restock con el costo total invertido (materia prima)
@@ -165,6 +174,145 @@ public class InventoryServiceImpl implements InventoryService {
         syncAvailability(insumo.getTenantId());
 
         return new GenericResponse(200, "Stock del insumo actualizado", insumo.getStock());
+    }
+
+    /* ============ Bodega (almacén central que distribuye a cocina/barra) ============ */
+
+    @Override
+    @Transactional(readOnly = true)
+    public GenericResponse getBodegaByTenant(Long tenantId) {
+        List<Insumo> insumos = insumoRepository.findByTenantIdAndIsActiveTrueOrderByNombreAsc(tenantId);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (Insumo i : insumos) {
+            items.add(insumoToMap(i));
+        }
+        return new GenericResponse(200, "Bodega obtenida", items);
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse createInsumoBodega(Long tenantId, String nombre, String unidad, Double cantidad, Double costoTotal, Double stockMinimo, List<Long> categoryIds) {
+        if (tenantId == null || nombre == null || nombre.isBlank()) {
+            return new GenericResponse(400, "Tenant y nombre son requeridos", null);
+        }
+        double qty = cantidad != null ? cantidad : 0.0;
+        if (qty < 0) {
+            return new GenericResponse(400, "La cantidad no puede ser negativa", null);
+        }
+        if (qty > 0 && (costoTotal == null || costoTotal <= 0)) {
+            return new GenericResponse(400, "El costo de la carga es obligatorio al registrar un insumo con inventario", null);
+        }
+        Insumo insumo = Insumo.builder()
+                .tenantId(tenantId)
+                .nombre(nombre.trim())
+                .unidad(unidad != null ? unidad : "pieza")
+                .stock(0.0)
+                .stockBodega(qty)
+                .stockCocina(0.0)
+                .stockBarra(0.0)
+                .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
+                .isActive(true)
+                .build();
+        insumo.setCategories(resolveCategories(tenantId, categoryIds));
+        insumoRepository.save(insumo);
+
+        if (qty > 0) {
+            RestockHistory history = RestockHistory.builder()
+                    .tenantId(tenantId)
+                    .insumoId(insumo.getId())
+                    .insumoNombre(insumo.getNombre())
+                    .cantidad(qty)
+                    .costoTotal(costoTotal)
+                    .build();
+            restockHistoryRepository.save(history);
+        }
+
+        return new GenericResponse(200, "Insumo registrado en bodega", insumoToMap(insumo));
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse restockBodega(Long insumoId, Double cantidad, Double costoTotal) {
+        if (cantidad == null || cantidad <= 0) {
+            return new GenericResponse(400, "La cantidad debe ser mayor a 0", null);
+        }
+        if (costoTotal == null || costoTotal <= 0) {
+            return new GenericResponse(400, "El costo de la carga es obligatorio en el restock", null);
+        }
+        Insumo insumo = findInsumo(insumoId);
+        double bodega = insumo.getStockBodega() != null ? insumo.getStockBodega() : 0.0;
+        insumo.setStockBodega(bodega + cantidad);
+        insumoRepository.save(insumo);
+
+        RestockHistory history = RestockHistory.builder()
+                .tenantId(insumo.getTenantId())
+                .insumoId(insumo.getId())
+                .insumoNombre(insumo.getNombre())
+                .cantidad(cantidad)
+                .costoTotal(costoTotal)
+                .build();
+        restockHistoryRepository.save(history);
+
+        return new GenericResponse(200, "Restock en bodega registrado", insumoToMap(insumo));
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse moverBodega(Long insumoId, Double cantidad, String destino) {
+        if (cantidad == null || cantidad <= 0) {
+            return new GenericResponse(400, "La cantidad debe ser mayor a 0", null);
+        }
+        if (destino == null || (!destino.equals("cocina") && !destino.equals("barra"))) {
+            return new GenericResponse(400, "El destino debe ser 'cocina' o 'barra'", null);
+        }
+        Insumo insumo = findInsumo(insumoId);
+        double bodega = insumo.getStockBodega() != null ? insumo.getStockBodega() : 0.0;
+        if (bodega < cantidad) {
+            return new GenericResponse(400, "Stock insuficiente en bodega (" + redondear(bodega) + " disponible)", null);
+        }
+        insumo.setStockBodega(redondear(bodega - cantidad));
+
+        double distribuido = insumo.getStock() != null ? insumo.getStock() : 0.0;
+        if (destino.equals("cocina")) {
+            double cocina = insumo.getStockCocina() != null ? insumo.getStockCocina() : 0.0;
+            insumo.setStockCocina(redondear(cocina + cantidad));
+        } else {
+            double barra = insumo.getStockBarra() != null ? insumo.getStockBarra() : 0.0;
+            insumo.setStockBarra(redondear(barra + cantidad));
+        }
+        insumo.setStock(redondear(distribuido + cantidad));
+        insumoRepository.save(insumo);
+
+        stockTransferRepository.save(StockTransfer.builder()
+                .tenantId(insumo.getTenantId())
+                .insumoId(insumo.getId())
+                .insumoNombre(insumo.getNombre())
+                .origen("bodega")
+                .destino(destino)
+                .cantidad(redondear(cantidad))
+                .build());
+
+        syncAvailability(insumo.getTenantId());
+        return new GenericResponse(200, "Stock movido de bodega a " + destino, insumoToMap(insumo));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GenericResponse getTransferenciasByTenant(Long tenantId) {
+        List<StockTransfer> registros = stockTransferRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (StockTransfer t : registros) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("insumoId", t.getInsumoId());
+            m.put("insumoNombre", t.getInsumoNombre());
+            m.put("origen", t.getOrigen() != null ? t.getOrigen() : "bodega");
+            m.put("destino", t.getDestino());
+            m.put("cantidad", t.getCantidad() != null ? redondear(t.getCantidad()) : 0.0);
+            m.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt().toString() : null);
+            items.add(m);
+        }
+        return new GenericResponse(200, "Historial de transferencias obtenido", items);
     }
 
     /* ============ Bebidas (insumos marcados como bebida, vendibles en Comandix) ============ */
@@ -212,6 +360,9 @@ public class InventoryServiceImpl implements InventoryService {
                 .nombre(nombre.trim())
                 .unidad(unidad != null ? unidad : "pieza")
                 .stock(stock != null ? stock : 0.0)
+                .stockBodega(0.0)
+                .stockCocina(0.0)
+                .stockBarra(stock != null ? stock : 0.0)
                 .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
                 .esBebida(true)
                 .precioVenta(precioVenta != null ? BigDecimal.valueOf(precioVenta) : BigDecimal.ZERO)
@@ -268,7 +419,9 @@ public class InventoryServiceImpl implements InventoryService {
         }
         if (nombre != null && !nombre.isBlank()) insumo.setNombre(nombre.trim());
         if (unidad != null && !unidad.isBlank()) insumo.setUnidad(unidad);
-        if (stock != null) insumo.setStock(Math.max(0, stock));
+        if (stock != null) {
+            aplicarStockDistribuido(insumo, Math.max(0, stock), true);
+        }
         if (stockMinimo != null) insumo.setStockMinimo(Math.max(0, stockMinimo));
         if (precioVenta != null) insumo.setPrecioVenta(BigDecimal.valueOf(Math.max(0, precioVenta)));
         insumoRepository.save(insumo);
@@ -845,12 +998,62 @@ public class InventoryServiceImpl implements InventoryService {
         return count;
     }
 
+    /** Aplica el stock distribuido total de un insumo conservando, en lo posible, el split cocina/barra
+     * (si no hay split previo, todo va al lado preferido: barra para bebidas, cocina para insumos). */
+    private void aplicarStockDistribuido(Insumo insumo, double nuevoStock, boolean esBebida) {
+        nuevoStock = Math.max(0, nuevoStock);
+        double cocina = insumo.getStockCocina() != null ? insumo.getStockCocina() : 0.0;
+        double barra = insumo.getStockBarra() != null ? insumo.getStockBarra() : 0.0;
+        double total = redondear(cocina + barra);
+        if (total > 0) {
+            double ratio = nuevoStock / total;
+            double nc = redondear(cocina * ratio);
+            insumo.setStockCocina(nc);
+            insumo.setStockBarra(redondear(Math.max(0, nuevoStock - nc)));
+        } else if (esBebida) {
+            insumo.setStockCocina(0.0);
+            insumo.setStockBarra(nuevoStock);
+        } else {
+            insumo.setStockCocina(nuevoStock);
+            insumo.setStockBarra(0.0);
+        }
+        insumo.setStock(nuevoStock);
+    }
+
+    /** Recalcula cocina/barra para que la suma coincida con el stock distribuido (invarianza POS). */
+    private void rebalancearDistribucion(Insumo insumo) {
+        double stock = insumo.getStock() != null ? insumo.getStock() : 0.0;
+        double cocina = insumo.getStockCocina() != null ? insumo.getStockCocina() : 0.0;
+        double barra = insumo.getStockBarra() != null ? insumo.getStockBarra() : 0.0;
+        double total = redondear(cocina + barra);
+        if (Math.abs(total - stock) < 0.01) {
+            return;
+        }
+        if (stock > 0) {
+            double ratio = stock / (total > 0 ? total : 1.0);
+            double nc = redondear(cocina * ratio);
+            insumo.setStockCocina(nc);
+            insumo.setStockBarra(redondear(Math.max(0, stock - nc)));
+        } else {
+            insumo.setStockCocina(0.0);
+            insumo.setStockBarra(0.0);
+        }
+    }
+
+    /** Redondeo a 3 decimales, consistente con las deducciones del POS. */
+    private double redondear(double v) {
+        return Math.round(v * 1000.0) / 1000.0;
+    }
+
     private Map<String, Object> insumoToMap(Insumo i) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", i.getId());
         m.put("nombre", i.getNombre());
         m.put("unidad", i.getUnidad() != null ? i.getUnidad() : "pieza");
-        m.put("stock", i.getStock() != null ? i.getStock() : 0.0);
+        m.put("stock", i.getStock() != null ? redondear(i.getStock()) : 0.0);
+        m.put("stockBodega", i.getStockBodega() != null ? redondear(i.getStockBodega()) : 0.0);
+        m.put("stockCocina", i.getStockCocina() != null ? redondear(i.getStockCocina()) : 0.0);
+        m.put("stockBarra", i.getStockBarra() != null ? redondear(i.getStockBarra()) : 0.0);
         m.put("stockMinimo", i.getStockMinimo() != null ? i.getStockMinimo() : 0.0);
         m.put("esBebida", i.isEsBebida());
         m.put("precioVenta", i.getPrecioVenta() != null ? i.getPrecioVenta() : java.math.BigDecimal.ZERO);
@@ -1020,6 +1223,7 @@ public class InventoryServiceImpl implements InventoryService {
         double antes = insumo.getStock() != null ? insumo.getStock() : 0.0;
         double despues = Math.max(0, Math.round((antes - qty) * 1000) / 1000.0);
         insumo.setStock(despues);
+        rebalancearDistribucion(insumo);
         insumoRepository.save(insumo);
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", insumo.getNombre());
@@ -1048,6 +1252,7 @@ public class InventoryServiceImpl implements InventoryService {
         double antes = insumo.getStock() != null ? insumo.getStock() : 0.0;
         double despues = Math.round((antes + qty) * 1000) / 1000.0;
         insumo.setStock(despues);
+        rebalancearDistribucion(insumo);
         insumoRepository.save(insumo);
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", insumo.getNombre());
@@ -1096,3 +1301,4 @@ public class InventoryServiceImpl implements InventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id=" + insumoId));
     }
 }
+

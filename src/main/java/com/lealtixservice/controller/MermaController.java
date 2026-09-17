@@ -23,6 +23,12 @@ public class MermaController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @PostMapping("/administrativa")
+    public ResponseEntity<GenericResponse> registrarMermaAdministrativa(@RequestBody MermaRequest request) {
+        GenericResponse response = mermaService.registrarMermaAdministrativa(request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
     @GetMapping("/tenant/{tenantId}")
     public ResponseEntity<GenericResponse> listarPorTenant(@PathVariable Long tenantId) {
         return ResponseEntity.ok(mermaService.listarPorTenant(tenantId));

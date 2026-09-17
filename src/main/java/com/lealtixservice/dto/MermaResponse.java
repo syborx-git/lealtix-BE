@@ -14,6 +14,11 @@ public class MermaResponse {
     private UUID orderId;
     private UUID registroId;
     private String tipoMerma;
+    private String categoriaMerma;
+    private String origen;
+    private String motivo;
+    private Long usuarioId;
+    private String usuarioNombre;
     private Long insumoId;
     private String insumoNombre;
     private Long productoId;

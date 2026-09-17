@@ -18,6 +18,35 @@ public interface InventoryService {
      */
     GenericResponse getInsumosByTenant(Long tenantId);
 
+    /**
+     * Bodega: lista TODOS los insumos del tenant (insumos y bebidas) con su
+     * stock por ubicación (bodega, cocina, barra) y stock mínimo.
+     */
+    GenericResponse getBodegaByTenant(Long tenantId);
+
+    /**
+     * Bodega: registra un insumo directamente en bodega (alta con carga inicial).
+     * El costo de la carga es obligatorio cuando la cantidad inicial es mayor a 0.
+     */
+    GenericResponse createInsumoBodega(Long tenantId, String nombre, String unidad, Double cantidad, Double costoTotal, Double stockMinimo, List<Long> categoryIds);
+
+    /**
+     * Bodega: restock (entrada) de un insumo hacia la bodega.
+     * El costo total de la carga es obligatorio.
+     */
+    GenericResponse restockBodega(Long insumoId, Double cantidad, Double costoTotal);
+
+    /**
+     * Bodega: mueve stock desde bodega hacia cocina o barra.
+     * Destino válido: "cocina" | "barra".
+     */
+    GenericResponse moverBodega(Long insumoId, Double cantidad, String destino);
+
+    /**
+     * Reporte: historial de transferencias bodega -> cocina/barra del tenant.
+     */
+    GenericResponse getTransferenciasByTenant(Long tenantId);
+
     GenericResponse createInsumo(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, List<Long> categoryIds);
 
     GenericResponse updateInsumo(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, List<Long> categoryIds);

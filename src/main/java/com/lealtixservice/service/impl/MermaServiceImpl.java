@@ -36,6 +36,7 @@ public class MermaServiceImpl implements MermaService {
     private final ProductSubRecetaRepository productSubRecetaRepository;
     private final ProductAdditionalRepository productAdditionalRepository;
     private final RestockHistoryRepository restockHistoryRepository;
+    private final InsumoRepository insumoRepository;
 
     @Override
     @Transactional
@@ -44,7 +45,7 @@ public class MermaServiceImpl implements MermaService {
             throw new BusinessRuleException("Selecciona al menos un insumo/producto para registrar la merma");
         }
         if (request.getOrderId() == null || request.getOrderId().isBlank()) {
-            throw new BusinessRuleException("La comanda es requerida para registrar la merma");
+            throw new BusinessRuleException("La comanda es requerida para registrar la merma por comanda");
         }
         if (request.getItems().stream().anyMatch(i -> i.getCantidad() == null || i.getCantidad() <= 0)) {
             throw new BusinessRuleException("La cantidad de cada merma debe ser mayor a 0");
@@ -63,6 +64,8 @@ public class MermaServiceImpl implements MermaService {
         UUID registroId = UUID.randomUUID();
         String tipoMerma = request.getTipoMerma() != null && !request.getTipoMerma().isBlank()
                 ? request.getTipoMerma() : TIPO_MERMA_DEFAULT;
+        String motivo = request.getMotivo() != null && !request.getMotivo().isBlank()
+                ? request.getMotivo() : null;
         Map<Long, Double> costoUnitarioPorInsumo = costoUnitarioPromedioPorInsumo(tenantId);
 
         List<Merma> registros = request.getItems().stream().map(item -> {
@@ -76,6 +79,10 @@ public class MermaServiceImpl implements MermaService {
                     .orderId(orderId)
                     .registroId(registroId)
                     .tipoMerma(tipoMerma)
+                    .categoriaMerma("COMANDADA")
+                    .usuarioId(request.getUsuarioId())
+                    .usuarioNombre(request.getUsuarioNombre())
+                    .motivo(motivo)
                     .insumoId(item.getInsumoId())
                     .insumoNombre(item.getInsumoNombre())
                     .productoId(item.getProductoId())
@@ -91,6 +98,93 @@ public class MermaServiceImpl implements MermaService {
 
         List<MermaResponse> respuestas = guardadas.stream().map(this::toResponse).collect(Collectors.toList());
         return new GenericResponse(200, "Merma(s) registrada(s) para " + ticket, respuestas);
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse registrarMermaAdministrativa(MermaRequest request) {
+        if (request == null || request.getItems() == null || request.getItems().isEmpty()) {
+            throw new BusinessRuleException("Selecciona el insumo con la cantidad a mermar");
+        }
+        if (request.getTenantId() == null) {
+            throw new BusinessRuleException("El tenant es requerido");
+        }
+        MermaRequest.MermaItemRequest item = request.getItems().get(0);
+        if (item.getInsumoId() == null) {
+            throw new BusinessRuleException("Selecciona un insumo para registrar la merma administrativa");
+        }
+        if (item.getCantidad() == null || item.getCantidad() <= 0) {
+            throw new BusinessRuleException("La cantidad a mermar debe ser mayor a 0");
+        }
+
+        String origen = request.getOrigen() != null ? request.getOrigen().toUpperCase() : null;
+        if (origen == null || !Set.of("BODEGA", "COCINA", "BARRA").contains(origen)) {
+            throw new BusinessRuleException("Indica el almacén de origen: BODEGA, COCINA o BARRA");
+        }
+        if (request.getMotivo() == null || request.getMotivo().isBlank()) {
+            throw new BusinessRuleException("El motivo de la merma es obligatorio");
+        }
+
+        Insumo insumo = insumoRepository.findById(item.getInsumoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado: " + item.getInsumoId()));
+        if (!request.getTenantId().equals(insumo.getTenantId())) {
+            throw new BusinessRuleException("El insumo no pertenece al tenant indicado");
+        }
+
+        double cantidad = item.getCantidad();
+        double bodega = insumo.getStockBodega() != null ? insumo.getStockBodega() : 0.0;
+        double cocina = insumo.getStockCocina() != null ? insumo.getStockCocina() : 0.0;
+        double barra = insumo.getStockBarra() != null ? insumo.getStockBarra() : 0.0;
+
+        switch (origen) {
+            case "BODEGA" -> {
+                if (bodega < cantidad) {
+                    throw new BusinessRuleException("Stock insuficiente en Bodega (" + redondear(bodega) + " disponible)");
+                }
+                insumo.setStockBodega(redondear(bodega - cantidad));
+            }
+            case "COCINA" -> {
+                if (cocina < cantidad) {
+                    throw new BusinessRuleException("Stock insuficiente en Cocina (" + redondear(cocina) + " disponible)");
+                }
+                insumo.setStockCocina(redondear(cocina - cantidad));
+            }
+            case "BARRA" -> {
+                if (barra < cantidad) {
+                    throw new BusinessRuleException("Stock insuficiente en Barra (" + redondear(barra) + " disponible)");
+                }
+                insumo.setStockBarra(redondear(barra - cantidad));
+            }
+        }
+
+        // El stock distribuido (stock) que consume el POS = cocina + barra
+        insumo.setStock(redondear((insumo.getStockCocina() != null ? insumo.getStockCocina() : 0.0)
+                + (insumo.getStockBarra() != null ? insumo.getStockBarra() : 0.0)));
+
+        Map<Long, Double> costoUnitarioPorInsumo = costoUnitarioPromedioPorInsumo(insumo.getTenantId());
+        double costoUnitario = costoUnitarioPorInsumo.getOrDefault(insumo.getId(), 0.0);
+
+        Merma registro = Merma.builder()
+                .tenantId(insumo.getTenantId())
+                .ticket(null)
+                .registroId(UUID.randomUUID())
+                .tipoMerma(request.getTipoMerma() != null && !request.getTipoMerma().isBlank()
+                        ? request.getTipoMerma() : TIPO_MERMA_DEFAULT)
+                .categoriaMerma("ADMINISTRATIVA")
+                .origen(origen)
+                .motivo(request.getMotivo().trim())
+                .usuarioId(request.getUsuarioId())
+                .usuarioNombre(request.getUsuarioNombre())
+                .insumoId(insumo.getId())
+                .insumoNombre(insumo.getNombre())
+                .cantidad(cantidad)
+                .unidad(item.getUnidad() != null && !item.getUnidad().isBlank() ? item.getUnidad() : UNIDAD_DEFAULT)
+                .costoUnitario(costoUnitario)
+                .costoTotal(cantidad * costoUnitario)
+                .build();
+        Merma guardada = mermaRepository.save(registro);
+
+        return new GenericResponse(200, "Merma administrativa registrada", toResponse(guardada));
     }
 
     @Override
@@ -222,6 +316,10 @@ public class MermaServiceImpl implements MermaService {
         return "#" + orderId.toString().substring(0, 8).toUpperCase();
     }
 
+    private double redondear(double valor) {
+        return Math.round(valor * 100.0) / 100.0;
+    }
+
     private MermaResponse toResponse(Merma m) {
         MermaResponse r = new MermaResponse();
         r.setId(m.getId());
@@ -230,6 +328,11 @@ public class MermaServiceImpl implements MermaService {
         r.setOrderId(m.getOrderId());
         r.setRegistroId(m.getRegistroId());
         r.setTipoMerma(m.getTipoMerma());
+        r.setCategoriaMerma(m.getCategoriaMerma());
+        r.setOrigen(m.getOrigen());
+        r.setMotivo(m.getMotivo());
+        r.setUsuarioId(m.getUsuarioId());
+        r.setUsuarioNombre(m.getUsuarioNombre());
         r.setInsumoId(m.getInsumoId());
         r.setInsumoNombre(m.getInsumoNombre());
         r.setProductoId(m.getProductoId());
