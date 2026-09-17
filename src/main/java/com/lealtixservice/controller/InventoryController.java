@@ -75,6 +75,53 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.restockInsumo(insumoId, cantidad, costoTotal));
     }
 
+    /* ============ Bodega (almacén central que distribuye a cocina/barra) ============ */
+
+    @Operation(summary = "Obtener bodega del tenant (todos los insumos con stock por ubicación)")
+    @GetMapping("/bodega/tenant/{tenantId}")
+    public ResponseEntity<GenericResponse> getBodega(@PathVariable Long tenantId) {
+        return ResponseEntity.ok(inventoryService.getBodegaByTenant(tenantId));
+    }
+
+    @Operation(summary = "Registrar insumo en bodega (alta con carga inicial)")
+    @PostMapping("/bodega")
+    public ResponseEntity<GenericResponse> createInsumoBodega(@RequestBody Map<String, Object> body) {
+        Long tenantId = toLong(body.get("tenantId"));
+        String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+        String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
+        Double cantidad = toDouble(body.get("cantidad"));
+        Double costoTotal = toDouble(body.get("costoTotal"));
+        Double stockMinimo = toDouble(body.get("stockMinimo"));
+        List<Long> categoryIds = toLongList(body.get("categoryIds"));
+        return ResponseEntity.ok(inventoryService.createInsumoBodega(tenantId, nombre, unidad, cantidad, costoTotal, stockMinimo, categoryIds));
+    }
+
+    @Operation(summary = "Restock en bodega (entrada de insumo a bodega, costo obligatorio)")
+    @PostMapping("/bodega/{insumoId}/restock")
+    public ResponseEntity<GenericResponse> restockBodega(
+            @PathVariable Long insumoId,
+            @RequestBody Map<String, Object> body) {
+        Double cantidad = toDouble(body.get("cantidad"));
+        Double costoTotal = toDouble(body.get("costoTotal"));
+        return ResponseEntity.ok(inventoryService.restockBodega(insumoId, cantidad, costoTotal));
+    }
+
+    @Operation(summary = "Mover stock de bodega a cocina o barra")
+    @PostMapping("/bodega/{insumoId}/move")
+    public ResponseEntity<GenericResponse> moverBodega(
+            @PathVariable Long insumoId,
+            @RequestBody Map<String, Object> body) {
+        Double cantidad = toDouble(body.get("cantidad"));
+        String destino = body.get("destino") != null ? body.get("destino").toString() : null;
+        return ResponseEntity.ok(inventoryService.moverBodega(insumoId, cantidad, destino));
+    }
+
+    @Operation(summary = "Reporte: historial de transferencias bodega -> cocina/barra del tenant")
+    @GetMapping("/reportes/transferencias/tenant/{tenantId}")
+    public ResponseEntity<GenericResponse> getTransferencias(@PathVariable Long tenantId) {
+        return ResponseEntity.ok(inventoryService.getTransferenciasByTenant(tenantId));
+    }
+
     /* ============ Bebidas (insumos marcados como bebida, vendibles en Comandix) ============ */
 
     @Operation(summary = "Obtener bebidas de un tenant")

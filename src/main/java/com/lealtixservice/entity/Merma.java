@@ -25,8 +25,8 @@ public class Merma {
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 
-    /** Ticket/folio de la comanda origen, ej. #A1B2C3D4 */
-    @Column(name = "ticket", length = 20, nullable = false)
+    /** Ticket/folio de la comanda origen, ej. #A1B2C3D4 (null en mermas administrativas) */
+    @Column(name = "ticket", length = 20, nullable = true)
     private String ticket;
 
     /** Id de la comanda origen (sin FK para conservar la auditoría aunque se depuren registros) */
@@ -41,6 +41,26 @@ public class Merma {
     @Column(name = "tipo_merma", length = 30)
     @Builder.Default
     private String tipoMerma = "OPERATIVA";
+
+    /** Categoría del registro: COMANDADA (por comanda) o ADMINISTRATIVA (almacén) */
+    @Column(name = "categoria_merma", length = 20)
+    @Builder.Default
+    private String categoriaMerma = "COMANDADA";
+
+    /** Almacén de origen en mermas administrativas: BODEGA | COCINA | BARRA */
+    @Column(name = "origen", length = 20)
+    private String origen;
+
+    /** Motivo de la merma (texto libre): caducidad, accidente, sobrante... */
+    @Column(name = "motivo", length = 255)
+    private String motivo;
+
+    /** Usuario que registró la merma (trazabilidad) */
+    @Column(name = "usuario_id")
+    private Long usuarioId;
+
+    @Column(name = "usuario_nombre", length = 120)
+    private String usuarioNombre;
 
     @Column(name = "insumo_id")
     private Long insumoId;
