@@ -3,7 +3,10 @@ package com.lealtixservice.controller;
 import com.lealtixservice.dto.AddSeatRequest;
 import com.lealtixservice.dto.AssignItemsRequest;
 import com.lealtixservice.dto.ComandaAsientoDTO;
+import com.lealtixservice.dto.ComandaPagoDTO;
 import com.lealtixservice.dto.GenericResponse;
+import com.lealtixservice.dto.SeatSettleRequest;
+import com.lealtixservice.dto.SeatSplitResult;
 import com.lealtixservice.dto.UpdateSeatAliasRequest;
 import com.lealtixservice.exception.ResourceNotFoundException;
 import com.lealtixservice.service.ComandaAsientoService;
@@ -120,6 +123,43 @@ public class ComandaAsientoController {
                     .body(new GenericResponse(404, ex.getMessage(), null));
         } catch (Exception e) {
             log.error("Error eliminando asiento {}", seatId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Cobrar asientos: genera sub-comandas con folio derivado (ej: 12345-A)")
+    @PostMapping("/order/{orderId}/settle")
+    public ResponseEntity<GenericResponse> settleSeats(
+            @PathVariable UUID orderId,
+            @jakarta.validation.Valid @RequestBody SeatSettleRequest request) {
+        try {
+            SeatSplitResult result = comandaAsientoService.settleSeats(orderId, request);
+            return ResponseEntity.ok(new GenericResponse(200, "Cuenta dividida y cobrada exitosamente", result));
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error cobrando asientos de la comanda {}", orderId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Sub-comandas (pagos por asiento) de una comanda original")
+    @GetMapping("/order/{orderId}/payments")
+    public ResponseEntity<GenericResponse> getSubComandas(@PathVariable UUID orderId) {
+        try {
+            List<ComandaPagoDTO> pagos = comandaAsientoService.getSubComandas(orderId);
+            return ResponseEntity.ok(new GenericResponse(200, "Sub-comandas de la comanda", pagos));
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error obteniendo sub-comandas de la comanda {}", orderId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno del servidor", null));
         }

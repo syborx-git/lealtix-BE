@@ -3,6 +3,9 @@ package com.lealtixservice.service;
 import com.lealtixservice.dto.AddSeatRequest;
 import com.lealtixservice.dto.AssignItemsRequest;
 import com.lealtixservice.dto.ComandaAsientoDTO;
+import com.lealtixservice.dto.ComandaPagoDTO;
+import com.lealtixservice.dto.SeatSettleRequest;
+import com.lealtixservice.dto.SeatSplitResult;
 import com.lealtixservice.dto.UpdateSeatAliasRequest;
 
 import java.util.List;
@@ -37,4 +40,15 @@ public interface ComandaAsientoService {
      * Quita un asiento de la comanda (y sus ítems asignados).
      */
     void deleteSeat(UUID seatId);
+
+    /**
+     * Cobra los asientos indicados: genera una sub-comanda con folio derivado
+     * por cada asiento con total &gt; 0 y registra el pago en la comanda original.
+     */
+    SeatSplitResult settleSeats(UUID orderId, SeatSettleRequest request);
+
+    /**
+     * Sub-comandas (pagos por asiento) generadas de una comanda original.
+     */
+    List<ComandaPagoDTO> getSubComandas(UUID orderId);
 }
