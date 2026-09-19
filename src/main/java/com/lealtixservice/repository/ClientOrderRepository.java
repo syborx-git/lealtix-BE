@@ -335,4 +335,41 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
     Object[] getVIPCustomer(@Param("tenantId") Long tenantId,
                             @Param("from") LocalDateTime from,
                             @Param("to") LocalDateTime to);
+
+    // ==================== REPORTE GENERAL DE VENTAS/COMANDAS ====================
+
+    /**
+     * Reporte consolidado de comandas con JOIN a mesa, mesero (app_user) y
+     * cliente (tenant_customer). Una fila por comanda.
+     * Columnas por fila:
+     *   [0] folio (id de la comanda en texto),
+     *   [1] horarioApertura (hora_apertura),
+     *   [2] horarioCierre (paid_at / ready_at / updated_at),
+     *   [3] mesa (número - nombre),
+     *   [4] mesero (full_name del app_user, nullable),
+     *   [5] totalPagado (total de la comanda),
+     *   [6] cliente (name del tenant_customer, nullable = "Cliente no registrado").
+     */
+    @Query(value = "SELECT o.id::text AS folio, " +
+           "o.hora_apertura AS horario_apertura, " +
+           "COALESCE(o.paid_at, o.ready_at, o.updated_at) AS horario_cierre, " +
+           "CASE " +
+           "    WHEN m.numero IS NOT NULL AND m.nombre IS NOT NULL THEN CONCAT(m.numero, ' - ', m.nombre) " +
+           "    WHEN m.numero IS NOT NULL THEN m.numero::text " +
+           "    ELSE COALESCE(m.nombre, '') " +
+           "END AS mesa, " +
+           "au.full_name AS mesero, " +
+           "o.total AS total_pagado, " +
+           "c.name AS cliente " +
+           "FROM client_order o " +
+           "LEFT JOIN mesa m ON m.id = o.mesa " +
+           "LEFT JOIN app_user au ON au.id = o.mesero_id " +
+           "LEFT JOIN tenant_customer c ON c.id = o.customer_id " +
+           "WHERE o.tenant_id = :tenantId " +
+           "AND o.fecha BETWEEN :from AND :to " +
+           "ORDER BY o.fecha DESC",
+           nativeQuery = true)
+    List<Object[]> findSalesReport(@Param("tenantId") Long tenantId,
+                                   @Param("from") LocalDateTime from,
+                                   @Param("to") LocalDateTime to);
 }

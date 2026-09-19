@@ -5,6 +5,7 @@ import com.lealtixservice.dto.CreateClientOrderRequest;
 import com.lealtixservice.dto.RecordPaymentRequest;
 import com.lealtixservice.dto.RedeemCouponRequest;
 import com.lealtixservice.dto.RedemptionResponse;
+import com.lealtixservice.dto.SalesReportRowDTO;
 import com.lealtixservice.dto.SplitOrderRequest;
 import com.lealtixservice.dto.SplitOrderResponse;
 import com.lealtixservice.entity.AppUser;
@@ -900,5 +901,51 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         ClientOrderDTO originalDto = ClientOrderMapper.toDTO(order, null, origDescuento);
         ClientOrderDTO newDto = ClientOrderMapper.toDTO(splitCopy, null, splitSubtotal);
         return new SplitOrderResponse(originalDto, newDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SalesReportRowDTO> getSalesReport(Long tenantId, LocalDateTime from, LocalDateTime to) {
+        log.debug("Obteniendo reporte de ventas/comandas del tenant {} entre {} y {}", tenantId, from, to);
+        return clientOrderRepository.findSalesReport(tenantId, from, to).stream()
+                .map(row -> SalesReportRowDTO.builder()
+                        .folio(row[0] != null ? row[0].toString() : null)
+                        .horarioApertura(toLocalDateTime(row[1]))
+                        .horarioCierre(toLocalDateTime(row[2]))
+                        .mesa(row[3] != null ? row[3].toString() : null)
+                        .mesero(row[4] != null ? row[4].toString() : null)
+                        .totalPagado(toBigDecimal(row[5]))
+                        .cliente(row[6] != null ? row[6].toString() : null)  // null = "Cliente no registrado"
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Convierte un valor de timestamp (java.sql.Timestamp o LocalDateTime)
+     * devuelto por una consulta nativa a LocalDateTime.
+     */
+    private LocalDateTime toLocalDateTime(Object value) {
+        if (value == null) return null;
+        if (value instanceof java.sql.Timestamp) {
+            return ((java.sql.Timestamp) value).toLocalDateTime();
+        }
+        if (value instanceof LocalDateTime) {
+            return (LocalDateTime) value;
+        }
+        return null;
+    }
+
+    /**
+     * Convierte un valor numérico devuelto por una consulta nativa a BigDecimal.
+     */
+    private BigDecimal toBigDecimal(Object value) {
+        if (value == null) return BigDecimal.ZERO;
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value instanceof Number) {
+            return new BigDecimal(value.toString());
+        }
+        return BigDecimal.ZERO;
     }
 }

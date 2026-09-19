@@ -3,6 +3,7 @@ package com.lealtixservice.service;
 import com.lealtixservice.dto.ClientOrderDTO;
 import com.lealtixservice.dto.CreateClientOrderRequest;
 import com.lealtixservice.dto.RecordPaymentRequest;
+import com.lealtixservice.dto.SalesReportRowDTO;
 import com.lealtixservice.dto.SplitOrderRequest;
 import com.lealtixservice.dto.SplitOrderResponse;
 import com.lealtixservice.entity.ClientOrder;
@@ -102,4 +103,9 @@ public interface ClientOrderService {
      * a una comanda nueva lista para pagar.
      */
     SplitOrderResponse splitOrder(UUID orderId, SplitOrderRequest request);
+
+    /**
+     * Reporte general de ventas/comandas con JOIN de mesa, mesero y cliente.
+     */
+    List<SalesReportRowDTO> getSalesReport(Long tenantId, LocalDateTime from, LocalDateTime to);
 }
