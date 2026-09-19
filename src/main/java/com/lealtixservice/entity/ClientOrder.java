@@ -24,8 +24,8 @@ import java.util.UUID;
 })
 @Getter
 @Setter
-@ToString(exclude = {"customer", "tenant", "items"})
-@EqualsAndHashCode(exclude = {"customer", "tenant", "items"})
+@ToString(exclude = {"customer", "tenant", "items", "mesa", "mesero", "clienteMesa"})
+@EqualsAndHashCode(exclude = {"customer", "tenant", "items", "mesa", "mesero", "clienteMesa"})
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -49,6 +49,22 @@ public class ClientOrder {
 
     @Column(name = "fecha", nullable = false)
     private LocalDateTime fecha;
+
+    // Campos de trazabilidad de mesa (Seat Management)
+    @ManyToOne
+    @JoinColumn(name = "mesa")
+    private Mesa mesa;  // Mesa donde se atiende la comanda (opcional)
+
+    @ManyToOne
+    @JoinColumn(name = "mesero_id")
+    private AppUser mesero;  // Mesero responsable de la comanda (opcional)
+
+    @Column(name = "hora_apertura")
+    private LocalDateTime horaApertura;  // Hora de apertura de la mesa
+
+    @ManyToOne
+    @JoinColumn(name = "cliente_mesa_id")
+    private TenantCustomer clienteMesa;  // Cliente del asiento/comensal de mesa (opcional)
 
     @Column(name = "estado", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
@@ -124,6 +140,9 @@ public class ClientOrder {
         }
         if (fecha == null) {
             fecha = LocalDateTime.now();
+        }
+        if (horaApertura == null) {
+            horaApertura = fecha;
         }
         if (source == null) {
             source = "MANUAL";
