@@ -45,6 +45,9 @@ public class InventoryServiceImpl implements InventoryService {
     private final StockTransferRepository stockTransferRepository;
     private final TenantMenuCategoryRepository categoryRepository;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     @Override
     public GenericResponse getInventoryByTenant(Long tenantId) {
         List<TenantMenuProduct> products = productRepository.findAllByTenantId(tenantId);
@@ -137,15 +140,70 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional
     public GenericResponse deleteInsumo(Long insumoId) {
         Insumo insumo = findInsumo(insumoId);
-        boolean enUso = recipeRepository.findAll().stream()
-                .anyMatch(r -> r.getInsumo().getId().equals(insumoId))
-                || additionalRepository.findAll().stream()
-                .anyMatch(a -> a.getInsumo().getId().equals(insumoId));
-        if (enUso) {
-            return new GenericResponse(400, "El insumo está en uso por algún platillo; quítalo de las recetas primero", null);
+
+        // 1. Limpiar recetas donde este insumo esté presente
+        entityManager.createNativeQuery("DELETE FROM product_recipe WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        // 2. Limpiar adicionales donde este insumo esté presente
+        entityManager.createNativeQuery("DELETE FROM product_additional WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        // 3. Limpiar recetas de bebidas
+        entityManager.createNativeQuery("DELETE FROM bebida_receta WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        // 4. Limpiar categorías del insumo
+        entityManager.createNativeQuery("DELETE FROM insumo_category WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        // 5. Limpiar transferencias, restock, mermas, solicitudes y bebidas
+        entityManager.createNativeQuery("DELETE FROM stock_transfer_history WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        entityManager.createNativeQuery("DELETE FROM restock_history WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        entityManager.createNativeQuery("DELETE FROM merma WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        entityManager.createNativeQuery("DELETE FROM stock_request WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        entityManager.createNativeQuery("DELETE FROM bebida WHERE insumo_id = :id")
+                .setParameter("id", insumoId)
+                .executeUpdate();
+
+        // 5. Si tiene producto enlazado (bebida vendible)
+        if (insumo.getProductoId() != null) {
+            Long prodId = insumo.getProductoId();
+            insumo.setProductoId(null);
+            insumoRepository.saveAndFlush(insumo);
+            try {
+                entityManager.createNativeQuery("DELETE FROM client_order_item WHERE product_id = :prodId")
+                        .setParameter("prodId", prodId).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM product_recipe WHERE dish_product_id = :prodId")
+                        .setParameter("prodId", prodId).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM product_additional WHERE dish_product_id = :prodId")
+                        .setParameter("prodId", prodId).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM tenant_menu_product_category WHERE product_id = :prodId")
+                        .setParameter("prodId", prodId).executeUpdate();
+                productRepository.deleteById(prodId);
+            } catch (Exception e) {
+                log.warn("Error al borrar producto enlazado de bebida: {}", e.getMessage());
+            }
         }
+
         insumoRepository.delete(insumo);
-        return new GenericResponse(200, "Insumo eliminado", null);
+        return new GenericResponse(200, "Insumo eliminado exitosamente", null);
     }
 
     @Override
@@ -458,15 +516,7 @@ public class InventoryServiceImpl implements InventoryService {
         if (!insumo.isEsBebida()) {
             return new GenericResponse(400, "El insumo no es una bebida", null);
         }
-        if (insumo.getProductoId() != null) {
-            productRepository.findById(insumo.getProductoId()).ifPresent(product -> {
-                recipeRepository.deleteByDishId(product.getId());
-                productRepository.delete(product);
-            });
-        }
-        insumoRepository.delete(insumo);
-        syncAvailability(insumo.getTenantId());
-        return new GenericResponse(200, "Bebida eliminada", null);
+        return deleteInsumo(insumoId);
     }
 
     private TenantMenuCategory obtenerOCrearCategoriaBebidas(Long tenantId) {

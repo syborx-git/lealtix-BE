@@ -54,6 +54,9 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
     @Autowired
     private ClientOrderItemRepository clientOrderItemRepository;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     @Override
     public TenantMenuProduct save(TenantMenuProduct product) {
         return productRepository.save(product);
@@ -76,14 +79,35 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             return;
         }
 
-        if (!clientOrderItemRepository.findByProductId(id).isEmpty()) {
-            throw new IllegalStateException("No se puede eliminar el producto: tiene pedidos asociados.");
-        }
+        // 1. Limpiar items de comanda/pedidos que referencien este producto
+        entityManager.createNativeQuery("DELETE FROM client_order_item WHERE product_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
 
+        // 2. Limpiar recetas y adicionales
         recipeRepository.deleteByDishId(id);
         additionalRepository.deleteByDishId(id);
+
+        // 3. Limpiar sub-recetas (si el producto usa subrecetas o es una subreceta)
+        entityManager.createNativeQuery("DELETE FROM product_sub_receta WHERE dish_product_id = :id OR sub_receta_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 4. Limpiar cross-selling
         crossSellingRepository.deleteByProduct_Id(id);
         crossSellingRepository.deleteBySuggestedProduct_Id(id);
+
+        // 5. Limpiar categorías del producto en la tabla many-to-many
+        entityManager.createNativeQuery("DELETE FROM tenant_menu_product_category WHERE product_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 6. Desvincular insumos asociados (bebidas vendibles)
+        entityManager.createNativeQuery("UPDATE insumo SET producto_id = NULL WHERE producto_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 7. Eliminar el producto de la base de datos
         productRepository.deleteById(id);
     }
 

@@ -10,4 +10,10 @@ public interface StockRequestService {
     GenericResponse listarPorTenant(Long tenantId);
 
     GenericResponse contarPendientesPorArea(Long tenantId);
+
+    /** Solicitudes PENDIENTE, opcionalmente filtradas por área (COCINA|BARRA). */
+    GenericResponse listarPendientesDetalle(Long tenantId, String area);
+
+    /** Acepta la solicitud: descuenta de bodega y distribuye al área solicitante. */
+    GenericResponse aceptarSolicitud(Long id, Long tenantId);
 }

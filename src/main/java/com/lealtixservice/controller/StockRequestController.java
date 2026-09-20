@@ -28,4 +28,16 @@ public class StockRequestController {
     public ResponseEntity<GenericResponse> contarPendientes(@PathVariable Long tenantId) {
         return ResponseEntity.ok(stockRequestService.contarPendientesPorArea(tenantId));
     }
+
+    @GetMapping("/pendientes/lista/tenant/{tenantId}")
+    public ResponseEntity<GenericResponse> listarPendientes(@PathVariable Long tenantId,
+                                                            @RequestParam(required = false) String area) {
+        return ResponseEntity.ok(stockRequestService.listarPendientesDetalle(tenantId, area));
+    }
+
+    @PostMapping("/{id}/aceptar")
+    public ResponseEntity<GenericResponse> aceptarSolicitud(@PathVariable Long id,
+                                                             @RequestParam Long tenantId) {
+        return ResponseEntity.ok(stockRequestService.aceptarSolicitud(id, tenantId));
+    }
 }

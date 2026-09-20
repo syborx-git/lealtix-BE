@@ -9,6 +9,7 @@ import com.lealtixservice.exception.BusinessRuleException;
 import com.lealtixservice.exception.ResourceNotFoundException;
 import com.lealtixservice.repository.InsumoRepository;
 import com.lealtixservice.repository.StockRequestRepository;
+import com.lealtixservice.service.InventoryService;
 import com.lealtixservice.service.StockRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class StockRequestServiceImpl implements StockRequestService {
 
     private final StockRequestRepository stockRequestRepository;
     private final InsumoRepository insumoRepository;
+    private final InventoryService inventoryService;
 
     @Override
     @Transactional
@@ -97,6 +99,54 @@ public class StockRequestServiceImpl implements StockRequestService {
         conteos.put("cocina", stockRequestRepository.countByTenantIdAndEstadoAndArea(tenantId, "PENDIENTE", "COCINA"));
         conteos.put("barra", stockRequestRepository.countByTenantIdAndEstadoAndArea(tenantId, "PENDIENTE", "BARRA"));
         return new GenericResponse(200, "Solicitudes pendientes por área", conteos);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GenericResponse listarPendientesDetalle(Long tenantId, String area) {
+        List<StockRequestResponse> lista;
+        if (area != null && !area.isBlank()) {
+            String a = area.trim().toUpperCase();
+            if (!AREAS.contains(a)) {
+                throw new BusinessRuleException("El área debe ser COCINA o BARRA");
+            }
+            lista = stockRequestRepository.findByTenantIdAndEstadoAndAreaOrderByCreatedAtDesc(tenantId, "PENDIENTE", a).stream()
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
+        } else {
+            lista = stockRequestRepository.findByTenantIdAndEstadoOrderByCreatedAtDesc(tenantId, "PENDIENTE").stream()
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
+        }
+        return new GenericResponse(200, "Solicitudes pendientes", lista);
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse aceptarSolicitud(Long id, Long tenantId) {
+        StockRequest solicitud = stockRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada: " + id));
+        if (!solicitud.getTenantId().equals(tenantId)) {
+            throw new BusinessRuleException("La solicitud no pertenece al tenant indicado");
+        }
+        if (!"PENDIENTE".equals(solicitud.getEstado())) {
+            throw new BusinessRuleException("La solicitud ya fue procesada");
+        }
+        if (solicitud.getInsumoId() == null) {
+            throw new BusinessRuleException("El insumo vinculado a la solicitud ya no existe");
+        }
+
+        String destino = "COCINA".equals(solicitud.getArea()) ? "cocina" : "barra";
+        GenericResponse mov = inventoryService.moverBodega(solicitud.getInsumoId(), solicitud.getCantidad(), destino);
+        if (mov.getCode() != 200) {
+            throw new BusinessRuleException(mov.getMessage());
+        }
+
+        solicitud.setEstado("SURTIDO");
+        StockRequest procesada = stockRequestRepository.save(solicitud);
+        return new GenericResponse(200,
+                "Transferencia completada: " + solicitud.getInsumoNombre() + " enviado a " + solicitud.getArea(),
+                toResponse(procesada));
     }
 
     private StockRequestResponse toResponse(StockRequest s) {
