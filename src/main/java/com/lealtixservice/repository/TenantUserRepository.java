@@ -31,4 +31,7 @@ public interface TenantUserRepository extends JpaRepository<TenantUser, Long> {
     
     @Query("SELECT tu FROM TenantUser tu WHERE tu.email = :email AND tu.activo = true")
     Optional<TenantUser> findByEmail(@Param("email") String email);
+
+    @Query("SELECT COALESCE(SUM(tu.sueldoMensual), 0) FROM TenantUser tu WHERE tu.tenant.id = :tenantId AND tu.activo = true")
+    java.math.BigDecimal sumSueldoMensualByTenant(@Param("tenantId") Long tenantId);
 }

@@ -1,6 +1,7 @@
 package com.lealtixservice.dto;
 
 import jakarta.validation.constraints.*;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,4 +29,8 @@ public class CreateUserRequest {
 
     @NotNull(message = "El tenantId es requerido")
     private Long tenantId;
+
+    @NotNull(message = "El sueldo mensual es requerido")
+    @DecimalMin(value = "0.0", message = "El sueldo mensual no puede ser negativo")
+    private Double sueldoMensual;
 }

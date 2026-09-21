@@ -3,7 +3,10 @@ package com.lealtixservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "insumo")
@@ -20,6 +23,17 @@ public class Insumo {
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
 
+    /** Categorías a las que pertenece el insumo (o la bebida si esBebida=true) */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "insumo_category",
+            joinColumns = @JoinColumn(name = "insumo_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    private List<TenantMenuCategory> categories = new ArrayList<>();
+
     @Column(length = 100, nullable = false)
     private String nombre;
 
@@ -27,9 +41,31 @@ public class Insumo {
     @Column(length = 20)
     private String unidad;
 
-    /** Stock actual del insumo */
+    /** true = es una bebida (vendible en el POS Comandix); false = insumo de receta */
+    @Builder.Default
+    private boolean esBebida = false;
+
+    /** Precio de venta al público (solo para bebidas) */
+    private BigDecimal precioVenta;
+
+    /** Id del producto de menú (tenant_menu_product) enlazado, solo para bebidas vendibles */
+    private Long productoId;
+
+    /** Stock distribuido (cocina + barra) del insumo, usado por el POS para ventas/disponibilidad */
     @Builder.Default
     private Double stock = 0.0;
+
+    /** Stock en bodega (almacén central; no se vende desde aquí) */
+    @Builder.Default
+    private Double stockBodega = 0.0;
+
+    /** Stock distribuido hacia la cocina */
+    @Builder.Default
+    private Double stockCocina = 0.0;
+
+    /** Stock distribuido hacia la barra */
+    @Builder.Default
+    private Double stockBarra = 0.0;
 
     /** Stock mínimo para alertas */
     @Builder.Default

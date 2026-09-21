@@ -1,6 +1,7 @@
 package com.lealtixservice.service;
 
 import com.lealtixservice.dto.GenericResponse;
+import com.lealtixservice.entity.TenantMenuProduct;
 
 import java.util.List;
 import java.util.Map;
@@ -17,13 +18,63 @@ public interface InventoryService {
      */
     GenericResponse getInsumosByTenant(Long tenantId);
 
-    GenericResponse createInsumo(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo);
+    /**
+     * Bodega: lista TODOS los insumos del tenant (insumos y bebidas) con su
+     * stock por ubicación (bodega, cocina, barra) y stock mínimo.
+     */
+    GenericResponse getBodegaByTenant(Long tenantId);
 
-    GenericResponse updateInsumo(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo);
+    /**
+     * Bodega: registra un insumo directamente en bodega (alta con carga inicial).
+     * El costo de la carga es obligatorio cuando la cantidad inicial es mayor a 0.
+     */
+    GenericResponse createInsumoBodega(Long tenantId, String nombre, String unidad, Double cantidad, Double costoTotal, Double stockMinimo, List<Long> categoryIds);
+
+    /**
+     * Bodega: restock (entrada) de un insumo hacia la bodega.
+     * El costo total de la carga es obligatorio.
+     */
+    GenericResponse restockBodega(Long insumoId, Double cantidad, Double costoTotal);
+
+    /**
+     * Bodega: mueve stock desde bodega hacia cocina o barra.
+     * Destino válido: "cocina" | "barra".
+     */
+    GenericResponse moverBodega(Long insumoId, Double cantidad, String destino);
+
+    /**
+     * Reporte: historial de transferencias bodega -> cocina/barra del tenant.
+     */
+    GenericResponse getTransferenciasByTenant(Long tenantId);
+
+    GenericResponse createInsumo(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, List<Long> categoryIds);
+
+    GenericResponse updateInsumo(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, List<Long> categoryIds);
 
     GenericResponse deleteInsumo(Long insumoId);
 
-    GenericResponse restockInsumo(Long insumoId, Double cantidad);
+    GenericResponse restockInsumo(Long insumoId, Double cantidad, Double costoTotal);
+
+    /**
+     * Lista las bebidas (insumos con esBebida=true) de un tenant, incluyendo su precio de venta.
+     */
+    GenericResponse getBebidasByTenant(Long tenantId);
+
+    /**
+     * Crea una bebida: registra el insumo marcado como bebida (pieza o mililitros) con su stock
+     * y crea el producto de menú enlazado (con receta de 1 unidad) para que se venda en Comandix.
+     */
+    GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds);
+
+    /**
+     * Actualiza los datos de una bebida (insumo + producto de menú enlazado).
+     */
+    GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds);
+
+    /**
+     * Elimina una bebida (insumo y su producto de menú enlazado).
+     */
+    GenericResponse deleteBebida(Long insumoId);
 
     /**
      * Actualiza el stock propio de un producto sin receta (venta directa).
@@ -81,6 +132,42 @@ public interface InventoryService {
     GenericResponse removeAdditional(Long additionalId);
 
     /**
+     * Sub-recetas: lista las preparaciones no vendidas individualmente (ej. salsas)
+     * de un tenant, con sus insumos.
+     */
+    GenericResponse getSubRecetasByTenant(Long tenantId);
+
+    /**
+     * Sub-recetas: crea una preparación (producto esSubReceta=true) con sus insumos.
+     */
+    GenericResponse createSubReceta(Long tenantId, String nombre, List<Map<String, Object>> lines, List<Long> categoryIds);
+
+    /**
+     * Sub-recetas: actualiza nombre e insumos de una preparación.
+     */
+    GenericResponse updateSubReceta(Long subRecetaId, String nombre, List<Map<String, Object>> lines, List<Long> categoryIds);
+
+    /**
+     * Sub-recetas: elimina una preparación (y sus insumos).
+     */
+    GenericResponse deleteSubReceta(Long subRecetaId);
+
+    /**
+     * Sub-recetas: lista las sub-recetas asignadas a un platillo o bebida.
+     */
+    GenericResponse getSubRecetasByDish(Long dishId);
+
+    /**
+     * Sub-recetas: asigna una sub-receta a un platillo o bebida.
+     */
+    GenericResponse assignSubReceta(Long dishId, Long subRecetaId);
+
+    /**
+     * Sub-recetas: quita una sub-receta de un platillo o bebida.
+     */
+    GenericResponse removeSubRecetaFromDish(Long dishId, Long subRecetaId);
+
+    /**
      * Descuenta stock de los insumos al confirmar una comanda.
      */
     GenericResponse deductForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds);
@@ -94,4 +181,20 @@ public interface InventoryService {
      * Verifica si hay stock suficiente de un producto (dinámico si es platillo con receta).
      */
     boolean hasStock(Long productId, Double cantidad);
+
+    /**
+     * Indica si el producto puede prepararse/venderse al menos 1 unidad hoy
+     * (platillos: mínimo de floor(stockInsumo/cantidadReceta) de sus insumos;
+     * productos sin receta: su stock directo). No depende de isActive.
+     */
+    boolean isProductAvailable(TenantMenuProduct product);
+
+    /**
+     * Recalcula la disponibilidad de todos los productos del tenant y sincroniza
+     * su isActive automáticamente (solo productos con autoAvailability=true):
+     * se desactivan si no pueden prepararse y se reactivan al abastecer.
+     *
+     * @return número de productos cuyo isActive cambió.
+     */
+    int syncProductAvailabilityByTenant(Long tenantId);
 }

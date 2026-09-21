@@ -93,7 +93,9 @@ public class TenantMenuCategoryController {
     public ResponseEntity<GenericResponse> getCategoriesWithProductsByTenant(@RequestParam Long tenantId) {
         try {
             List<CatalogCategoryDTO> result = new ArrayList<>();
-            List<TenantMenuProductDTO> flat = productRepository.findByCategoryTenantId(tenantId);
+            List<TenantMenuProductDTO> flat = productRepository.findByCategoryTenantId(tenantId).stream()
+                    .filter(p -> Boolean.TRUE.equals(p.getIsActive()))
+                    .collect(Collectors.toList());
             Map<Long, List<TenantMenuProductDTO>> grouped = flat.stream()
                     .collect(Collectors.groupingBy(TenantMenuProductDTO::getCategoryId, LinkedHashMap::new, Collectors.toList()));
 
@@ -129,7 +131,9 @@ public class TenantMenuCategoryController {
             List<CatalogCategoryDTO> result = new ArrayList<>();
             List<TenantMenuCategory> categories = categoryRepository.findAll();
             for (TenantMenuCategory cat : categories) {
-                List<TenantMenuProduct> productsEntity = productRepository.findByCategoryId(cat.getId());
+                List<TenantMenuProduct> productsEntity = productRepository.findByCategoryId(cat.getId()).stream()
+                    .filter(p -> p.isActive())
+                    .collect(Collectors.toList());
                 List<CatalogProductDTO> products = productsEntity.stream()
                         .map(p -> CatalogProductDTO.builder()
                                 .id(p.getId())

@@ -1,5 +1,6 @@
 package com.lealtixservice.dto;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -22,4 +23,7 @@ public class UpdateUserRequest {
     private String contrasena;
 
     private String rol;
+
+    @DecimalMin(value = "0.0", message = "El sueldo mensual no puede ser negativo")
+    private Double sueldoMensual;
 }

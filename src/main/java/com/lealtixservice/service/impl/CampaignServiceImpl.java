@@ -449,9 +449,14 @@ public class CampaignServiceImpl implements CampaignService {
         // Buscar el template de bienvenida
         List<CampaignTemplate> welcomeTemplates = templateRepository.findByCategory("BIENVENIDA");
         if (welcomeTemplates.isEmpty()) {
-            log.warn("No se encontró template de categoría BIENVENIDA");
+            welcomeTemplates = templateRepository.findAll().stream()
+                    .filter(t -> Long.valueOf(1L).equals(t.getId()) || "Bienvenida".equalsIgnoreCase(t.getName()))
+                    .toList();
+        }
+        if (welcomeTemplates.isEmpty()) {
+            log.warn("No se encontró template de bienvenida");
             throw new ResourceNotFoundException(
-                    "No se encontró un template de categoría BIENVENIDA. " +
+                    "No se encontró un template de bienvenida. " +
                     "Por favor, cree un template de bienvenida antes de crear tenants.");
         }
 

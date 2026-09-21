@@ -3,6 +3,9 @@ package com.lealtixservice.service;
 import com.lealtixservice.dto.ClientOrderDTO;
 import com.lealtixservice.dto.CreateClientOrderRequest;
 import com.lealtixservice.dto.RecordPaymentRequest;
+import com.lealtixservice.dto.SalesReportRowDTO;
+import com.lealtixservice.dto.SplitOrderRequest;
+import com.lealtixservice.dto.SplitOrderResponse;
 import com.lealtixservice.entity.ClientOrder;
 import com.lealtixservice.enums.OrderStatus;
 import org.springframework.data.domain.Page;
@@ -22,6 +25,13 @@ public interface ClientOrderService {
      * Crea una nueva orden con sus items
      */
     ClientOrderDTO createOrder(CreateClientOrderRequest request);
+
+    /**
+     * Actualiza los items, montos y cliente de una orden existente.
+     * Solo permitido dentro de la prórroga de 3 minutos de haber sido enviada
+     * y únicamente en estado PENDIENTE o CONFIRMADA.
+     */
+    ClientOrderDTO updateOrder(UUID orderId, CreateClientOrderRequest request);
 
     /**
      * Obtiene una orden por su ID
@@ -87,4 +97,15 @@ public interface ClientOrderService {
      * Registra el pago de una orden (transición LISTO → PAGADA)
      */
     ClientOrderDTO recordPayment(UUID orderId, RecordPaymentRequest request);
+
+    /**
+     * Divide una cuenta: mueve los artículos seleccionados de la comanda
+     * a una comanda nueva lista para pagar.
+     */
+    SplitOrderResponse splitOrder(UUID orderId, SplitOrderRequest request);
+
+    /**
+     * Reporte general de ventas/comandas con JOIN de mesa, mesero y cliente.
+     */
+    List<SalesReportRowDTO> getSalesReport(Long tenantId, LocalDateTime from, LocalDateTime to);
 }

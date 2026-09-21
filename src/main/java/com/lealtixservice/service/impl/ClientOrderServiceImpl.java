@@ -5,6 +5,9 @@ import com.lealtixservice.dto.CreateClientOrderRequest;
 import com.lealtixservice.dto.RecordPaymentRequest;
 import com.lealtixservice.dto.RedeemCouponRequest;
 import com.lealtixservice.dto.RedemptionResponse;
+import com.lealtixservice.dto.SalesReportRowDTO;
+import com.lealtixservice.dto.SplitOrderRequest;
+import com.lealtixservice.dto.SplitOrderResponse;
 import com.lealtixservice.entity.AppUser;
 import com.lealtixservice.entity.ClientOrder;
 import com.lealtixservice.entity.ClientOrderItem;
@@ -40,8 +43,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,6 +59,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class ClientOrderServiceImpl implements ClientOrderService {
+
+    /** Prórroga de edición de comandas enviadas (en minutos) */
+    public static final int EDIT_WINDOW_MINUTES = 3;
+    private static final long EDIT_WINDOW_SECONDS = EDIT_WINDOW_MINUTES * 60L;
 
     private final ClientOrderRepository clientOrderRepository;
     private final ClientOrderItemRepository clientOrderItemRepository;
@@ -93,6 +105,9 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
             TenantMenuProduct prod = tenantMenuProductRepository.findById(itemRequest.getProductId()).orElse(null);
             if (prod == null) continue;
+            if (!prod.isActive()) {
+                throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' no está disponible actualmente");
+            }
             double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
             if (!inventoryService.hasStock(itemRequest.getProductId(), qty)) {
                 throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' está agotado o no hay stock suficiente");
@@ -169,6 +184,117 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
         
         return orderDTO;
+    }
+
+    @Override
+    public ClientOrderDTO updateOrder(UUID orderId, CreateClientOrderRequest request) {
+        log.info("Actualizando orden {} en tenant {}", orderId, request.getTenantId());
+
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
+
+        // Validar que la orden pertenece al tenant
+        if (request.getTenantId() == null) {
+            throw new IllegalArgumentException("tenantId es requerido");
+        }
+        if (!order.getTenant().getId().equals(request.getTenantId())) {
+            throw new IllegalArgumentException("La orden no pertenece al tenant especificado");
+        }
+
+        // Validar la prórroga de edición (3 minutos desde el envío)
+        LocalDateTime sentAt = order.getFecha() != null ? order.getFecha() : order.getCreatedAt();
+        if (sentAt != null) {
+            long elapsedSeconds = Duration.between(sentAt, LocalDateTime.now()).getSeconds();
+            if (elapsedSeconds > EDIT_WINDOW_SECONDS) {
+                throw new IllegalArgumentException(
+                        "El tiempo de prórroga de " + EDIT_WINDOW_MINUTES + " minutos para editar la comanda ha expirado");
+            }
+        }
+
+        // Validar que el estado permite edición (aún no tomada por cocina / pagada / cancelada)
+        if (order.getEstado() != OrderStatus.PENDIENTE && order.getEstado() != OrderStatus.CONFIRMADA) {
+            throw new IllegalArgumentException(
+                    "No se puede editar una comanda en estado " + order.getEstado()
+                            + ". Solo pueden editarse comandas pendientes o confirmadas");
+        }
+
+        // Validar cliente (opcional) y que pertenezca al tenant
+        TenantCustomer customer = null;
+        if (request.getCustomerId() != null) {
+            customer = tenantCustomerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.getCustomerId()));
+            if (!customer.getTenant().getId().equals(order.getTenant().getId())) {
+                throw new IllegalArgumentException("El cliente no pertenece al tenant especificado");
+            }
+        }
+
+        // Validar items
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("La orden debe contener al menos un item");
+        }
+
+        // Validar stock y disponibilidad antes de reemplazar los items
+        for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+            TenantMenuProduct prod = tenantMenuProductRepository.findById(itemRequest.getProductId()).orElse(null);
+            if (prod == null) continue;
+            if (!prod.isActive()) {
+                throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' no está disponible actualmente");
+            }
+            double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
+            if (!inventoryService.hasStock(itemRequest.getProductId(), qty)) {
+                throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' está agotado o no hay stock suficiente");
+            }
+        }
+
+        // Restaurar el stock de la versión anterior de la comanda
+        restoreStockForOrder(order);
+
+        // Reemplazar los items (orphanRemoval elimina los anteriores).
+        // IMPORTANTE: mantener la misma referencia de colección (no usar setItems)
+        // para no romper el cascade="all-delete-orphan" de Hibernate.
+        if (order.getItems() == null) {
+            order.setItems(new java.util.ArrayList<>());
+        }
+        order.getItems().clear();
+
+        final ClientOrder finalOrder = order;
+        List<ClientOrderItem> items = request.getItems().stream()
+                .map(itemRequest -> {
+                    TenantMenuProduct product = tenantMenuProductRepository.findById(itemRequest.getProductId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId()));
+                    return ClientOrderItemMapper.toEntity(itemRequest, finalOrder, product);
+                })
+                .collect(Collectors.toList());
+
+        order.getItems().addAll(items);
+        order.setCustomer(customer);
+
+        // Descontar el stock de la nueva versión
+        try {
+            for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+                Double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
+                inventoryService.deductForOrder(
+                        itemRequest.getProductId(),
+                        qty,
+                        itemRequest.getExcludedIngredientIds(),
+                        itemRequest.getAdditionalIngredientIds());
+            }
+        } catch (Exception e) {
+            log.error("Error descontando inventario al actualizar la orden {}: {}", order.getId(), e.getMessage(), e);
+        }
+
+        // Recalcular montos (el cupón no se re-redime al editar)
+        BigDecimal subtotal = ClientOrderMapper.calculateSubtotal(items);
+        BigDecimal descuento = request.getDescuento() != null ? request.getDescuento() : BigDecimal.ZERO;
+        BigDecimal total = ClientOrderMapper.calculateTotal(subtotal, descuento);
+
+        order.setSubtotal(subtotal);
+        order.setDescuento(descuento);
+        order.setTotal(total);
+        order = clientOrderRepository.save(order);
+
+        log.info("Orden {} actualizada exitosamente. Nuevo total: {}", orderId, total);
+        return ClientOrderMapper.toDTO(order, request.getCouponCode(), descuento);
     }
 
     @Override
@@ -646,5 +772,180 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             log.error("Error inesperado al redimir cupón para orden {}: {}", order.getId(), errorMsg, ex);
             return errorMsg;
         }
+    }
+
+    @Override
+    public SplitOrderResponse splitOrder(UUID orderId, SplitOrderRequest request) {
+        log.info("Dividiendo orden {} en tenant {}", orderId, request.getTenantId());
+
+        // ===== FASE 1: VALIDAR ORDEN =====
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
+
+        if (request.getTenantId() == null) {
+            throw new IllegalArgumentException("tenantId es requerido");
+        }
+        if (!order.getTenant().getId().equals(request.getTenantId())) {
+            throw new IllegalArgumentException("La orden no pertenece al tenant especificado");
+        }
+
+        if (order.getEstado() == OrderStatus.PAGADA || order.getEstado() == OrderStatus.CANCELADA) {
+            throw new IllegalArgumentException(
+                    "No se puede dividir una comanda en estado " + order.getEstado());
+        }
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Debes seleccionar al menos un artículo para la nueva cuenta");
+        }
+
+        // ===== FASE 2: VALIDAR QUE NO SE MUEVAN MÁS UNIDADES DE LAS EXISTENTES =====
+        Map<Long, Long> disponible = new HashMap<>();
+        for (ClientOrderItem item : order.getItems()) {
+            if (item.getCantidad() != null && item.getCantidad() > 0) {
+                disponible.merge(item.getProduct().getId(), item.getCantidad().longValue(), Long::sum);
+            }
+        }
+
+        for (CreateClientOrderRequest.OrderItemRequest req : request.getItems()) {
+            if (req.getProductId() == null) {
+                throw new IllegalArgumentException("productId es requerido en los artículos a mover");
+            }
+            long qty = req.getCantidad() != null ? req.getCantidad().longValue() : 0L;
+            if (qty <= 0) {
+                throw new IllegalArgumentException("Cantidad inválida para el producto " + req.getProductId());
+            }
+            long restante = disponible.getOrDefault(req.getProductId(), 0L);
+            if (qty > restante) {
+                throw new IllegalArgumentException(
+                        "No se pueden mover más unidades de las existentes en la comanda para el producto "
+                                + req.getProductId() + " (disponible: " + restante + ")");
+            }
+            disponible.put(req.getProductId(), restante - qty);
+        }
+
+        // ===== FASE 3: CREAR LA COMANDA NUEVA (SIN volver a descontar stock: ya está contabilizado) =====
+        ClientOrder splitCopy = ClientOrder.builder()
+                .customer(order.getCustomer())
+                .tenant(order.getTenant())
+                .estado(order.getEstado())  // Misma etapa: hereda "lista para pagar" si la original era LISTO
+                .acceptedAt(order.getAcceptedAt())
+                .subtotal(BigDecimal.ZERO)
+                .descuento(BigDecimal.ZERO)
+                .total(BigDecimal.ZERO)
+                .fecha(LocalDateTime.now())
+                .items(new ArrayList<>())
+                .source(request.getSource() != null && !request.getSource().isBlank()
+                        ? request.getSource()
+                        : (order.getSource() != null ? order.getSource() : "POS"))
+                .build();
+        splitCopy = clientOrderRepository.save(splitCopy);
+
+        final ClientOrder finalSplit = splitCopy;
+        List<ClientOrderItem> newItems = request.getItems().stream()
+                .map(req -> {
+                    TenantMenuProduct product = tenantMenuProductRepository.findById(req.getProductId())
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "Producto no encontrado con ID: " + req.getProductId()));
+                    return ClientOrderItemMapper.toEntity(req, finalSplit, product);
+                })
+                .collect(Collectors.toList());
+
+        newItems = clientOrderItemRepository.saveAll(newItems);
+        splitCopy.getItems().addAll(newItems);
+
+        BigDecimal splitSubtotal = ClientOrderMapper.calculateSubtotal(newItems);
+        splitCopy.setSubtotal(splitSubtotal);
+        splitCopy.setDescuento(BigDecimal.ZERO);
+        splitCopy.setTotal(ClientOrderMapper.calculateTotal(splitSubtotal, BigDecimal.ZERO));
+        clientOrderRepository.save(splitCopy);
+
+        // ===== FASE 4: QUITAR LOS ARTÍCULOS MOVIDOS DE LA COMANDa ORIGINAL =====
+        // NOTA: no se restaura stock porque esos artículos pasan a la nueva comanda (mismo consumo).
+        Map<Long, Long> aMover = new HashMap<>();
+        for (CreateClientOrderRequest.OrderItemRequest req : request.getItems()) {
+            aMover.merge(req.getProductId(), req.getCantidad().longValue(), Long::sum);
+        }
+
+        if (order.getItems() != null) {
+            Iterator<ClientOrderItem> it = order.getItems().iterator();
+            while (it.hasNext()) {
+                ClientOrderItem item = it.next();
+                Long mover = aMover.get(item.getProduct().getId());
+                if (mover == null || mover <= 0) {
+                    continue;
+                }
+                long actual = item.getCantidad() != null ? item.getCantidad().longValue() : 0L;
+                if (actual <= mover) {
+                    aMover.put(item.getProduct().getId(), mover - actual);
+                    it.remove();  // orphanRemoval elimina el registro
+                } else {
+                    item.setCantidad((int) (actual - mover));
+                    aMover.put(item.getProduct().getId(), 0L);
+                }
+            }
+        }
+
+        BigDecimal origSubtotal = ClientOrderMapper.calculateSubtotal(order.getItems());
+        BigDecimal origDescuento = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
+        if (origSubtotal.compareTo(origDescuento) < 0) {
+            origDescuento = origSubtotal;
+        }
+        order.setSubtotal(origSubtotal);
+        order.setDescuento(origDescuento);
+        order.setTotal(ClientOrderMapper.calculateTotal(origSubtotal, origDescuento));
+        clientOrderRepository.save(order);
+
+        log.info("Orden {} dividida. Nueva comanda {} con {} artículos por {}", orderId, splitCopy.getId(),
+                newItems.size(), BigDecimal.valueOf(aMover.values().stream().mapToLong(Long::longValue).sum()));
+
+        ClientOrderDTO originalDto = ClientOrderMapper.toDTO(order, null, origDescuento);
+        ClientOrderDTO newDto = ClientOrderMapper.toDTO(splitCopy, null, splitSubtotal);
+        return new SplitOrderResponse(originalDto, newDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SalesReportRowDTO> getSalesReport(Long tenantId, LocalDateTime from, LocalDateTime to) {
+        log.debug("Obteniendo reporte de ventas/comandas del tenant {} entre {} y {}", tenantId, from, to);
+        return clientOrderRepository.findSalesReport(tenantId, from, to).stream()
+                .map(row -> SalesReportRowDTO.builder()
+                        .folio(row[0] != null ? row[0].toString() : null)
+                        .horarioApertura(toLocalDateTime(row[1]))
+                        .horarioCierre(toLocalDateTime(row[2]))
+                        .mesa(row[3] != null ? row[3].toString() : null)
+                        .mesero(row[4] != null ? row[4].toString() : null)
+                        .totalPagado(toBigDecimal(row[5]))
+                        .cliente(row[6] != null ? row[6].toString() : null)  // null = "Cliente no registrado"
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Convierte un valor de timestamp (java.sql.Timestamp o LocalDateTime)
+     * devuelto por una consulta nativa a LocalDateTime.
+     */
+    private LocalDateTime toLocalDateTime(Object value) {
+        if (value == null) return null;
+        if (value instanceof java.sql.Timestamp) {
+            return ((java.sql.Timestamp) value).toLocalDateTime();
+        }
+        if (value instanceof LocalDateTime) {
+            return (LocalDateTime) value;
+        }
+        return null;
+    }
+
+    /**
+     * Convierte un valor numérico devuelto por una consulta nativa a BigDecimal.
+     */
+    private BigDecimal toBigDecimal(Object value) {
+        if (value == null) return BigDecimal.ZERO;
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value instanceof Number) {
+            return new BigDecimal(value.toString());
+        }
+        return BigDecimal.ZERO;
     }
 }

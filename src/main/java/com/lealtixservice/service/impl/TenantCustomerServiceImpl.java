@@ -11,6 +11,7 @@ import com.lealtixservice.event.CustomerCreatedEvent;
 import com.lealtixservice.exception.EmailAlreadyRegisteredException;
 import com.lealtixservice.repository.TenantCustomerRepository;
 import com.lealtixservice.repository.TenantRepository;
+import com.lealtixservice.service.AllergyService;
 import com.lealtixservice.service.CampaignService;
 import com.lealtixservice.service.CouponService;
 import com.lealtixservice.service.TenantCustomerService;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,6 +51,9 @@ public class TenantCustomerServiceImpl implements TenantCustomerService {
 
     @Autowired
     private CouponService couponService;
+
+    @Autowired
+    private AllergyService allergyService;
 
     @Value("${sendgrid.templates.welcome-customer}")
     private String welcomeTemplateId;
@@ -323,5 +328,87 @@ public class TenantCustomerServiceImpl implements TenantCustomerService {
                 .fallidos(fallidos)
                 .errores(errores)
                 .build();
+    }
+
+    // ==================== Métodos DTO transaccionales (con alergias) ====================
+
+    @Override
+    @Transactional
+    public TenantCustomerDTO createCustomer(TenantCustomerDTO dto) {
+        TenantCustomer toSave = TenantCustomerMapper.toEntity(dto);
+        if (toSave.getActive() == null) {
+            toSave.setActive(true);
+        }
+        TenantCustomer saved = save(toSave);
+
+        if (dto.getAllergies() != null || (dto.getAllergyText() != null && !dto.getAllergyText().isBlank())) {
+            List<com.lealtixservice.entity.Allergy> allergies =
+                    allergyService.resolveAllergies(allergyService.parseNames(dto));
+            saved.setAllergies(new ArrayList<>(allergies));
+            saved.setUpdatedAt(LocalDateTime.now());
+            saved = tenantCustomerRepository.save(saved);
+        }
+        return TenantCustomerMapper.toDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public TenantCustomerDTO updateCustomer(Long id, TenantCustomerDTO dto) {
+        Optional<TenantCustomer> existing = tenantCustomerRepository.findById(id);
+        if (existing.isEmpty()) {
+            return null;
+        }
+        TenantCustomer entity = existing.get();
+        entity.setName(dto.getName());
+        entity.setEmail(dto.getEmail());
+        entity.setBirthDate(dto.getBirthDate());
+        entity.setGender(dto.getGender());
+        entity.setPhone(dto.getPhone());
+        entity.setActive(dto.getActive() != null ? dto.getActive() : entity.getActive());
+        if (dto.getAcceptedPromotions() != null) {
+            entity.setAcceptedPromotions(dto.getAcceptedPromotions());
+        }
+        if (dto.getAcceptedAt() != null) {
+            entity.setAcceptedAt(dto.getAcceptedAt());
+        }
+        entity.setUpdatedAt(LocalDateTime.now());
+
+        // Alergias: solo reemplazar si el DTO trae el campo (texto o lista)
+        if (dto.getAllergies() != null || (dto.getAllergyText() != null && !dto.getAllergyText().isBlank())) {
+            List<com.lealtixservice.entity.Allergy> allergies =
+                    allergyService.resolveAllergies(allergyService.parseNames(dto));
+            entity.setAllergies(new ArrayList<>(allergies));
+        }
+        return TenantCustomerMapper.toDTO(tenantCustomerRepository.save(entity));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TenantCustomerDTO getDtoById(Long id) {
+        return tenantCustomerRepository.findById(id).map(TenantCustomerMapper::toDTO).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TenantCustomerDTO> findAllDtos() {
+        return tenantCustomerRepository.findAll().stream()
+                .map(TenantCustomerMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<TenantCustomerDTO> findByTenantIdPaginatedDtos(Long tenantId, Pageable pageable) {
+        return tenantCustomerRepository.findByTenantIdAndActiveTrue(tenantId, pageable)
+                .map(TenantCustomerMapper::toDTO);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<TenantCustomerDTO> findByTenantIdAndEmailPaginatedDtos(Long tenantId, String email, Pageable pageable) {
+        String normalizedEmail = email != null ? email.trim() : "";
+        return tenantCustomerRepository.findByTenantIdAndEmailContainingIgnoreCaseAndActiveTrue(
+                        tenantId, normalizedEmail, pageable)
+                .map(TenantCustomerMapper::toDTO);
     }
 }

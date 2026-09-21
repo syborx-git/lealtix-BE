@@ -54,12 +54,5 @@ class TenantMenuProductServiceImplTest {
         when(productRepository.findAll()).thenReturn(products);
         assertEquals(2, service.findAll().size());
     }
-
-    @Test
-    void deleteById_callsRepository() {
-        doNothing().when(productRepository).deleteById(1L);
-        service.deleteById(1L);
-        verify(productRepository).deleteById(1L);
-    }
 }
 

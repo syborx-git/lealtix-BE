@@ -3,9 +3,8 @@ package com.lealtixservice.controller;
 import com.lealtixservice.dto.BulkCustomerUploadResponse;
 import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.TenantCustomerDTO;
-import com.lealtixservice.entity.TenantCustomer;
+import com.lealtixservice.service.AllergyService;
 import com.lealtixservice.service.TenantCustomerService;
-import com.lealtixservice.util.TenantCustomerMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,12 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Tag(name = "TenantCustomer", description = "Operaciones relacionadas con los clientes de un tenant")
@@ -33,13 +30,14 @@ public class TenantCustomerController {
     @Autowired
     private TenantCustomerService tenantCustomerService;
 
+    @Autowired
+    private AllergyService allergyService;
+
     @Operation(summary = "Crear un nuevo cliente")
     @PostMapping
     public ResponseEntity<GenericResponse> create(@RequestBody TenantCustomerDTO customerDTO) {
         try {
-            TenantCustomer toSave = TenantCustomerMapper.toEntity(customerDTO);
-            TenantCustomer saved = tenantCustomerService.save(toSave);
-            TenantCustomerDTO respDTO = TenantCustomerMapper.toDTO(saved);
+            TenantCustomerDTO respDTO = tenantCustomerService.createCustomer(customerDTO);
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new GenericResponse(200, "SUCCESS", respDTO));
         } catch (Exception e) {
@@ -68,9 +66,8 @@ public class TenantCustomerController {
     @GetMapping("/{id}")
     public ResponseEntity<GenericResponse> getById(@PathVariable Long id) {
         try {
-            Optional<TenantCustomer> customer = tenantCustomerService.findById(id);
-            if (customer.isPresent()) {
-                TenantCustomerDTO dto = TenantCustomerMapper.toDTO(customer.get());
+            TenantCustomerDTO dto = tenantCustomerService.getDtoById(id);
+            if (dto != null) {
                 return ResponseEntity.status(HttpStatus.OK)
                         .body(new GenericResponse(200, "SUCCESS", dto));
             } else {
@@ -86,9 +83,7 @@ public class TenantCustomerController {
     @Operation(summary = "Listar todos los clientes")
     @GetMapping
     public ResponseEntity<List<TenantCustomerDTO>> getAll() {
-        List<TenantCustomerDTO> list = tenantCustomerService.findAll().stream()
-                .map(TenantCustomerMapper::toDTO)
-                .collect(Collectors.toList());
+        List<TenantCustomerDTO> list = tenantCustomerService.findAllDtos();
         return ResponseEntity.ok(list);
     }
 
@@ -129,19 +124,17 @@ public class TenantCustomerController {
             Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sortObj);
             
             // Ejecutar consulta con o sin filtro de email
-            Page<TenantCustomer> pageResult;
+            Page<TenantCustomerDTO> pageResult;
             if (email != null && !email.trim().isEmpty()) {
                 String emailTrimmed = email.trim();
                 log.debug("Applying email filter: {}", emailTrimmed);
-                pageResult = tenantCustomerService.findByTenantIdAndEmailPaginated(tenantId, emailTrimmed, pageable);
+                pageResult = tenantCustomerService.findByTenantIdAndEmailPaginatedDtos(tenantId, emailTrimmed, pageable);
             } else {
-                pageResult = tenantCustomerService.findByTenantIdPaginated(tenantId, pageable);
+                pageResult = tenantCustomerService.findByTenantIdPaginatedDtos(tenantId, pageable);
             }
             
             // Mapear a DTOs
-            List<TenantCustomerDTO> customers = pageResult.getContent().stream()
-                    .map(TenantCustomerMapper::toDTO)
-                    .collect(Collectors.toList());
+            List<TenantCustomerDTO> customers = pageResult.getContent();
             
             // Construir respuesta con metadata de paginación
             Map<String, Object> response = new HashMap<>();
@@ -252,44 +245,52 @@ public class TenantCustomerController {
     @PutMapping("/{id}")
     public ResponseEntity<GenericResponse> update(@PathVariable Long id, @RequestBody TenantCustomerDTO customerDTO) {
         try {
-            Optional<TenantCustomer> existing = tenantCustomerService.findById(id);
-            if (existing.isEmpty()) {
+            TenantCustomerDTO updated = tenantCustomerService.updateCustomer(id, customerDTO);
+            if (updated == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new GenericResponse(404, "NOT FOUND", null));
             }
-            // merge: conservar valores existentes si el DTO no provee campos de consentimiento
-            TenantCustomer existingEntity = existing.get();
-            customerDTO.setId(id);
-            TenantCustomer toUpdate = TenantCustomerMapper.toEntity(customerDTO);
-
-            // Preserve tenant and createdAt from existing if mapper didn't provide them
-            if (toUpdate.getTenant() == null) {
-                toUpdate.setTenant(existingEntity.getTenant());
-            }
-            if (toUpdate.getCreatedAt() == null) {
-                toUpdate.setCreatedAt(existingEntity.getCreatedAt());
-            }
-
-            // Merge acceptedPromotions: if DTO did not include it (null) keep existing value
-            if (customerDTO.getAcceptedPromotions() == null) {
-                toUpdate.setAcceptedPromotions(existingEntity.isAcceptedPromotions());
-            }
-            // Merge acceptedAt: if DTO did not include it keep existing
-            if (customerDTO.getAcceptedAt() == null) {
-                toUpdate.setAcceptedAt(existingEntity.getAcceptedAt());
-            }
-            // Merge active: if DTO did not include it keep existing value
-            if (customerDTO.getActive() == null) {
-                toUpdate.setActive(existingEntity.getActive());
-            }
-
-            TenantCustomer updated = tenantCustomerService.update(toUpdate);
-            TenantCustomerDTO respDTO = TenantCustomerMapper.toDTO(updated);
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new GenericResponse(200, "SUCCESS", respDTO));
+                    .body(new GenericResponse(200, "SUCCESS", updated));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, e.getMessage(), null));
         }
+    }
+
+    @Operation(summary = "Verifica alergias del cliente contra los insumos de un producto")
+    @PostMapping("/{id}/allergies/check")
+    public ResponseEntity<GenericResponse> checkCustomerAllergies(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            Long productId = body.get("productId") != null ? Long.valueOf(body.get("productId").toString()) : null;
+            List<Long> excludedIds = parseIds(body.get("excludedIds"));
+            List<Long> additionalIds = parseIds(body.get("additionalIds"));
+            List<Map<String, Object>> matches = allergyService.checkCustomerAllergies(id, productId, excludedIds, additionalIds);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new GenericResponse(200, "SUCCESS", matches));
+        } catch (Exception e) {
+            log.error("Error checking allergies for customer id={}", id, e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, "Error: " + e.getMessage(), null));
+        }
+    }
+
+    private List<Long> parseIds(Object raw) {
+        if (!(raw instanceof List)) {
+            return new ArrayList<>();
+        }
+        List<?> list = (List<?>) raw;
+        List<Long> out = new ArrayList<>();
+        for (Object o : list) {
+            if (o == null) continue;
+            try {
+                out.add(Long.valueOf(o.toString()));
+            } catch (NumberFormatException ignored) {
+                // ignorar valores no numéricos
+            }
+        }
+        return out;
     }
 }

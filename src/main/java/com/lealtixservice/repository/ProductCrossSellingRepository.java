@@ -10,6 +10,10 @@ import java.util.List;
 
 @Repository
 public interface ProductCrossSellingRepository extends JpaRepository<ProductCrossSelling, Long> {
+
+    void deleteByProduct_Id(Long productId);
+
+    void deleteBySuggestedProduct_Id(Long productId);
     
     /**
      * Encuentra sugerencias de productos activas para un producto específico y tenant.

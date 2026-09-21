@@ -9,6 +9,8 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tenant_customer", indexes = {
@@ -21,8 +23,8 @@ import java.time.LocalDateTime;
 })
 @Getter
 @Setter
-@ToString(exclude = {"tenant"})
-@EqualsAndHashCode(exclude = {"tenant"})
+@ToString(exclude = {"tenant", "allergies"})
+@EqualsAndHashCode(exclude = {"tenant", "allergies"})
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -72,5 +74,15 @@ public class TenantCustomer {
 
     @Column(name = "active")
     private Boolean active;
+
+    // Alergias del cliente (catálogo compartido + tabla intermedia tenant_customer_allergy)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tenant_customer_allergy",
+            joinColumns = @JoinColumn(name = "customer_id"),
+            inverseJoinColumns = @JoinColumn(name = "allergy_id")
+    )
+    @Builder.Default
+    private List<Allergy> allergies = new ArrayList<>();
 
 }

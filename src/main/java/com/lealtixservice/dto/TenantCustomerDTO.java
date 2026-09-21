@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -47,4 +48,9 @@ public class TenantCustomerDTO {
     private LocalDate acceptedAt;
 
     private Boolean active;
+
+    // Alergias del cliente: lista de nombres normalizados ("almendra", "nuez").
+    // También se acepta texto libre en allergyText ("nuez, calabaza y almendras").
+    private List<String> allergies;
+    private String allergyText;
 }

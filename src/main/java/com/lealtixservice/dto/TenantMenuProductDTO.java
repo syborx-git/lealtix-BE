@@ -28,6 +28,9 @@ public class TenantMenuProductDTO {
     private String imageUrl;
     private List<CrossSellingDTO> crossSellingProducts;
 
+    /** true = isActive gestionado automáticamente según stock de insumos */
+    private Boolean autoAvailability;
+
     /** Ingredientes de la receta (base / modificables) para mostrar opciones */
     private List<Map<String, Object>> recipes;
 
@@ -38,6 +41,12 @@ public class TenantMenuProductDTO {
     private Double stock;
     private Double stockMinimo;
     private String unidad;
+
+    /** IDs de todas las categorías del producto (principal + extras) */
+    private List<Long> categoryIds;
+
+    /** Categorías completas del producto [{id, name}] */
+    private List<Map<String, Object>> categories;
 
     public TenantMenuProductDTO(
             Long id,
@@ -65,5 +74,7 @@ public class TenantMenuProductDTO {
         this.price = price;
         this.imageUrl = imageUrl;
         this.crossSellingProducts = List.of();
+        this.categoryIds = List.of();
+        this.categories = List.of();
     }
 }

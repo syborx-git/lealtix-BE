@@ -6,7 +6,9 @@ import java.util.List;
 public enum RoleEnum {
     ADMIN(Arrays.asList(
             "view_dashboard", "manage_users", "manage_campaigns", "manage_categories",
-            "manage_products", "view_reports", "manage_settings"
+            "manage_products", "view_reports", "manage_settings",
+            "view_mesas", "manage_mesas", "view_reservaciones", "manage_reservaciones",
+            "manage_recetas", "manage_mermas"
     )),
     MESERO(Arrays.asList(
             "view_comanda", "create_order", "edit_own_order"
@@ -19,6 +21,9 @@ public enum RoleEnum {
     )),
     MARKETING(Arrays.asList(
             "view_campaigns", "create_campaign", "view_analytics", "manage_redemptions"
+    )),
+    HOSTESS(Arrays.asList(
+            "view_mesas", "manage_mesas", "view_reservaciones", "manage_reservaciones"
     ));
 
     private final List<String> permissions;

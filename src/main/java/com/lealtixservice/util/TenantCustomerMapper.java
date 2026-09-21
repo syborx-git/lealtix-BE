@@ -1,13 +1,21 @@
 package com.lealtixservice.util;
 
 import com.lealtixservice.dto.TenantCustomerDTO;
+import com.lealtixservice.entity.Allergy;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantCustomer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TenantCustomerMapper {
 
     public static TenantCustomerDTO toDTO(TenantCustomer entity) {
         if (entity == null) return null;
+        List<String> allergies = entity.getAllergies() != null
+                ? entity.getAllergies().stream().map(Allergy::getName).collect(Collectors.toList())
+                : new ArrayList<>();
         return TenantCustomerDTO.builder()
                 .id(entity.getId())
                 .tenantId(entity.getTenant() != null ? entity.getTenant().getId() : null)
@@ -21,6 +29,7 @@ public class TenantCustomerMapper {
                 .acceptedPromotions(entity.isAcceptedPromotions())
                 .acceptedAt(entity.getAcceptedAt())
                 .active(entity.getActive())
+                .allergies(allergies)
                 .build();
     }
 

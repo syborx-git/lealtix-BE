@@ -9,7 +9,9 @@ import com.lealtixservice.entity.ProductRecipe;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantMenuCategory;
 import com.lealtixservice.entity.TenantMenuProduct;
+import com.lealtixservice.repository.ClientOrderItemRepository;
 import com.lealtixservice.repository.ProductAdditionalRepository;
+import com.lealtixservice.repository.ProductCrossSellingRepository;
 import com.lealtixservice.repository.ProductRecipeRepository;
 import com.lealtixservice.repository.TenantMenuProductRepository;
 import com.lealtixservice.repository.TenantRepository;
@@ -46,6 +48,15 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
     @Autowired
     private ProductAdditionalRepository additionalRepository;
 
+    @Autowired
+    private ProductCrossSellingRepository crossSellingRepository;
+
+    @Autowired
+    private ClientOrderItemRepository clientOrderItemRepository;
+
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     @Override
     public TenantMenuProduct save(TenantMenuProduct product) {
         return productRepository.save(product);
@@ -62,7 +73,41 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
     }
 
     @Override
+    @Transactional
     public void deleteById(Long id) {
+        if (id == null) {
+            return;
+        }
+
+        // 1. Limpiar items de comanda/pedidos que referencien este producto
+        entityManager.createNativeQuery("DELETE FROM client_order_item WHERE product_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 2. Limpiar recetas y adicionales
+        recipeRepository.deleteByDishId(id);
+        additionalRepository.deleteByDishId(id);
+
+        // 3. Limpiar sub-recetas (si el producto usa subrecetas o es una subreceta)
+        entityManager.createNativeQuery("DELETE FROM product_sub_receta WHERE dish_product_id = :id OR sub_receta_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 4. Limpiar cross-selling
+        crossSellingRepository.deleteByProduct_Id(id);
+        crossSellingRepository.deleteBySuggestedProduct_Id(id);
+
+        // 5. Limpiar categorías del producto en la tabla many-to-many
+        entityManager.createNativeQuery("DELETE FROM tenant_menu_product_category WHERE product_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 6. Desvincular insumos asociados (bebidas vendibles)
+        entityManager.createNativeQuery("UPDATE insumo SET producto_id = NULL WHERE producto_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 7. Eliminar el producto de la base de datos
         productRepository.deleteById(id);
     }
 
@@ -140,7 +185,45 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             productEntity.setActive(dto.getIsActive());
         }
 
+        // Auto-disponibilidad: respetar el valor enviado; si no llega, conservar el actual
+        // (nulos existentes por updates previos se tratan como activado en el sync).
+        if (dto.getAutoAvailability() != null) {
+            productEntity.setAutoAvailability(dto.getAutoAvailability());
+        }
+
+        syncCategories(productEntity, dto);
+
         return productEntity;
+    }
+
+    /**
+     * Sincroniza la lista completa de categorías del producto: la categoría principal
+     * (category) más las categorías extra indicadas en categoryIds (many-to-many).
+     */
+    private void syncCategories(TenantMenuProduct productEntity, TenantMenuProductDTO dto) {
+        List<TenantMenuCategory> cats = new ArrayList<>();
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+
+        if (productEntity.getCategory() != null && productEntity.getCategory().getId() != null) {
+            cats.add(productEntity.getCategory());
+            seen.add(productEntity.getCategory().getId());
+        }
+
+        if (dto != null && dto.getCategoryIds() != null && dto.getTenantId() != null) {
+            for (Long cid : dto.getCategoryIds()) {
+                if (cid == null || seen.contains(cid)) continue;
+                Optional<TenantMenuCategory> catOpt = categoryService.findById(cid);
+                if (catOpt.isPresent()) {
+                    TenantMenuCategory cat = catOpt.get();
+                    if (cat.getTenant() != null && dto.getTenantId().equals(cat.getTenant().getId())) {
+                        cats.add(cat);
+                        seen.add(cid);
+                    }
+                }
+            }
+        }
+
+        productEntity.setCategories(cats);
     }
 
     @Override
@@ -174,6 +257,23 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             dto.setStock(stock);
             dto.setStockMinimo(entity.getStockMinimo() != null ? entity.getStockMinimo() : 0.0);
             dto.setUnidad(entity.getUnidad() != null ? entity.getUnidad() : "pieza");
+            dto.setAutoAvailability(entity.getAutoAvailability());
+
+            // Todas las categorías del producto (principal + extras) para la UI
+            List<Long> categoryIds = new ArrayList<>();
+            List<Map<String, Object>> categories = new ArrayList<>();
+            if (entity.getCategories() != null) {
+                for (TenantMenuCategory cat : entity.getCategories()) {
+                    if (cat == null || cat.getId() == null) continue;
+                    categoryIds.add(cat.getId());
+                    Map<String, Object> catMap = new LinkedHashMap<>();
+                    catMap.put("id", cat.getId());
+                    catMap.put("name", cat.getNombre() != null ? cat.getNombre() : "");
+                    categories.add(catMap);
+                }
+            }
+            dto.setCategoryIds(categoryIds);
+            dto.setCategories(categories);
 
             // Receta (ingredientes base/modificables) y adicionales para el menú
             List<Map<String, Object>> recipeList = new ArrayList<>();

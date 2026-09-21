@@ -4,6 +4,9 @@ import com.lealtixservice.dto.ClientOrderDTO;
 import com.lealtixservice.dto.CreateClientOrderRequest;
 import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.RecordPaymentRequest;
+import com.lealtixservice.dto.SalesReportRowDTO;
+import com.lealtixservice.dto.SplitOrderRequest;
+import com.lealtixservice.dto.SplitOrderResponse;
 import com.lealtixservice.dto.UpdateOrderStatusRequest;
 import com.lealtixservice.enums.OrderStatus;
 import com.lealtixservice.exception.ResourceNotFoundException;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -54,6 +58,30 @@ public class ClientOrderController {
                     .body(new GenericResponse(400, ex.getMessage(), null));
         } catch (Exception e) {
             log.error("Error creando orden", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Actualizar una orden existente dentro de la prórroga de 3 minutos")
+    @PutMapping("/{orderId}")
+    public ResponseEntity<GenericResponse> updateOrder(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody CreateClientOrderRequest request) {
+        try {
+            log.info("Actualizando orden {} en tenant {}", orderId, request.getTenantId());
+            ClientOrderDTO order = clientOrderService.updateOrder(orderId, request);
+            return ResponseEntity.ok(new GenericResponse(200, "Orden actualizada exitosamente", order));
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Orden no encontrada al actualizar: {}", orderId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Error de validación al actualizar orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error actualizando orden {}", orderId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno del servidor", null));
         }
@@ -336,6 +364,49 @@ public class ClientOrderController {
                     .body(new GenericResponse(400, ex.getMessage(), null));
         } catch (Exception e) {
             log.error("Error registrando pago para orden {}", orderId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Dividir cuenta: mueve los artículos seleccionados a una comanda nueva lista para pagar")
+    @PostMapping("/{orderId}/split")
+    public ResponseEntity<GenericResponse> splitOrder(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody SplitOrderRequest request) {
+        try {
+            log.info("Dividiendo orden {} en tenant {}", orderId, request.getTenantId());
+            SplitOrderResponse result = clientOrderService.splitOrder(orderId, request);
+            return ResponseEntity.ok(new GenericResponse(200, "Cuenta dividida exitosamente", result));
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Orden no encontrada al dividir: {}", orderId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Error de validación al dividir orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error dividiendo orden {}", orderId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Reporte general de ventas/comandas con JOIN de mesa, mesero y cliente")
+    @GetMapping("/tenant/{tenantId}/report")
+    public ResponseEntity<GenericResponse> getSalesReport(
+            @PathVariable Long tenantId,
+            @Parameter(description = "Fecha inicio (ISO 8601 format: yyyy-MM-dd'T'HH:mm:ss)")
+            @RequestParam LocalDateTime from,
+            @Parameter(description = "Fecha fin (ISO 8601 format: yyyy-MM-dd'T'HH:mm:ss)")
+            @RequestParam LocalDateTime to) {
+        try {
+            log.debug("Obteniendo reporte de ventas del tenant {} entre {} y {}", tenantId, from, to);
+            List<SalesReportRowDTO> report = clientOrderService.getSalesReport(tenantId, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de ventas obtenido", report));
+        } catch (Exception e) {
+            log.error("Error obteniendo reporte de ventas del tenant {}", tenantId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno del servidor", null));
         }

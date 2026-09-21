@@ -38,6 +38,9 @@ public class TenantMenuCategoryServiceImpl implements TenantMenuCategoryService 
     @Autowired
     private TenantRepository tenantRepository;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     @Override
     public TenantMenuCategory save(TenantMenuCategory category) {
         return categoryRepository.save(category);
@@ -54,7 +57,52 @@ public class TenantMenuCategoryServiceImpl implements TenantMenuCategoryService 
     }
 
     @Override
+    @Transactional
     public void deleteById(Long id) {
+        if (id == null) return;
+
+        // 1. Desvincular insumos de esta categoría
+        entityManager.createNativeQuery("DELETE FROM insumo_category WHERE category_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 2. Desvincular productos de la tabla many-to-many con esta categoría
+        entityManager.createNativeQuery("DELETE FROM tenant_menu_product_category WHERE category_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        // 3. Reasignar o limpiar productos cuya categoría principal sea esta
+        List<TenantMenuProduct> products = productRepository.findByCategoryId(id);
+        for (TenantMenuProduct p : products) {
+            List<?> otherCats = entityManager.createNativeQuery(
+                    "SELECT category_id FROM tenant_menu_product_category WHERE product_id = :prodId LIMIT 1")
+                    .setParameter("prodId", p.getId())
+                    .getResultList();
+            if (!otherCats.isEmpty()) {
+                Long newCatId = ((Number) otherCats.get(0)).longValue();
+                entityManager.createNativeQuery("UPDATE tenant_menu_product SET category_id = :newCatId WHERE id = :prodId")
+                        .setParameter("newCatId", newCatId)
+                        .setParameter("prodId", p.getId())
+                        .executeUpdate();
+            } else {
+                entityManager.createNativeQuery("DELETE FROM product_recipe WHERE dish_product_id = :prodId")
+                        .setParameter("prodId", p.getId()).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM product_additional WHERE dish_product_id = :prodId")
+                        .setParameter("prodId", p.getId()).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM product_sub_receta WHERE dish_product_id = :prodId OR sub_receta_id = :prodId")
+                        .setParameter("prodId", p.getId()).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM product_cross_selling WHERE product_id = :prodId OR suggested_product_id = :prodId")
+                        .setParameter("prodId", p.getId()).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM client_order_item WHERE product_id = :prodId")
+                        .setParameter("prodId", p.getId()).executeUpdate();
+                entityManager.createNativeQuery("UPDATE insumo SET producto_id = NULL WHERE producto_id = :prodId")
+                        .setParameter("prodId", p.getId()).executeUpdate();
+                entityManager.createNativeQuery("DELETE FROM tenant_menu_product WHERE id = :prodId")
+                        .setParameter("prodId", p.getId()).executeUpdate();
+            }
+        }
+
+        // 4. Eliminar la categoría
         categoryRepository.deleteById(id);
     }
 
