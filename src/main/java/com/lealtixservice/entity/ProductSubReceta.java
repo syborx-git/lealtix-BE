@@ -3,6 +3,8 @@ package com.lealtixservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "product_sub_receta",
         uniqueConstraints = @UniqueConstraint(
@@ -27,4 +29,12 @@ public class ProductSubReceta {
     @ManyToOne
     @JoinColumn(name = "sub_receta_id", nullable = false)
     private TenantMenuProduct subReceta;
+
+    /** Importancia de la sub-receta: true = MODIFICABLE (el cliente puede retirarla). */
+    @Builder.Default
+    private Boolean modificable = false;
+
+    /** Precio extra si la sub-receta es ADICIONAL (costo extra); null = no adicional. */
+    @Column(precision = 10, scale = 2)
+    private BigDecimal precio;
 }

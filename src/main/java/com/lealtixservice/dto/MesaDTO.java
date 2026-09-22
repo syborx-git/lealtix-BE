@@ -2,6 +2,7 @@ package com.lealtixservice.dto;
 
 import com.lealtixservice.entity.Mesa;
 import com.lealtixservice.enums.MesaEstado;
+import com.lealtixservice.enums.MesaForma;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -19,6 +20,11 @@ public class MesaDTO {
     private MesaEstado estado;
     private Long meseroUserId;
     private String meseroNombre;
+    private Double posicionX;
+    private Double posicionY;
+    private MesaForma forma;
+    private Integer rotacion;
+    private String idGrupoTemporal;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -32,6 +38,11 @@ public class MesaDTO {
                 .estado(mesa.getEstado())
                 .meseroUserId(mesa.getMeseroUserId())
                 .meseroNombre(meseroNombre)
+                .posicionX(mesa.getPosicionX())
+                .posicionY(mesa.getPosicionY())
+                .forma(mesa.getForma())
+                .rotacion(mesa.getRotacion())
+                .idGrupoTemporal(mesa.getIdGrupoTemporal())
                 .createdAt(mesa.getCreatedAt())
                 .updatedAt(mesa.getUpdatedAt())
                 .build();

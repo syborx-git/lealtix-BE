@@ -12,6 +12,8 @@ public interface MesaRepository extends JpaRepository<Mesa, Long> {
 
     List<Mesa> findByTenantIdAndEstadoOrderByNumeroAsc(Long tenantId, com.lealtixservice.enums.MesaEstado estado);
 
+    List<Mesa> findByTenantIdAndIdGrupoTemporal(Long tenantId, String idGrupoTemporal);
+
     boolean existsByTenantIdAndNombre(Long tenantId, String nombre);
 
     boolean existsByTenantIdAndNombreAndIdNot(Long tenantId, String nombre, Long id);

@@ -2,9 +2,12 @@ package com.lealtixservice.controller;
 
 import com.lealtixservice.dto.AsignarMeseroRequest;
 import com.lealtixservice.dto.GenericResponse;
+import com.lealtixservice.dto.GrupoRequest;
 import com.lealtixservice.dto.MesaDTO;
 import com.lealtixservice.dto.MesaRequest;
+import com.lealtixservice.dto.PosicionRequest;
 import com.lealtixservice.enums.MesaEstado;
+import com.lealtixservice.enums.MesaForma;
 import com.lealtixservice.service.MesaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -138,6 +141,68 @@ public class MesaController {
             return ResponseEntity.ok(new GenericResponse(404, e.getMessage(), null));
         } catch (Exception e) {
             log.error("Error eliminando mesa {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Actualizar posición (drag-and-drop) de una mesa en el plano")
+    @PutMapping("/{id}/posicion")
+    public ResponseEntity<GenericResponse> updatePosicion(@PathVariable Long id,
+                                                          @RequestParam Long tenantId,
+                                                          @RequestBody PosicionRequest request) {
+        try {
+            MesaDTO mesa = mesaService.updatePosicion(id, tenantId, request.getPosicionX(), request.getPosicionY());
+            return ResponseEntity.ok(new GenericResponse(200, "Posición actualizada exitosamente", mesa));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error actualizando posición de mesa {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Actualizar forma visual (redonda/cuadrada/rectangular) de una mesa")
+    @PutMapping("/{id}/forma")
+    public ResponseEntity<GenericResponse> updateForma(@PathVariable Long id,
+                                                       @RequestParam Long tenantId,
+                                                       @RequestBody MesaForma forma) {
+        try {
+            MesaDTO mesa = mesaService.updateForma(id, tenantId, forma);
+            return ResponseEntity.ok(new GenericResponse(200, "Forma actualizada exitosamente", mesa));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error actualizando forma de mesa {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Unir mesas libres en un grupo temporal (id_grupo_temporal)")
+    @PostMapping("/grupo/unir")
+    public ResponseEntity<GenericResponse> unirMesas(@RequestParam Long tenantId,
+                                                     @RequestBody GrupoRequest request) {
+        try {
+            List<MesaDTO> mesas = mesaService.unirMesas(tenantId, request.getMesaIds());
+            return ResponseEntity.ok(new GenericResponse(200, "Mesas unidas exitosamente", mesas));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error uniendo mesas para tenant {}: {}", tenantId, e.getMessage(), e);
+            return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Separar mesas de un grupo temporal")
+    @DeleteMapping("/grupo")
+    public ResponseEntity<GenericResponse> separarGrupo(@RequestParam Long tenantId,
+                                                        @RequestParam String grupoId) {
+        try {
+            List<MesaDTO> mesas = mesaService.separarGrupo(tenantId, grupoId);
+            return ResponseEntity.ok(new GenericResponse(200, "Mesas separadas exitosamente", mesas));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error separando grupo {}: {}", grupoId, e.getMessage(), e);
             return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor", null));
         }
     }
