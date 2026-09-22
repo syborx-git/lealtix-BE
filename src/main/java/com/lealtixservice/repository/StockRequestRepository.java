@@ -13,5 +13,7 @@ public interface StockRequestRepository extends JpaRepository<StockRequest, Long
 
     List<StockRequest> findByTenantIdAndEstadoOrderByCreatedAtDesc(Long tenantId, String estado);
 
+    List<StockRequest> findByTenantIdAndEstadoAndAreaOrderByCreatedAtDesc(Long tenantId, String estado, String area);
+
     long countByTenantIdAndEstadoAndArea(Long tenantId, String estado, String area);
 }
