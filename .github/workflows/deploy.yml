@@ -33,5 +33,13 @@ jobs:
             grep -q '^STRIPE_WEBHOOK_SECRET=' "$ENV_FILE" \
               && sed -i 's|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S|' "$ENV_FILE" \
               || echo 'STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S' >> "$ENV_FILE"
+            # Override para garantizar las variables en el contenedor
+            cat > /var/www/lealtix/docker-compose.override.yml <<'YML'
+            services:
+              lealtix-backend:
+                environment:
+                  FACTURAPI_API_KEY: "sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF"
+                  STRIPE_WEBHOOK_SECRET: "whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S"
+            YML
             docker compose up -d --build --force-recreate lealtix-backend
             echo "✅ Backend actualizado con éxito!"
