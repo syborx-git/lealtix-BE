@@ -1,5 +1,3 @@
-BEGIN;
-
 -- ==============================================================================
 -- V54: Flujo Completo de Datos Demo y Menú Gastronómico (Restaurante Petra)
 -- ==============================================================================
@@ -1000,5 +998,3 @@ BEGIN
 
     RAISE NOTICE '¡Carga del Menú de Restaurante Petra finalizada con éxito para el tenant ID: %!', v_tenant_id;
 END $$;
-
-COMMIT;
