@@ -33,5 +33,5 @@ jobs:
             grep -q '^STRIPE_WEBHOOK_SECRET=' "$ENV_FILE" \
               && sed -i 's|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S|' "$ENV_FILE" \
               || echo 'STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S' >> "$ENV_FILE"
-            docker compose up -d --build lealtix-backend
+            docker compose up -d --build --force-recreate lealtix-backend
             echo "✅ Backend actualizado con éxito!"
