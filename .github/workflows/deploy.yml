@@ -22,5 +22,16 @@ jobs:
             git checkout $BRANCH
             git pull origin $BRANCH
             cd /var/www/lealtix
+            # Variables de entorno de integraciones (Facturapi / Stripe webhook)
+            export FACTURAPI_API_KEY="sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF"
+            export STRIPE_WEBHOOK_SECRET="whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S"
+            ENV_FILE=/var/www/lealtix/.env
+            touch "$ENV_FILE"
+            grep -q '^FACTURAPI_API_KEY=' "$ENV_FILE" \
+              && sed -i 's|^FACTURAPI_API_KEY=.*|FACTURAPI_API_KEY=sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF|' "$ENV_FILE" \
+              || echo 'FACTURAPI_API_KEY=sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF' >> "$ENV_FILE"
+            grep -q '^STRIPE_WEBHOOK_SECRET=' "$ENV_FILE" \
+              && sed -i 's|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S|' "$ENV_FILE" \
+              || echo 'STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S' >> "$ENV_FILE"
             docker compose up -d --build lealtix-backend
             echo "✅ Backend actualizado con éxito!"
