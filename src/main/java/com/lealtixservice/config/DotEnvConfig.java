@@ -39,12 +39,26 @@ public class DotEnvConfig {
             }
 
             if (envPath != null) {
-                List<String> lines = Files.readAllLines(envPath, StandardCharsets.UTF_8);
+                // If .env starts with UTF-8 BOM, remove it from disk so spring-dotenv / dotenv-java parser won't crash
+                byte[] bytes = Files.readAllBytes(envPath);
+                if (bytes.length >= 3 && (bytes[0] & 0xFF) == 0xEF && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF) {
+                    byte[] cleanBytes = new byte[bytes.length - 3];
+                    System.arraycopy(bytes, 3, cleanBytes, 0, cleanBytes.length);
+                    Files.write(envPath, cleanBytes);
+                    bytes = cleanBytes;
+                    System.out.println("[DotEnvConfig] Automatically stripped UTF-8 BOM from " + envPath.getFileName());
+                }
+
+                String content = new String(bytes, StandardCharsets.UTF_8);
+                String[] lines = content.split("\\r?\\n");
                 int loadedCount = 0;
 
                 for (String rawLine : lines) {
                     if (rawLine == null) continue;
                     String line = rawLine.trim();
+                    if (line.startsWith("\uFEFF")) {
+                        line = line.substring(1).trim();
+                    }
                     // Skip empty lines and comments
                     if (line.isEmpty() || line.startsWith("#")) continue;
 
