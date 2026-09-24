@@ -38,37 +38,41 @@ public class DotEnvConfig {
                 System.out.println("[DotEnvConfig] No .env or environment.env file found in project root");
             }
 
-            List<String> lines = Files.readAllLines(envPath, StandardCharsets.UTF_8);
-            int loadedCount = 0;
+            if (envPath != null) {
+                List<String> lines = Files.readAllLines(envPath, StandardCharsets.UTF_8);
+                int loadedCount = 0;
 
-            for (String rawLine : lines) {
-                if (rawLine == null) continue;
-                String line = rawLine.trim();
-                // Skip empty lines and comments
-                if (line.isEmpty() || line.startsWith("#")) continue;
+                for (String rawLine : lines) {
+                    if (rawLine == null) continue;
+                    String line = rawLine.trim();
+                    // Skip empty lines and comments
+                    if (line.isEmpty() || line.startsWith("#")) continue;
 
-                // Split on first '=' to allow '=' in the value
-                int idx = line.indexOf('=');
-                if (idx <= 0) continue; // invalid line
+                    // Split on first '=' to allow '=' in the value
+                    int idx = line.indexOf('=');
+                    if (idx <= 0) continue; // invalid line
 
-                String key = line.substring(0, idx).trim();
-                String value = line.substring(idx + 1).trim();
+                    String key = line.substring(0, idx).trim();
+                    String value = line.substring(idx + 1).trim();
 
-                // Remove surrounding single or double quotes if present
-                if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
-                    if (value.length() >= 2) {
-                        value = value.substring(1, value.length() - 1);
+                    // Remove surrounding single or double quotes if present
+                    if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+                        if (value.length() >= 2) {
+                            value = value.substring(1, value.length() - 1);
+                        }
+                    }
+
+                    // Only set if not already defined in system properties or env vars
+                    if (System.getProperty(key) == null && System.getenv(key) == null) {
+                        System.setProperty(key, value);
+                        loadedCount++;
                     }
                 }
 
-                // Only set if not already defined in system properties or env vars
-                if (System.getProperty(key) == null && System.getenv(key) == null) {
-                    System.setProperty(key, value);
-                    loadedCount++;
-                }
+                System.out.println("[DotEnvConfig] Successfully loaded " + loadedCount + " environment variables from " + envPath.getFileName());
+            } else {
+                System.out.println("[DotEnvConfig] Continuing without file-based env vars (relying on system/docker environment)");
             }
-
-            System.out.println("[DotEnvConfig] Successfully loaded " + loadedCount + " environment variables from " + envPath.getFileName());
 
         } catch (Exception e) {
             System.err.println("[DotEnvConfig] Error loading environment variables: " + e.getMessage());
