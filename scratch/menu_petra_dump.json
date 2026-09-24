@@ -1,0 +1,5515 @@
+{
+  "categories": [
+    {
+      "id": 9,
+      "nombre": "DESAYUNOS",
+      "descripcion": "",
+      "display_order": 1,
+      "is_active": true
+    },
+    {
+      "id": 10,
+      "nombre": "ENCHILADAS",
+      "descripcion": "",
+      "display_order": 2,
+      "is_active": true
+    },
+    {
+      "id": 11,
+      "nombre": "CHILAQUILES",
+      "descripcion": "",
+      "display_order": 3,
+      "is_active": true
+    },
+    {
+      "id": 12,
+      "nombre": "ESPECIALES",
+      "descripcion": "",
+      "display_order": 4,
+      "is_active": true
+    },
+    {
+      "id": 13,
+      "nombre": "HUEVOS",
+      "descripcion": "",
+      "display_order": 5,
+      "is_active": true
+    },
+    {
+      "id": 14,
+      "nombre": "COMIDAS",
+      "descripcion": "",
+      "display_order": 6,
+      "is_active": true
+    },
+    {
+      "id": 15,
+      "nombre": "ENTRADAS",
+      "descripcion": "",
+      "display_order": 7,
+      "is_active": true
+    },
+    {
+      "id": 16,
+      "nombre": "SOPAS Y PASTAS",
+      "descripcion": "",
+      "display_order": 8,
+      "is_active": true
+    },
+    {
+      "id": 17,
+      "nombre": "ENSALADAS",
+      "descripcion": "",
+      "display_order": 9,
+      "is_active": true
+    },
+    {
+      "id": 18,
+      "nombre": "PLATOS FUERTES",
+      "descripcion": "",
+      "display_order": 10,
+      "is_active": true
+    },
+    {
+      "id": 19,
+      "nombre": "MENÚ INFANTIL",
+      "descripcion": "",
+      "display_order": 11,
+      "is_active": true
+    },
+    {
+      "id": 20,
+      "nombre": "EXTRAS",
+      "descripcion": "",
+      "display_order": 12,
+      "is_active": true
+    },
+    {
+      "id": 21,
+      "nombre": "POSTRES",
+      "descripcion": "",
+      "display_order": 13,
+      "is_active": true
+    },
+    {
+      "id": 22,
+      "nombre": "Preparaciones",
+      "descripcion": "Sub-recetas (preparaciones intermedias)",
+      "display_order": 99,
+      "is_active": false
+    }
+  ],
+  "insumos": [
+    {
+      "id": 23,
+      "nombre": "Tortilla de maíz",
+      "unidad": "pieza",
+      "stock": 38,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 38,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 24,
+      "nombre": "Huevo fresco",
+      "unidad": "pieza",
+      "stock": 38,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 38,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 25,
+      "nombre": "Pan brioche",
+      "unidad": "pieza",
+      "stock": 45,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 45,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 26,
+      "nombre": "Pan ciabatta",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 27,
+      "nombre": "Pan artesanal",
+      "unidad": "pieza",
+      "stock": 43,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 43,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 28,
+      "nombre": "English muffin",
+      "unidad": "pieza",
+      "stock": 48,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 48,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 29,
+      "nombre": "Croqueta de plátano macho cruda",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 30,
+      "nombre": "Empanada de camarón y maracuyá cruda",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 31,
+      "nombre": "Rueda de queso provolone",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 32,
+      "nombre": "Rollo de pechuga especial crudo",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 33,
+      "nombre": "Base de galleta sable",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 34,
+      "nombre": "Canasta de pan",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 35,
+      "nombre": "Camarón gigante U15",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 36,
+      "nombre": "Aguacate hass entero",
+      "unidad": "pieza",
+      "stock": 50,
+      "stock_minimo": 10,
+      "stock_bodega": 50,
+      "stock_cocina": 50,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 37,
+      "nombre": "Totopos",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 38,
+      "nombre": "Pechuga de pollo deshebrada",
+      "unidad": "gramos",
+      "stock": 4600,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4600,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 39,
+      "nombre": "Pechuga de pollo fileteada",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 40,
+      "nombre": "Cecina de res",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 41,
+      "nombre": "Arrachera marinada",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 42,
+      "nombre": "Chorizo de cerdo",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 43,
+      "nombre": "Jamón de pavo",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 44,
+      "nombre": "Tocino ahumado",
+      "unidad": "gramos",
+      "stock": 4900,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4900,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 45,
+      "nombre": "Jamón serrano",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 46,
+      "nombre": "Filete de res",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 47,
+      "nombre": "Rib eye choice",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 48,
+      "nombre": "Picanha de res",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 49,
+      "nombre": "Filete de salmón fresco",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 50,
+      "nombre": "Salmón ahumado laminado",
+      "unidad": "gramos",
+      "stock": 4800,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4800,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 51,
+      "nombre": "Atún fresco laminado",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 52,
+      "nombre": "Pulpo cocido",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 53,
+      "nombre": "Camarón pacotilla",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 54,
+      "nombre": "Surimi",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 55,
+      "nombre": "Queso fresco de rancho",
+      "unidad": "gramos",
+      "stock": 4880,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4880,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 56,
+      "nombre": "Queso gouda rallado",
+      "unidad": "gramos",
+      "stock": 4960,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4960,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 57,
+      "nombre": "Queso manchego rallado",
+      "unidad": "gramos",
+      "stock": 4960,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4960,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 58,
+      "nombre": "Queso parmesano rallado",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 59,
+      "nombre": "Queso panela en cubos",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 60,
+      "nombre": "Queso de cabra",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 61,
+      "nombre": "Queso mascarpone",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 62,
+      "nombre": "Requesón fresco",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 63,
+      "nombre": "Queso crema",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 64,
+      "nombre": "Frijol negro en grano",
+      "unidad": "gramos",
+      "stock": 4680,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4680,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 65,
+      "nombre": "Manteca de cerdo",
+      "unidad": "gramos",
+      "stock": 4940,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4940,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 66,
+      "nombre": "Pasta fettuccini",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 67,
+      "nombre": "Pasta pappardelle",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 68,
+      "nombre": "Frutos rojos frescos",
+      "unidad": "gramos",
+      "stock": 4480,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4480,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 69,
+      "nombre": "Granola de la casa",
+      "unidad": "gramos",
+      "stock": 4840,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4840,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 70,
+      "nombre": "Fresas frescas",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 71,
+      "nombre": "Durazno fresco",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 72,
+      "nombre": "Almendra fileteada",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 73,
+      "nombre": "Nuez caramelizada",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 74,
+      "nombre": "Arándanos deshidratados",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 75,
+      "nombre": "Mix de lechugas orgánicas",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 76,
+      "nombre": "Lechuga orejona",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 77,
+      "nombre": "Espinaca baby",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 78,
+      "nombre": "Calabaza italiana",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 79,
+      "nombre": "Champiñones frescos",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 80,
+      "nombre": "Granos de elote amarillo",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 81,
+      "nombre": "Chilacayote picado",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 82,
+      "nombre": "Pepino fresco",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 83,
+      "nombre": "Manzana verde",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 84,
+      "nombre": "Papa cambray",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 85,
+      "nombre": "Papa gajo congelada",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 86,
+      "nombre": "Hojuelas de puré de papa",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 87,
+      "nombre": "Espárragos frescos",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 88,
+      "nombre": "Mix de vegetales",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 89,
+      "nombre": "Mantequilla sin sal",
+      "unidad": "gramos",
+      "stock": 4700,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4700,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 90,
+      "nombre": "Harina de trigo",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 91,
+      "nombre": "Azúcar estándar",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 92,
+      "nombre": "Chocolate semi-amargo",
+      "unidad": "gramos",
+      "stock": 4865,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4865,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 93,
+      "nombre": "Chocolate blanco",
+      "unidad": "gramos",
+      "stock": 4880,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4880,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 94,
+      "nombre": "Pistache pelado",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 95,
+      "nombre": "Frambuesas frescas",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 96,
+      "nombre": "Pasta de mole tradicional",
+      "unidad": "gramos",
+      "stock": 4920,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4920,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 97,
+      "nombre": "Achiote en pasta",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 98,
+      "nombre": "Tomate verde",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 99,
+      "nombre": "Jitomate guaje",
+      "unidad": "gramos",
+      "stock": 4900,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4900,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 100,
+      "nombre": "Cebolla blanca",
+      "unidad": "gramos",
+      "stock": 4860,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4860,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 101,
+      "nombre": "Cebolla morada",
+      "unidad": "gramos",
+      "stock": 4980,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4980,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 102,
+      "nombre": "Chile serrano",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 103,
+      "nombre": "Chile poblano",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 104,
+      "nombre": "Chile manzano",
+      "unidad": "gramos",
+      "stock": 4940,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4940,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 105,
+      "nombre": "Chile habanero",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 106,
+      "nombre": "Chile guajillo seco",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 107,
+      "nombre": "Pimiento amarillo",
+      "unidad": "gramos",
+      "stock": 4760,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4760,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 108,
+      "nombre": "Cilantro fresco",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 109,
+      "nombre": "Epazote fresco",
+      "unidad": "gramos",
+      "stock": 4980,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4980,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 110,
+      "nombre": "Albahaca fresca",
+      "unidad": "gramos",
+      "stock": 4990,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4990,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 111,
+      "nombre": "Perejil fresco",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 112,
+      "nombre": "Ajo pelado",
+      "unidad": "gramos",
+      "stock": 4995,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4995,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 113,
+      "nombre": "Flor de calabaza",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 114,
+      "nombre": "Esquites al mezcal",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 115,
+      "nombre": "Chicharrón de cerdo crujiente",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 116,
+      "nombre": "Helado de vainilla",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 117,
+      "nombre": "Fruta picada de temporada",
+      "unidad": "gramos",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 118,
+      "nombre": "Crema ácida de rancho",
+      "unidad": "mililitros",
+      "stock": 4730,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4730,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 119,
+      "nombre": "Crema para batir",
+      "unidad": "mililitros",
+      "stock": 4810,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4810,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 120,
+      "nombre": "Leche entera",
+      "unidad": "mililitros",
+      "stock": 4800,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4800,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 121,
+      "nombre": "Aceite vegetal para freír",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 122,
+      "nombre": "Aceite de oliva extra virgen",
+      "unidad": "mililitros",
+      "stock": 4990,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4990,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 123,
+      "nombre": "Salsa de soya",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 124,
+      "nombre": "Mayonesa de la casa",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 125,
+      "nombre": "Mostaza dijon",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 126,
+      "nombre": "Miel de abeja",
+      "unidad": "mililitros",
+      "stock": 4920,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4920,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 127,
+      "nombre": "Vino tinto de cocina",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 128,
+      "nombre": "Vino blanco de cocina",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 129,
+      "nombre": "Vinagre de manzana",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 130,
+      "nombre": "Pulpa de maracuyá",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 131,
+      "nombre": "Pulpa de mango",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 132,
+      "nombre": "Jugo de limón natural",
+      "unidad": "mililitros",
+      "stock": 4980,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4980,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 133,
+      "nombre": "Jugo de naranja natural",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 134,
+      "nombre": "Caldo de pollo concentrado",
+      "unidad": "mililitros",
+      "stock": 4940,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 4940,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    },
+    {
+      "id": 135,
+      "nombre": "Café americano preparado",
+      "unidad": "mililitros",
+      "stock": 5000,
+      "stock_minimo": 500,
+      "stock_bodega": 5000,
+      "stock_cocina": 5000,
+      "stock_barra": 0,
+      "es_bebida": false,
+      "precio_venta": null,
+      "is_active": true
+    }
+  ],
+  "products": [
+    {
+      "id": 12,
+      "nombre": "COPA DE FRUTOS ROJOS",
+      "descripcion": "Mix de frutos rojos, yogurt, granola y miel. ",
+      "precio": 155.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "DESAYUNOS"
+    },
+    {
+      "id": 13,
+      "nombre": "PAN FRANCES",
+      "descripcion": "Pan Brioche de la casa, endulzado y servido con mouse de chocolate blanco y semi amargo",
+      "precio": 225.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "DESAYUNOS"
+    },
+    {
+      "id": 14,
+      "nombre": "PAN ARTESANAL",
+      "descripcion": "Pan del día con el toque casero de Petra. ",
+      "precio": 35.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "DESAYUNOS"
+    },
+    {
+      "id": 15,
+      "nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "descripcion": "Salsa de pimiento con un toque de chile manzano, acompañadas de queso, crema y cebolla. (100 gr. de Pollo) ",
+      "precio": 225.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENCHILADAS"
+    },
+    {
+      "id": 16,
+      "nombre": "ENCHILADAS VERDES O ROJAS",
+      "descripcion": "Rellenas con 100 gr. de pollo, servidas con queso, crema, cebolla y frijoles refritos. ",
+      "precio": 210.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENCHILADAS"
+    },
+    {
+      "id": 17,
+      "nombre": "ENCHILADAS SUIZAS VERDES",
+      "descripcion": "Rellenas de 100 gr. de pollo, gratinadas con queso, crema, cebolla y frijoles refritos. ",
+      "precio": 215.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENCHILADAS"
+    },
+    {
+      "id": 18,
+      "nombre": "ENMOLADAS PETRA",
+      "descripcion": "Rellenas con 100 gr de pollo, servidas con mole de la casa, queso, crema y aros de cebolla. ",
+      "precio": 215.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENCHILADAS"
+    },
+    {
+      "id": 19,
+      "nombre": "CHILAQUILES VERDES O ROJOS",
+      "descripcion": "Proteína a elegir: huevo 2 pzs, pollo deshebrado, chorizo, cecina, milanesa de pollo. Servidos con queso, crema y cebolla. (100 gr. de proteína).",
+      "precio": 205.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "CHILAQUILES"
+    },
+    {
+      "id": 20,
+      "nombre": "ESPECIALES PETRA",
+      "descripcion": "En salsa blanca de Habanero y queso, gratinados, servidos con 100 gr de arrachera, con aguacate, crema y cebolla.",
+      "precio": 225.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "CHILAQUILES"
+    },
+    {
+      "id": 21,
+      "nombre": "SANDWICH PARMESANO",
+      "descripcion": "150 gr de pechuga de pollo crujiente en pan ciabatta, salsa de tomate, queso gratinado, espinaca y papas fritas.",
+      "precio": 225.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ESPECIALES"
+    },
+    {
+      "id": 22,
+      "nombre": "AVOCADO TOAST",
+      "descripcion": "Cremoso de aguacate servido sobre pan ciabatta, 1 pza de huevo duro, 50 gr de salmón ahumado y reducción de vino tinto.",
+      "precio": 245.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ESPECIALES"
+    },
+    {
+      "id": 23,
+      "nombre": "GRILL CHEESE",
+      "descripcion": "Pan brioche con mantequilla de hierbas italianas, relleno de 100 gr de tocino y mezcla de quesos, con un shot de crema de tomate.",
+      "precio": 215.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ESPECIALES"
+    },
+    {
+      "id": 24,
+      "nombre": "OMELETTE MILPA",
+      "descripcion": "Relleno de calabaza, champiñón, granos de elote, rajas poblanas, chilacayote y queso panela. Bañado en salsa poblana.",
+      "precio": 210.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "id": 25,
+      "nombre": "OMELETTE SALMON",
+      "descripcion": "Relleno de salmón ahumado, espinaca, requesón, sobre una salsa roja de tomate. Acompañado con mix de lechugas.",
+      "precio": 230.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "id": 26,
+      "nombre": "BENEDICTINOS PETRA",
+      "descripcion": "Huevos pochados servidos sobre english muffin, 100 gr de salmón ahumado, bañados en salsa holandesa.",
+      "precio": 215.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "id": 27,
+      "nombre": "APORREADO PETRA",
+      "descripcion": "100 gr de cecina, 2 pzs de huevo, salsa de su elección, guarnición de frijoles refritos.",
+      "precio": 235.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "id": 28,
+      "nombre": "HUEVOS AL GUSTO",
+      "descripcion": "(Jamón, chorizo, a la mexicana, tocino), acompañados de chilaquiles y frijoles refritos.",
+      "precio": 135.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "id": 29,
+      "nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "descripcion": "50 gr de atún laminado en salsa ponzu ligeramente picante, aguacate, chile serrano, pepino y mayonesa.",
+      "precio": 150.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "id": 30,
+      "nombre": "TOSTADAS DE PULPO ASADO 3 PZS",
+      "descripcion": "150 gr de pulpo asado, aceite de chiles secos, cremoso de aguacate, cebolla encurtida y lechuga.",
+      "precio": 275.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "id": 31,
+      "nombre": "CROQUETA DE PLATANO MACHO",
+      "descripcion": "Relleno de filete de res y queso gouda, sobre un mole de flor de calabaza hecho en casa.",
+      "precio": 210.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "id": 32,
+      "nombre": "EMPANADAS DE CAMARON Y MARACUYÁ",
+      "descripcion": "3 pzs rellenas de camarón, queso manchego, tomate rostizado, con salsa de maracuyá y chipotle.",
+      "precio": 275.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "id": 33,
+      "nombre": "QUESO PROVOLONE",
+      "descripcion": "Con mermelada de tomate y pimientos asados, aromatizado con romero y reducción de vino tinto.",
+      "precio": 295.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "id": 34,
+      "nombre": "TACOS DE PICANHA 3 PZS",
+      "descripcion": "Con costra de queso, cebolla caramelizada, salsa de piña tatemada y habanero.",
+      "precio": 225.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "id": 35,
+      "nombre": "EL APAPACHO",
+      "descripcion": "Cosecha de la milpa con fondo de pollo, acompañada de chile verde, cebolla y tropiezos de panela. (Pollo 50 gr)",
+      "precio": 180.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "id": 36,
+      "nombre": "CREMA DE PISTACHE",
+      "descripcion": "Servida con esferas de queso de cabra y pistache tostado. (180 ml)",
+      "precio": 195.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "id": 37,
+      "nombre": "SOPA DE TORTILLA",
+      "descripcion": "Servida con pulpo y camarón al gratín, julianas de tortilla, aguacate, queso panela, crema, chicharrón y guindillas de chile guajillo.",
+      "precio": 255.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "id": 38,
+      "nombre": "PASTA NORDICA",
+      "descripcion": "Feticcini en salsa de 3 quesos y salmón, queso parmesano. (50 gr de Salmón)",
+      "precio": 215.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "id": 39,
+      "nombre": "PASTA TRAVIATA",
+      "descripcion": "Fetuccini al pomodoro cremoso ligeramente picante, servida con punta de filete de Res y queso parmesano. (50 gr de Filete)",
+      "precio": 215.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "id": 40,
+      "nombre": "PAPPARDELLE RELLENO DE RAGÚ",
+      "descripcion": "Pasta fresca rellena de ragú de res (180 gr), servido en salsa blanca de jamón serrano y vino blanco.",
+      "precio": 230.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "id": 41,
+      "nombre": "ENSALADA RUBÍ",
+      "descripcion": "Mix de lechugas, fresas, perlas de queso de cabra, arándanos, nuez caramelizada y vinagreta de mostaza.",
+      "precio": 195.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "id": 42,
+      "nombre": "ENSALADA PEACH",
+      "descripcion": "Mix de lechugas, durazno, almendra fileteada, queso parmesano y vinagreta de naranja.",
+      "precio": 195.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "id": 43,
+      "nombre": "ENSALADA CÉSAR PETRA (POLLO)",
+      "descripcion": "Hojas de lechuga, queso parmesano y aderezo hecho en casa. Con 100 gr de pechuga de pollo.",
+      "precio": 255.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "id": 44,
+      "nombre": "ENSALADA CÉSAR PETRA (CAMARÓN)",
+      "descripcion": "Hojas de lechuga, queso parmesano y aderezo hecho en casa. Con 100 gr de camarón.",
+      "precio": 270.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "id": 45,
+      "nombre": "ENSALADA CÉSAR PETRA (ARRACHERA)",
+      "descripcion": "Hojas de lechuga, queso parmesano y aderezo hecho en casa. Con 100 gr de arrachera.",
+      "precio": 270.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "id": 46,
+      "nombre": "BIFE PETRA (CHOICE)",
+      "descripcion": "Ribe ye al grill con cremoso de papa, chimichurri y chiles toreados. (250 gr)",
+      "precio": 595.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "id": 47,
+      "nombre": "FILETE MAR Y TIERRA",
+      "descripcion": "170 gr de Filete mignon acompañado de 2 pzs de camarones, en salsa roja de langostinos y micro retoños.",
+      "precio": 410.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "id": 48,
+      "nombre": "PECHUGA MATAMOROS",
+      "descripcion": "Pechuga de pollo rellena de surimi y queso crema, salsa bechamel, salsa de mango picante y ensalada verde.",
+      "precio": 385.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "id": 49,
+      "nombre": "PECHUGA ESPECIAL PETRA",
+      "descripcion": "Rollo de pollo relleno de esquites al mezcal, en salsa de flor de calabaza.",
+      "precio": 365.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "id": 50,
+      "nombre": "SALMÓN SPICY",
+      "descripcion": "180 gr de filete de salmón asado, puré de guisantes, manzana asada, salsa cítrica y ensalada verde.",
+      "precio": 400.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "id": 51,
+      "nombre": "PULPO ENDIABLADO",
+      "descripcion": "160 gr de tentáculo de pulpo sarandeado y servido con papa cambray al ajillo y cebolla encurtida.",
+      "precio": 415.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "id": 52,
+      "nombre": "MENU INFANTIL",
+      "descripcion": "Pechuga de pollo empanizada, con guarnición de pasta a la crema y papas a la francesa. (100 gr)",
+      "precio": 295.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "MENÚ INFANTIL"
+    },
+    {
+      "id": 53,
+      "nombre": "HUEVO EXTRA 1 PZA",
+      "descripcion": "Huevo extra 1 pza.",
+      "precio": 15.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 54,
+      "nombre": "CHORIZO EXTRA 100 GR",
+      "descripcion": "Chorizo extra 100 gr.",
+      "precio": 50.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 55,
+      "nombre": "ARRACHERA EXTRA 100 GR",
+      "descripcion": "Arrachera extra 100 gr.",
+      "precio": 75.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 56,
+      "nombre": "POLLO EXTRA 100 GR",
+      "descripcion": "Pollo extra 100 gr.",
+      "precio": 40.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 57,
+      "nombre": "CECINA EXTRA 100 GR",
+      "descripcion": "Cecina extra 100 gr.",
+      "precio": 65.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 58,
+      "nombre": "BOLA DE HELADO EXTRA",
+      "descripcion": "Bola de helado extra.",
+      "precio": 15.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 59,
+      "nombre": "ARMA TU DESAYUNO COMPLETO",
+      "descripcion": "Café americano o té, fruta de temporada 120 gr, jugo de naranja copa de 4 oz.",
+      "precio": 75.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 60,
+      "nombre": "PAPA GAJO 200 GR",
+      "descripcion": "Papa gajo 200 gr.",
+      "precio": 70.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 61,
+      "nombre": "PURE DE PAPA 120 GR",
+      "descripcion": "Puré de papa 120 gr.",
+      "precio": 85.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 62,
+      "nombre": "MIX DE VEGETALES 120 GR",
+      "descripcion": "Mix de vegetales 120 gr.",
+      "precio": 80.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 63,
+      "nombre": "ESPARRAGOS CON JAMON SERRANO 120 GR",
+      "descripcion": "Espárragos con jamón serrano 120 gr.",
+      "precio": 135.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 64,
+      "nombre": "PECHUGA DE POLLO 100 GR",
+      "descripcion": "Pechuga de pollo 100 gr.",
+      "precio": 55.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 65,
+      "nombre": "CANASTA DE PAN 60 GR",
+      "descripcion": "Canasta de pan 60 gr.",
+      "precio": 65.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "id": 66,
+      "nombre": "CHEESE CAKE",
+      "descripcion": "Con compota de vino tinto.",
+      "precio": 175.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "POSTRES"
+    },
+    {
+      "id": 67,
+      "nombre": "TARTA DE PISTACHE",
+      "descripcion": "Rellena de praliné de pistache, compota y frambuesas frescas.",
+      "precio": 175.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "POSTRES"
+    },
+    {
+      "id": 68,
+      "nombre": "PETITE FOURS CHOCOLATE",
+      "descripcion": "Base de bizcocho de almendra, crema catalana y mouse de chocolate, sobre galleta sable.",
+      "precio": 185.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "POSTRES"
+    },
+    {
+      "id": 69,
+      "nombre": "TARTA DE QUESO MASCARPONE",
+      "descripcion": "Tarta de chocolate con queso mascarpone y frutos rojos.",
+      "precio": 175.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": false,
+      "is_active": true,
+      "category_nombre": "POSTRES"
+    },
+    {
+      "id": 70,
+      "nombre": "Salsa Verde de la Casa",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 71,
+      "nombre": "Salsa Roja Ranchera",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 72,
+      "nombre": "Salsa Amarillita Petra",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 73,
+      "nombre": "Mole Especial Petra",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 74,
+      "nombre": "Frijoles Refritos de la Casa",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 75,
+      "nombre": "Salsa Blanca de Habanero",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 76,
+      "nombre": "Salsa Pomodoro Cremosa",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 77,
+      "nombre": "Cremoso de Aguacate",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 78,
+      "nombre": "Salsa Poblana",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 79,
+      "nombre": "Salsa Holandesa",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 80,
+      "nombre": "Salsa Ponzu Cítrica",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 81,
+      "nombre": "Mole de Flor de Calabaza",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 82,
+      "nombre": "Salsa de Maracuyá y Chipotle",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 83,
+      "nombre": "Salsa de Piña Tatemada y Habanero",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 84,
+      "nombre": "Fondo de Pollo Milpa",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 85,
+      "nombre": "Salsa 3 Quesos",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 86,
+      "nombre": "Ragú de Res Tradicional",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 87,
+      "nombre": "Aderezo César Hecho en Casa",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 88,
+      "nombre": "Vinagreta de Mostaza y Miel",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 89,
+      "nombre": "Vinagreta de Naranja",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 90,
+      "nombre": "Chimichurri de la Casa",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 91,
+      "nombre": "Salsa Roja de Langostinos",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 92,
+      "nombre": "Salsa Bechamel",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 93,
+      "nombre": "Salsa de Mango Picante",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 94,
+      "nombre": "Puré de Guisantes",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 95,
+      "nombre": "Adobo Sarandeado para Pulpo",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 96,
+      "nombre": "Compota de Vino Tinto",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 97,
+      "nombre": "Mousse de Chocolate Bicolor",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "id": 98,
+      "nombre": "Praliné de Pistache",
+      "descripcion": "Sub-receta de cocina",
+      "precio": 0.0,
+      "img_url": "",
+      "stock": 0,
+      "stock_minimo": 0,
+      "unidad": "pieza",
+      "venta_individual": false,
+      "auto_availability": true,
+      "es_sub_receta": true,
+      "is_active": true,
+      "category_nombre": "Preparaciones"
+    }
+  ],
+  "product_categories": [
+    {
+      "product_nombre": "COPA DE FRUTOS ROJOS",
+      "category_nombre": "DESAYUNOS"
+    },
+    {
+      "product_nombre": "PAN FRANCES",
+      "category_nombre": "DESAYUNOS"
+    },
+    {
+      "product_nombre": "PAN ARTESANAL",
+      "category_nombre": "DESAYUNOS"
+    },
+    {
+      "product_nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "category_nombre": "ENCHILADAS"
+    },
+    {
+      "product_nombre": "ENCHILADAS VERDES O ROJAS",
+      "category_nombre": "ENCHILADAS"
+    },
+    {
+      "product_nombre": "ENCHILADAS SUIZAS VERDES",
+      "category_nombre": "ENCHILADAS"
+    },
+    {
+      "product_nombre": "ENMOLADAS PETRA",
+      "category_nombre": "ENCHILADAS"
+    },
+    {
+      "product_nombre": "CHILAQUILES VERDES O ROJOS",
+      "category_nombre": "CHILAQUILES"
+    },
+    {
+      "product_nombre": "ESPECIALES PETRA",
+      "category_nombre": "CHILAQUILES"
+    },
+    {
+      "product_nombre": "SANDWICH PARMESANO",
+      "category_nombre": "ESPECIALES"
+    },
+    {
+      "product_nombre": "AVOCADO TOAST",
+      "category_nombre": "ESPECIALES"
+    },
+    {
+      "product_nombre": "GRILL CHEESE",
+      "category_nombre": "ESPECIALES"
+    },
+    {
+      "product_nombre": "OMELETTE MILPA",
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "product_nombre": "OMELETTE SALMON",
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "product_nombre": "BENEDICTINOS PETRA",
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "product_nombre": "APORREADO PETRA",
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "product_nombre": "HUEVOS AL GUSTO",
+      "category_nombre": "HUEVOS"
+    },
+    {
+      "product_nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "product_nombre": "TOSTADAS DE PULPO ASADO 3 PZS",
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "product_nombre": "CROQUETA DE PLATANO MACHO",
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "product_nombre": "EMPANADAS DE CAMARON Y MARACUYÁ",
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "product_nombre": "QUESO PROVOLONE",
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "product_nombre": "TACOS DE PICANHA 3 PZS",
+      "category_nombre": "ENTRADAS"
+    },
+    {
+      "product_nombre": "EL APAPACHO",
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "product_nombre": "CREMA DE PISTACHE",
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "product_nombre": "SOPA DE TORTILLA",
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "product_nombre": "PASTA NORDICA",
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "product_nombre": "PASTA TRAVIATA",
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "product_nombre": "PAPPARDELLE RELLENO DE RAGÚ",
+      "category_nombre": "SOPAS Y PASTAS"
+    },
+    {
+      "product_nombre": "ENSALADA RUBÍ",
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "product_nombre": "ENSALADA PEACH",
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "product_nombre": "ENSALADA CÉSAR PETRA (POLLO)",
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "product_nombre": "ENSALADA CÉSAR PETRA (CAMARÓN)",
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "product_nombre": "ENSALADA CÉSAR PETRA (ARRACHERA)",
+      "category_nombre": "ENSALADAS"
+    },
+    {
+      "product_nombre": "BIFE PETRA (CHOICE)",
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "product_nombre": "FILETE MAR Y TIERRA",
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "product_nombre": "PECHUGA MATAMOROS",
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "product_nombre": "PECHUGA ESPECIAL PETRA",
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "product_nombre": "SALMÓN SPICY",
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "product_nombre": "PULPO ENDIABLADO",
+      "category_nombre": "PLATOS FUERTES"
+    },
+    {
+      "product_nombre": "MENU INFANTIL",
+      "category_nombre": "MENÚ INFANTIL"
+    },
+    {
+      "product_nombre": "HUEVO EXTRA 1 PZA",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "CHORIZO EXTRA 100 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "ARRACHERA EXTRA 100 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "POLLO EXTRA 100 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "CECINA EXTRA 100 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "BOLA DE HELADO EXTRA",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "ARMA TU DESAYUNO COMPLETO",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "PAPA GAJO 200 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "PURE DE PAPA 120 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "MIX DE VEGETALES 120 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "ESPARRAGOS CON JAMON SERRANO 120 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "PECHUGA DE POLLO 100 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "CANASTA DE PAN 60 GR",
+      "category_nombre": "EXTRAS"
+    },
+    {
+      "product_nombre": "CHEESE CAKE",
+      "category_nombre": "POSTRES"
+    },
+    {
+      "product_nombre": "TARTA DE PISTACHE",
+      "category_nombre": "POSTRES"
+    },
+    {
+      "product_nombre": "PETITE FOURS CHOCOLATE",
+      "category_nombre": "POSTRES"
+    },
+    {
+      "product_nombre": "TARTA DE QUESO MASCARPONE",
+      "category_nombre": "POSTRES"
+    },
+    {
+      "product_nombre": "Salsa Verde de la Casa",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Roja Ranchera",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Amarillita Petra",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Mole Especial Petra",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Frijoles Refritos de la Casa",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Blanca de Habanero",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Pomodoro Cremosa",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Cremoso de Aguacate",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Poblana",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Holandesa",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Ponzu Cítrica",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Mole de Flor de Calabaza",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa de Maracuyá y Chipotle",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa de Piña Tatemada y Habanero",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Fondo de Pollo Milpa",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa 3 Quesos",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Ragú de Res Tradicional",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Aderezo César Hecho en Casa",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Vinagreta de Mostaza y Miel",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Vinagreta de Naranja",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Chimichurri de la Casa",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Roja de Langostinos",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa Bechamel",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Salsa de Mango Picante",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Puré de Guisantes",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Adobo Sarandeado para Pulpo",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Compota de Vino Tinto",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Mousse de Chocolate Bicolor",
+      "category_nombre": "Preparaciones"
+    },
+    {
+      "product_nombre": "Praliné de Pistache",
+      "category_nombre": "Preparaciones"
+    }
+  ],
+  "recipes": [
+    {
+      "dish_nombre": "COPA DE FRUTOS ROJOS",
+      "insumo_nombre": "Frutos rojos frescos",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "COPA DE FRUTOS ROJOS",
+      "insumo_nombre": "Granola de la casa",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "COPA DE FRUTOS ROJOS",
+      "insumo_nombre": "Miel de abeja",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAN FRANCES",
+      "insumo_nombre": "Pan brioche",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAN FRANCES",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAN FRANCES",
+      "insumo_nombre": "Leche entera",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAN FRANCES",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAN FRANCES",
+      "insumo_nombre": "Frutos rojos frescos",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAN ARTESANAL",
+      "insumo_nombre": "Pan artesanal",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAN ARTESANAL",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "insumo_nombre": "Tortilla de maíz",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "insumo_nombre": "Pechuga de pollo deshebrada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "insumo_nombre": "Queso fresco de rancho",
+      "cantidad": 30.0,
+      "modificable": true
+    },
+    {
+      "dish_nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 30.0,
+      "modificable": true
+    },
+    {
+      "dish_nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": true
+    },
+    {
+      "dish_nombre": "ENCHILADAS VERDES O ROJAS",
+      "insumo_nombre": "Tortilla de maíz",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS VERDES O ROJAS",
+      "insumo_nombre": "Pechuga de pollo deshebrada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS VERDES O ROJAS",
+      "insumo_nombre": "Queso fresco de rancho",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS VERDES O ROJAS",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS VERDES O ROJAS",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS SUIZAS VERDES",
+      "insumo_nombre": "Tortilla de maíz",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS SUIZAS VERDES",
+      "insumo_nombre": "Pechuga de pollo deshebrada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS SUIZAS VERDES",
+      "insumo_nombre": "Queso manchego rallado",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS SUIZAS VERDES",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENCHILADAS SUIZAS VERDES",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENMOLADAS PETRA",
+      "insumo_nombre": "Tortilla de maíz",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENMOLADAS PETRA",
+      "insumo_nombre": "Pechuga de pollo deshebrada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENMOLADAS PETRA",
+      "insumo_nombre": "Queso fresco de rancho",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENMOLADAS PETRA",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENMOLADAS PETRA",
+      "insumo_nombre": "Cebolla morada",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHILAQUILES VERDES O ROJOS",
+      "insumo_nombre": "Totopos",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHILAQUILES VERDES O ROJOS",
+      "insumo_nombre": "Pechuga de pollo deshebrada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHILAQUILES VERDES O ROJOS",
+      "insumo_nombre": "Queso fresco de rancho",
+      "cantidad": 35.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHILAQUILES VERDES O ROJOS",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 35.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHILAQUILES VERDES O ROJOS",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPECIALES PETRA",
+      "insumo_nombre": "Totopos",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPECIALES PETRA",
+      "insumo_nombre": "Arrachera marinada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPECIALES PETRA",
+      "insumo_nombre": "Aguacate hass entero",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPECIALES PETRA",
+      "insumo_nombre": "Queso gouda rallado",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPECIALES PETRA",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPECIALES PETRA",
+      "insumo_nombre": "Cebolla morada",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SANDWICH PARMESANO",
+      "insumo_nombre": "Pan ciabatta",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SANDWICH PARMESANO",
+      "insumo_nombre": "Pechuga de pollo fileteada",
+      "cantidad": 150.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SANDWICH PARMESANO",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SANDWICH PARMESANO",
+      "insumo_nombre": "Espinaca baby",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SANDWICH PARMESANO",
+      "insumo_nombre": "Papa gajo congelada",
+      "cantidad": 150.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SANDWICH PARMESANO",
+      "insumo_nombre": "Aceite vegetal para freír",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "AVOCADO TOAST",
+      "insumo_nombre": "Pan ciabatta",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "AVOCADO TOAST",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "AVOCADO TOAST",
+      "insumo_nombre": "Salmón ahumado laminado",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "AVOCADO TOAST",
+      "insumo_nombre": "Vino tinto de cocina",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "GRILL CHEESE",
+      "insumo_nombre": "Pan brioche",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "GRILL CHEESE",
+      "insumo_nombre": "Tocino ahumado",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "GRILL CHEESE",
+      "insumo_nombre": "Queso gouda rallado",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "GRILL CHEESE",
+      "insumo_nombre": "Queso manchego rallado",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "GRILL CHEESE",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE MILPA",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE MILPA",
+      "insumo_nombre": "Calabaza italiana",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE MILPA",
+      "insumo_nombre": "Champiñones frescos",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE MILPA",
+      "insumo_nombre": "Granos de elote amarillo",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE MILPA",
+      "insumo_nombre": "Chilacayote picado",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE MILPA",
+      "insumo_nombre": "Queso panela en cubos",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE MILPA",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE SALMON",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE SALMON",
+      "insumo_nombre": "Salmón ahumado laminado",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE SALMON",
+      "insumo_nombre": "Espinaca baby",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE SALMON",
+      "insumo_nombre": "Requesón fresco",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE SALMON",
+      "insumo_nombre": "Mix de lechugas orgánicas",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "OMELETTE SALMON",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BENEDICTINOS PETRA",
+      "insumo_nombre": "English muffin",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BENEDICTINOS PETRA",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 2.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BENEDICTINOS PETRA",
+      "insumo_nombre": "Salmón ahumado laminado",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "APORREADO PETRA",
+      "insumo_nombre": "Cecina de res",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "APORREADO PETRA",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 2.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "APORREADO PETRA",
+      "insumo_nombre": "Aceite vegetal para freír",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "HUEVOS AL GUSTO",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 2.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "HUEVOS AL GUSTO",
+      "insumo_nombre": "Jamón de pavo",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "HUEVOS AL GUSTO",
+      "insumo_nombre": "Chorizo de cerdo",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "HUEVOS AL GUSTO",
+      "insumo_nombre": "Totopos",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "insumo_nombre": "Tortilla de maíz",
+      "cantidad": 2.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "insumo_nombre": "Atún fresco laminado",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "insumo_nombre": "Aguacate hass entero",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "insumo_nombre": "Chile serrano",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "insumo_nombre": "Pepino fresco",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "insumo_nombre": "Mayonesa de la casa",
+      "cantidad": 25.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE PULPO ASADO 3 PZS",
+      "insumo_nombre": "Tortilla de maíz",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE PULPO ASADO 3 PZS",
+      "insumo_nombre": "Pulpo cocido",
+      "cantidad": 150.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE PULPO ASADO 3 PZS",
+      "insumo_nombre": "Cebolla morada",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE PULPO ASADO 3 PZS",
+      "insumo_nombre": "Mix de lechugas orgánicas",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TOSTADAS DE PULPO ASADO 3 PZS",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CROQUETA DE PLATANO MACHO",
+      "insumo_nombre": "Croqueta de plátano macho cruda",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CROQUETA DE PLATANO MACHO",
+      "insumo_nombre": "Filete de res",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CROQUETA DE PLATANO MACHO",
+      "insumo_nombre": "Queso gouda rallado",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CROQUETA DE PLATANO MACHO",
+      "insumo_nombre": "Aceite vegetal para freír",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EMPANADAS DE CAMARON Y MARACUYÁ",
+      "insumo_nombre": "Empanada de camarón y maracuyá cruda",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EMPANADAS DE CAMARON Y MARACUYÁ",
+      "insumo_nombre": "Camarón pacotilla",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EMPANADAS DE CAMARON Y MARACUYÁ",
+      "insumo_nombre": "Queso manchego rallado",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EMPANADAS DE CAMARON Y MARACUYÁ",
+      "insumo_nombre": "Jitomate guaje",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EMPANADAS DE CAMARON Y MARACUYÁ",
+      "insumo_nombre": "Aceite vegetal para freír",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "QUESO PROVOLONE",
+      "insumo_nombre": "Rueda de queso provolone",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "QUESO PROVOLONE",
+      "insumo_nombre": "Pimiento amarillo",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "QUESO PROVOLONE",
+      "insumo_nombre": "Jitomate guaje",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "QUESO PROVOLONE",
+      "insumo_nombre": "Vino tinto de cocina",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "QUESO PROVOLONE",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TACOS DE PICANHA 3 PZS",
+      "insumo_nombre": "Tortilla de maíz",
+      "cantidad": 3.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TACOS DE PICANHA 3 PZS",
+      "insumo_nombre": "Picanha de res",
+      "cantidad": 150.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TACOS DE PICANHA 3 PZS",
+      "insumo_nombre": "Queso gouda rallado",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TACOS DE PICANHA 3 PZS",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EL APAPACHO",
+      "insumo_nombre": "Pechuga de pollo deshebrada",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EL APAPACHO",
+      "insumo_nombre": "Queso panela en cubos",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EL APAPACHO",
+      "insumo_nombre": "Chile serrano",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EL APAPACHO",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "EL APAPACHO",
+      "insumo_nombre": "Granos de elote amarillo",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CREMA DE PISTACHE",
+      "insumo_nombre": "Pistache pelado",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CREMA DE PISTACHE",
+      "insumo_nombre": "Queso de cabra",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CREMA DE PISTACHE",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CREMA DE PISTACHE",
+      "insumo_nombre": "Leche entera",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CREMA DE PISTACHE",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "insumo_nombre": "Totopos",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "insumo_nombre": "Pulpo cocido",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "insumo_nombre": "Camarón pacotilla",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "insumo_nombre": "Queso panela en cubos",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "insumo_nombre": "Aguacate hass entero",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "insumo_nombre": "Chicharrón de cerdo crujiente",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "insumo_nombre": "Chile guajillo seco",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PASTA NORDICA",
+      "insumo_nombre": "Pasta fettuccini",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PASTA NORDICA",
+      "insumo_nombre": "Filete de salmón fresco",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PASTA NORDICA",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 25.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PASTA TRAVIATA",
+      "insumo_nombre": "Pasta fettuccini",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PASTA TRAVIATA",
+      "insumo_nombre": "Filete de res",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PASTA TRAVIATA",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 25.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAPPARDELLE RELLENO DE RAGÚ",
+      "insumo_nombre": "Pasta pappardelle",
+      "cantidad": 180.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAPPARDELLE RELLENO DE RAGÚ",
+      "insumo_nombre": "Jamón serrano",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAPPARDELLE RELLENO DE RAGÚ",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAPPARDELLE RELLENO DE RAGÚ",
+      "insumo_nombre": "Vino blanco de cocina",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA RUBÍ",
+      "insumo_nombre": "Mix de lechugas orgánicas",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA RUBÍ",
+      "insumo_nombre": "Fresas frescas",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA RUBÍ",
+      "insumo_nombre": "Queso de cabra",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA RUBÍ",
+      "insumo_nombre": "Arándanos deshidratados",
+      "cantidad": 25.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA RUBÍ",
+      "insumo_nombre": "Nuez caramelizada",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA PEACH",
+      "insumo_nombre": "Mix de lechugas orgánicas",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA PEACH",
+      "insumo_nombre": "Durazno fresco",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA PEACH",
+      "insumo_nombre": "Almendra fileteada",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA PEACH",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (POLLO)",
+      "insumo_nombre": "Lechuga orejona",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (POLLO)",
+      "insumo_nombre": "Pechuga de pollo fileteada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (POLLO)",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 35.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (POLLO)",
+      "insumo_nombre": "Pan artesanal",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (CAMARÓN)",
+      "insumo_nombre": "Lechuga orejona",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (CAMARÓN)",
+      "insumo_nombre": "Camarón pacotilla",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (CAMARÓN)",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 35.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (CAMARÓN)",
+      "insumo_nombre": "Pan artesanal",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (ARRACHERA)",
+      "insumo_nombre": "Lechuga orejona",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (ARRACHERA)",
+      "insumo_nombre": "Arrachera marinada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (ARRACHERA)",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 35.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (ARRACHERA)",
+      "insumo_nombre": "Pan artesanal",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BIFE PETRA (CHOICE)",
+      "insumo_nombre": "Rib eye choice",
+      "cantidad": 250.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BIFE PETRA (CHOICE)",
+      "insumo_nombre": "Hojuelas de puré de papa",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BIFE PETRA (CHOICE)",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 25.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BIFE PETRA (CHOICE)",
+      "insumo_nombre": "Leche entera",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BIFE PETRA (CHOICE)",
+      "insumo_nombre": "Chile serrano",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "FILETE MAR Y TIERRA",
+      "insumo_nombre": "Filete de res",
+      "cantidad": 170.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "FILETE MAR Y TIERRA",
+      "insumo_nombre": "Camarón gigante U15",
+      "cantidad": 2.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "FILETE MAR Y TIERRA",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PECHUGA MATAMOROS",
+      "insumo_nombre": "Pechuga de pollo fileteada",
+      "cantidad": 180.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PECHUGA MATAMOROS",
+      "insumo_nombre": "Surimi",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PECHUGA MATAMOROS",
+      "insumo_nombre": "Queso crema",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PECHUGA MATAMOROS",
+      "insumo_nombre": "Mix de lechugas orgánicas",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PECHUGA ESPECIAL PETRA",
+      "insumo_nombre": "Rollo de pechuga especial crudo",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PECHUGA ESPECIAL PETRA",
+      "insumo_nombre": "Pechuga de pollo fileteada",
+      "cantidad": 180.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PECHUGA ESPECIAL PETRA",
+      "insumo_nombre": "Esquites al mezcal",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SALMÓN SPICY",
+      "insumo_nombre": "Filete de salmón fresco",
+      "cantidad": 180.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SALMÓN SPICY",
+      "insumo_nombre": "Manzana verde",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SALMÓN SPICY",
+      "insumo_nombre": "Mix de lechugas orgánicas",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "SALMÓN SPICY",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PULPO ENDIABLADO",
+      "insumo_nombre": "Pulpo cocido",
+      "cantidad": 160.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PULPO ENDIABLADO",
+      "insumo_nombre": "Papa cambray",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PULPO ENDIABLADO",
+      "insumo_nombre": "Ajo pelado",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PULPO ENDIABLADO",
+      "insumo_nombre": "Cebolla morada",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PULPO ENDIABLADO",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 25.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MENU INFANTIL",
+      "insumo_nombre": "Pechuga de pollo fileteada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MENU INFANTIL",
+      "insumo_nombre": "Harina de trigo",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MENU INFANTIL",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MENU INFANTIL",
+      "insumo_nombre": "Papa gajo congelada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MENU INFANTIL",
+      "insumo_nombre": "Pasta fettuccini",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MENU INFANTIL",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MENU INFANTIL",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "HUEVO EXTRA 1 PZA",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHORIZO EXTRA 100 GR",
+      "insumo_nombre": "Chorizo de cerdo",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ARRACHERA EXTRA 100 GR",
+      "insumo_nombre": "Arrachera marinada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "POLLO EXTRA 100 GR",
+      "insumo_nombre": "Pechuga de pollo deshebrada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CECINA EXTRA 100 GR",
+      "insumo_nombre": "Cecina de res",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "BOLA DE HELADO EXTRA",
+      "insumo_nombre": "Helado de vainilla",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ARMA TU DESAYUNO COMPLETO",
+      "insumo_nombre": "Café americano preparado",
+      "cantidad": 180.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ARMA TU DESAYUNO COMPLETO",
+      "insumo_nombre": "Fruta picada de temporada",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ARMA TU DESAYUNO COMPLETO",
+      "insumo_nombre": "Jugo de naranja natural",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAPA GAJO 200 GR",
+      "insumo_nombre": "Papa gajo congelada",
+      "cantidad": 200.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PAPA GAJO 200 GR",
+      "insumo_nombre": "Aceite vegetal para freír",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PURE DE PAPA 120 GR",
+      "insumo_nombre": "Hojuelas de puré de papa",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PURE DE PAPA 120 GR",
+      "insumo_nombre": "Leche entera",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PURE DE PAPA 120 GR",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MIX DE VEGETALES 120 GR",
+      "insumo_nombre": "Mix de vegetales",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "MIX DE VEGETALES 120 GR",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPARRAGOS CON JAMON SERRANO 120 GR",
+      "insumo_nombre": "Espárragos frescos",
+      "cantidad": 90.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPARRAGOS CON JAMON SERRANO 120 GR",
+      "insumo_nombre": "Jamón serrano",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "ESPARRAGOS CON JAMON SERRANO 120 GR",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PECHUGA DE POLLO 100 GR",
+      "insumo_nombre": "Pechuga de pollo fileteada",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CANASTA DE PAN 60 GR",
+      "insumo_nombre": "Canasta de pan",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHEESE CAKE",
+      "insumo_nombre": "Queso crema",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHEESE CAKE",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHEESE CAKE",
+      "insumo_nombre": "Azúcar estándar",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "CHEESE CAKE",
+      "insumo_nombre": "Base de galleta sable",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TARTA DE PISTACHE",
+      "insumo_nombre": "Base de galleta sable",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TARTA DE PISTACHE",
+      "insumo_nombre": "Frambuesas frescas",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PETITE FOURS CHOCOLATE",
+      "insumo_nombre": "Base de galleta sable",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PETITE FOURS CHOCOLATE",
+      "insumo_nombre": "Almendra fileteada",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "PETITE FOURS CHOCOLATE",
+      "insumo_nombre": "Azúcar estándar",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TARTA DE QUESO MASCARPONE",
+      "insumo_nombre": "Queso mascarpone",
+      "cantidad": 90.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TARTA DE QUESO MASCARPONE",
+      "insumo_nombre": "Chocolate semi-amargo",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TARTA DE QUESO MASCARPONE",
+      "insumo_nombre": "Frutos rojos frescos",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "TARTA DE QUESO MASCARPONE",
+      "insumo_nombre": "Base de galleta sable",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Verde de la Casa",
+      "insumo_nombre": "Tomate verde",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Verde de la Casa",
+      "insumo_nombre": "Chile serrano",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Verde de la Casa",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Verde de la Casa",
+      "insumo_nombre": "Cilantro fresco",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Verde de la Casa",
+      "insumo_nombre": "Ajo pelado",
+      "cantidad": 5.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Roja Ranchera",
+      "insumo_nombre": "Jitomate guaje",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Roja Ranchera",
+      "insumo_nombre": "Chile guajillo seco",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Roja Ranchera",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 25.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Roja Ranchera",
+      "insumo_nombre": "Ajo pelado",
+      "cantidad": 5.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Amarillita Petra",
+      "insumo_nombre": "Pimiento amarillo",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Amarillita Petra",
+      "insumo_nombre": "Chile manzano",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Amarillita Petra",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Amarillita Petra",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mole Especial Petra",
+      "insumo_nombre": "Pasta de mole tradicional",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mole Especial Petra",
+      "insumo_nombre": "Caldo de pollo concentrado",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mole Especial Petra",
+      "insumo_nombre": "Chocolate semi-amargo",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Frijoles Refritos de la Casa",
+      "insumo_nombre": "Frijol negro en grano",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Frijoles Refritos de la Casa",
+      "insumo_nombre": "Manteca de cerdo",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Frijoles Refritos de la Casa",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Frijoles Refritos de la Casa",
+      "insumo_nombre": "Epazote fresco",
+      "cantidad": 5.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Blanca de Habanero",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Blanca de Habanero",
+      "insumo_nombre": "Chile habanero",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Blanca de Habanero",
+      "insumo_nombre": "Queso crema",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Blanca de Habanero",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Pomodoro Cremosa",
+      "insumo_nombre": "Jitomate guaje",
+      "cantidad": 100.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Pomodoro Cremosa",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Pomodoro Cremosa",
+      "insumo_nombre": "Albahaca fresca",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Pomodoro Cremosa",
+      "insumo_nombre": "Ajo pelado",
+      "cantidad": 5.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Pomodoro Cremosa",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Cremoso de Aguacate",
+      "insumo_nombre": "Aguacate hass entero",
+      "cantidad": 1.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Cremoso de Aguacate",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Cremoso de Aguacate",
+      "insumo_nombre": "Jugo de limón natural",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Cremoso de Aguacate",
+      "insumo_nombre": "Cilantro fresco",
+      "cantidad": 5.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Poblana",
+      "insumo_nombre": "Chile poblano",
+      "cantidad": 60.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Poblana",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Poblana",
+      "insumo_nombre": "Caldo de pollo concentrado",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Poblana",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Holandesa",
+      "insumo_nombre": "Huevo fresco",
+      "cantidad": 2.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Holandesa",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Holandesa",
+      "insumo_nombre": "Jugo de limón natural",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Ponzu Cítrica",
+      "insumo_nombre": "Salsa de soya",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Ponzu Cítrica",
+      "insumo_nombre": "Jugo de limón natural",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Ponzu Cítrica",
+      "insumo_nombre": "Jugo de naranja natural",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mole de Flor de Calabaza",
+      "insumo_nombre": "Flor de calabaza",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mole de Flor de Calabaza",
+      "insumo_nombre": "Caldo de pollo concentrado",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mole de Flor de Calabaza",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mole de Flor de Calabaza",
+      "insumo_nombre": "Chile poblano",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Maracuyá y Chipotle",
+      "insumo_nombre": "Pulpa de maracuyá",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Maracuyá y Chipotle",
+      "insumo_nombre": "Chile habanero",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Maracuyá y Chipotle",
+      "insumo_nombre": "Miel de abeja",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Maracuyá y Chipotle",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Piña Tatemada y Habanero",
+      "insumo_nombre": "Chile habanero",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Piña Tatemada y Habanero",
+      "insumo_nombre": "Jugo de naranja natural",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Piña Tatemada y Habanero",
+      "insumo_nombre": "Cebolla morada",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Piña Tatemada y Habanero",
+      "insumo_nombre": "Miel de abeja",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Fondo de Pollo Milpa",
+      "insumo_nombre": "Caldo de pollo concentrado",
+      "cantidad": 250.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Fondo de Pollo Milpa",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Fondo de Pollo Milpa",
+      "insumo_nombre": "Cilantro fresco",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa 3 Quesos",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa 3 Quesos",
+      "insumo_nombre": "Queso gouda rallado",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa 3 Quesos",
+      "insumo_nombre": "Queso manchego rallado",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa 3 Quesos",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa 3 Quesos",
+      "insumo_nombre": "Vino blanco de cocina",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Ragú de Res Tradicional",
+      "insumo_nombre": "Filete de res",
+      "cantidad": 120.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Ragú de Res Tradicional",
+      "insumo_nombre": "Jitomate guaje",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Ragú de Res Tradicional",
+      "insumo_nombre": "Cebolla blanca",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Ragú de Res Tradicional",
+      "insumo_nombre": "Vino tinto de cocina",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Aderezo César Hecho en Casa",
+      "insumo_nombre": "Mayonesa de la casa",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Aderezo César Hecho en Casa",
+      "insumo_nombre": "Mostaza dijon",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Aderezo César Hecho en Casa",
+      "insumo_nombre": "Queso parmesano rallado",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Aderezo César Hecho en Casa",
+      "insumo_nombre": "Jugo de limón natural",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Aderezo César Hecho en Casa",
+      "insumo_nombre": "Ajo pelado",
+      "cantidad": 5.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Vinagreta de Mostaza y Miel",
+      "insumo_nombre": "Mostaza dijon",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Vinagreta de Mostaza y Miel",
+      "insumo_nombre": "Miel de abeja",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Vinagreta de Mostaza y Miel",
+      "insumo_nombre": "Vinagre de manzana",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Vinagreta de Mostaza y Miel",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 25.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Vinagreta de Naranja",
+      "insumo_nombre": "Jugo de naranja natural",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Vinagreta de Naranja",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Vinagreta de Naranja",
+      "insumo_nombre": "Miel de abeja",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Vinagreta de Naranja",
+      "insumo_nombre": "Vinagre de manzana",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Chimichurri de la Casa",
+      "insumo_nombre": "Perejil fresco",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Chimichurri de la Casa",
+      "insumo_nombre": "Ajo pelado",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Chimichurri de la Casa",
+      "insumo_nombre": "Aceite de oliva extra virgen",
+      "cantidad": 35.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Chimichurri de la Casa",
+      "insumo_nombre": "Vinagre de manzana",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Roja de Langostinos",
+      "insumo_nombre": "Caldo de pollo concentrado",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Roja de Langostinos",
+      "insumo_nombre": "Jitomate guaje",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Roja de Langostinos",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Roja de Langostinos",
+      "insumo_nombre": "Vino blanco de cocina",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Bechamel",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Bechamel",
+      "insumo_nombre": "Harina de trigo",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa Bechamel",
+      "insumo_nombre": "Leche entera",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Mango Picante",
+      "insumo_nombre": "Pulpa de mango",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Mango Picante",
+      "insumo_nombre": "Chile habanero",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Salsa de Mango Picante",
+      "insumo_nombre": "Jugo de limón natural",
+      "cantidad": 10.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Puré de Guisantes",
+      "insumo_nombre": "Mix de vegetales",
+      "cantidad": 80.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Puré de Guisantes",
+      "insumo_nombre": "Mantequilla sin sal",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Puré de Guisantes",
+      "insumo_nombre": "Crema ácida de rancho",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Adobo Sarandeado para Pulpo",
+      "insumo_nombre": "Chile guajillo seco",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Adobo Sarandeado para Pulpo",
+      "insumo_nombre": "Achiote en pasta",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Adobo Sarandeado para Pulpo",
+      "insumo_nombre": "Mayonesa de la casa",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Adobo Sarandeado para Pulpo",
+      "insumo_nombre": "Jugo de limón natural",
+      "cantidad": 15.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Compota de Vino Tinto",
+      "insumo_nombre": "Vino tinto de cocina",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Compota de Vino Tinto",
+      "insumo_nombre": "Frutos rojos frescos",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Compota de Vino Tinto",
+      "insumo_nombre": "Azúcar estándar",
+      "cantidad": 20.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mousse de Chocolate Bicolor",
+      "insumo_nombre": "Chocolate semi-amargo",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mousse de Chocolate Bicolor",
+      "insumo_nombre": "Chocolate blanco",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Mousse de Chocolate Bicolor",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 40.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Praliné de Pistache",
+      "insumo_nombre": "Pistache pelado",
+      "cantidad": 50.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Praliné de Pistache",
+      "insumo_nombre": "Azúcar estándar",
+      "cantidad": 30.0,
+      "modificable": false
+    },
+    {
+      "dish_nombre": "Praliné de Pistache",
+      "insumo_nombre": "Crema para batir",
+      "cantidad": 30.0,
+      "modificable": false
+    }
+  ],
+  "sub_recetas": [
+    {
+      "dish_nombre": "PAN FRANCES",
+      "subreceta_nombre": "Mousse de Chocolate Bicolor",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "subreceta_nombre": "Salsa Amarillita Petra",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENCHILADAS PETRA (LAS AMARILLITAS)",
+      "subreceta_nombre": "Frijoles Refritos de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENCHILADAS VERDES O ROJAS",
+      "subreceta_nombre": "Salsa Verde de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENCHILADAS VERDES O ROJAS",
+      "subreceta_nombre": "Frijoles Refritos de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENCHILADAS SUIZAS VERDES",
+      "subreceta_nombre": "Salsa Verde de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENCHILADAS SUIZAS VERDES",
+      "subreceta_nombre": "Frijoles Refritos de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENMOLADAS PETRA",
+      "subreceta_nombre": "Mole Especial Petra",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENMOLADAS PETRA",
+      "subreceta_nombre": "Frijoles Refritos de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "CHILAQUILES VERDES O ROJOS",
+      "subreceta_nombre": "Salsa Verde de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "CHILAQUILES VERDES O ROJOS",
+      "subreceta_nombre": "Frijoles Refritos de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ESPECIALES PETRA",
+      "subreceta_nombre": "Salsa Blanca de Habanero",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "SANDWICH PARMESANO",
+      "subreceta_nombre": "Salsa Pomodoro Cremosa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "AVOCADO TOAST",
+      "subreceta_nombre": "Cremoso de Aguacate",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "GRILL CHEESE",
+      "subreceta_nombre": "Salsa Pomodoro Cremosa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "OMELETTE MILPA",
+      "subreceta_nombre": "Salsa Poblana",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "OMELETTE SALMON",
+      "subreceta_nombre": "Salsa Roja Ranchera",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "BENEDICTINOS PETRA",
+      "subreceta_nombre": "Salsa Holandesa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "APORREADO PETRA",
+      "subreceta_nombre": "Salsa Roja Ranchera",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "APORREADO PETRA",
+      "subreceta_nombre": "Frijoles Refritos de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "HUEVOS AL GUSTO",
+      "subreceta_nombre": "Salsa Roja Ranchera",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "HUEVOS AL GUSTO",
+      "subreceta_nombre": "Frijoles Refritos de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "TOSTADAS DE ATÚN 2 PZS",
+      "subreceta_nombre": "Salsa Ponzu Cítrica",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "TOSTADAS DE PULPO ASADO 3 PZS",
+      "subreceta_nombre": "Cremoso de Aguacate",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "CROQUETA DE PLATANO MACHO",
+      "subreceta_nombre": "Mole de Flor de Calabaza",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "EMPANADAS DE CAMARON Y MARACUYÁ",
+      "subreceta_nombre": "Salsa de Maracuyá y Chipotle",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "TACOS DE PICANHA 3 PZS",
+      "subreceta_nombre": "Salsa de Piña Tatemada y Habanero",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "EL APAPACHO",
+      "subreceta_nombre": "Fondo de Pollo Milpa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "SOPA DE TORTILLA",
+      "subreceta_nombre": "Fondo de Pollo Milpa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "PASTA NORDICA",
+      "subreceta_nombre": "Salsa 3 Quesos",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "PASTA TRAVIATA",
+      "subreceta_nombre": "Salsa Pomodoro Cremosa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "PAPPARDELLE RELLENO DE RAGÚ",
+      "subreceta_nombre": "Ragú de Res Tradicional",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENSALADA RUBÍ",
+      "subreceta_nombre": "Vinagreta de Mostaza y Miel",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENSALADA PEACH",
+      "subreceta_nombre": "Vinagreta de Naranja",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (POLLO)",
+      "subreceta_nombre": "Aderezo César Hecho en Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (CAMARÓN)",
+      "subreceta_nombre": "Aderezo César Hecho en Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "ENSALADA CÉSAR PETRA (ARRACHERA)",
+      "subreceta_nombre": "Aderezo César Hecho en Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "BIFE PETRA (CHOICE)",
+      "subreceta_nombre": "Chimichurri de la Casa",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "FILETE MAR Y TIERRA",
+      "subreceta_nombre": "Salsa Roja de Langostinos",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "PECHUGA MATAMOROS",
+      "subreceta_nombre": "Salsa Bechamel",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "PECHUGA MATAMOROS",
+      "subreceta_nombre": "Salsa de Mango Picante",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "PECHUGA ESPECIAL PETRA",
+      "subreceta_nombre": "Mole de Flor de Calabaza",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "SALMÓN SPICY",
+      "subreceta_nombre": "Puré de Guisantes",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "PULPO ENDIABLADO",
+      "subreceta_nombre": "Adobo Sarandeado para Pulpo",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "CHEESE CAKE",
+      "subreceta_nombre": "Compota de Vino Tinto",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "TARTA DE PISTACHE",
+      "subreceta_nombre": "Praliné de Pistache",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "TARTA DE PISTACHE",
+      "subreceta_nombre": "Compota de Vino Tinto",
+      "modificable": false,
+      "precio": null
+    },
+    {
+      "dish_nombre": "PETITE FOURS CHOCOLATE",
+      "subreceta_nombre": "Mousse de Chocolate Bicolor",
+      "modificable": false,
+      "precio": null
+    }
+  ],
+  "additionals": []
+}

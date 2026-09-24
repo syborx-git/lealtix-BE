@@ -107,9 +107,10 @@ public interface InventoryService {
     GenericResponse removeRecipeIngredient(Long recipeId);
 
     /**
-     * Recetas: actualizar cantidad/modificable de un insumo de la receta.
+     * Recetas: actualizar cantidad e importancia (BASE/MODIFICABLE/ADICIONAL) de un insumo de la receta.
+     * Si la importancia es ADICIONAL la línea se traslada a la tabla de adicionales (con un precio extra).
      */
-    GenericResponse updateRecipeIngredient(Long recipeId, Double cantidad, Boolean modificable);
+    GenericResponse updateRecipeIngredient(Long recipeId, Double cantidad, Boolean modificable, String importancia, Double precio);
 
     /**
      * Adicionales: obtener insumos adicionales permitidos de un platillo.
@@ -122,9 +123,10 @@ public interface InventoryService {
     GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio);
 
     /**
-     * Adicionales: actualizar cantidad / precio de un adicional permitido.
+     * Adicionales: actualizar cantidad / precio e importancia de un adicional permitido.
+     * Si la importancia deja de ser ADICIONAL, la línea vuelve a la receta base.
      */
-    GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio);
+    GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio, String importancia);
 
     /**
      * Adicionales: quitar adicional permitido.
@@ -158,9 +160,15 @@ public interface InventoryService {
     GenericResponse getSubRecetasByDish(Long dishId);
 
     /**
-     * Sub-recetas: asigna una sub-receta a un platillo o bebida.
+     * Sub-recetas: asigna una sub-receta a un platillo o bebida con su importancia
+     * (BASE / MODIFICABLE / ADICIONAL + precio extra opcional).
      */
-    GenericResponse assignSubReceta(Long dishId, Long subRecetaId);
+    GenericResponse assignSubReceta(Long dishId, Long subRecetaId, String importancia, Double precio);
+
+    /**
+     * Sub-recetas: cambia la importancia (BASE / MODIFICABLE / ADICIONAL) de una sub-receta ya asignada.
+     */
+    GenericResponse updateSubRecetaImportance(Long dishId, Long subRecetaId, String importancia, Double precio);
 
     /**
      * Sub-recetas: quita una sub-receta de un platillo o bebida.

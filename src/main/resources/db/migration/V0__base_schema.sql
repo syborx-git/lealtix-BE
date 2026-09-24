@@ -4,6 +4,8 @@
 -- Permite que la base de datos se levante limpiamente desde cero en local
 -- =====================================================================
 
+CREATE SCHEMA IF NOT EXISTS public;
+
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

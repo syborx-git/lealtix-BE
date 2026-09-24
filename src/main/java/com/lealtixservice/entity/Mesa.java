@@ -1,6 +1,7 @@
 package com.lealtixservice.entity;
 
 import com.lealtixservice.enums.MesaEstado;
+import com.lealtixservice.enums.MesaForma;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -40,6 +41,29 @@ public class Mesa {
     @Column(name = "mesero_user_id")
     private Long meseroUserId;
 
+    /** Coordenada X (px) del centro de la mesa sobre el plano del local */
+    @Column(name = "posicion_x")
+    private Double posicionX;
+
+    /** Coordenada Y (px) del centro de la mesa sobre el plano del local */
+    @Column(name = "posicion_y")
+    private Double posicionY;
+
+    /** Forma visual de la mesa: redonda | cuadrada | rectangular */
+    @Column(name = "forma", length = 20)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private MesaForma forma = MesaForma.cuadrada;
+
+    /** Orientación de la mesa en el plano (grados: 0/90/180/270) */
+    @Column(name = "rotacion")
+    @Builder.Default
+    private Integer rotacion = 0;
+
+    /** UUID temporal que agrupa mesas unidas; NULL cuando la mesa opera sola */
+    @Column(name = "id_grupo_temporal", length = 36)
+    private String idGrupoTemporal;
+
     @Builder.Default
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -57,6 +81,12 @@ public class Mesa {
         }
         if (capacidad == null) {
             capacidad = 4;
+        }
+        if (forma == null) {
+            forma = MesaForma.cuadrada;
+        }
+        if (rotacion == null) {
+            rotacion = 0;
         }
     }
 

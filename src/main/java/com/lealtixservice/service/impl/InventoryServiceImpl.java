@@ -650,20 +650,38 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse updateRecipeIngredient(Long recipeId, Double cantidad, Boolean modificable) {
+    public GenericResponse updateRecipeIngredient(Long recipeId, Double cantidad, Boolean modificable, String importancia, Double precio) {
         ProductRecipe recipe = recipeRepository.findById(recipeId)
                 .orElse(null);
         if (recipe == null) {
             return new GenericResponse(404, "Insumo de receta no encontrado", null);
         }
-        if (cantidad != null) {
-            if (cantidad <= 0) {
-                return new GenericResponse(400, "La cantidad debe ser mayor a 0", null);
-            }
-            recipe.setCantidad(BigDecimal.valueOf(cantidad));
+        double cant = cantidad != null && cantidad > 0 ? cantidad : recipe.getCantidad().doubleValue();
+        if (cantidad != null && cantidad <= 0) {
+            return new GenericResponse(400, "La cantidad debe ser mayor a 0", null);
         }
-        if (modificable != null) {
+        // Importancia → ADICIONAL: la línea pasa a la tabla de adicionales (con precio extra)
+        if (importancia != null && "ADICIONAL".equalsIgnoreCase(importancia)) {
+            TenantMenuProduct dish = recipe.getDish();
+            Insumo insumo = recipe.getInsumo();
+            BigDecimal p = precio != null ? BigDecimal.valueOf(precio) : BigDecimal.ZERO;
+            recipeRepository.delete(recipe);
+            additionalRepository.save(ProductAdditional.builder()
+                    .dish(dish)
+                    .insumo(insumo)
+                    .cantidad(BigDecimal.valueOf(cant))
+                    .precio(p)
+                    .build());
+            syncAvailability(productTenantId(dish));
+            return new GenericResponse(200, "Insumo convertido a adicional (costo extra)", null);
+        }
+        if (importancia != null) {
+            recipe.setModificable("MODIFICABLE".equalsIgnoreCase(importancia));
+        } else if (modificable != null) {
             recipe.setModificable(modificable);
+        }
+        if (cantidad != null) {
+            recipe.setCantidad(BigDecimal.valueOf(cantidad));
         }
         recipeRepository.save(recipe);
         syncAvailability(recipe.getDish() != null ? productTenantId(recipe.getDish()) : null);
@@ -717,11 +735,30 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio) {
+    public GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio, String importancia) {
         ProductAdditional additional = additionalRepository.findById(additionalId)
                 .orElse(null);
         if (additional == null) {
             return new GenericResponse(404, "Adicional no encontrado", null);
+        }
+        double cant = cantidad != null && cantidad > 0 ? cantidad : additional.getCantidad().doubleValue();
+        if (cantidad != null && cantidad <= 0) {
+            return new GenericResponse(400, "La cantidad debe ser mayor a 0", null);
+        }
+        // Importancia deja de ser ADICIONAL → la línea vuelve a la receta base
+        if (importancia != null && !"ADICIONAL".equalsIgnoreCase(importancia)) {
+            TenantMenuProduct dish = additional.getDish();
+            Insumo insumo = additional.getInsumo();
+            boolean mod = "MODIFICABLE".equalsIgnoreCase(importancia);
+            additionalRepository.delete(additional);
+            recipeRepository.save(ProductRecipe.builder()
+                    .dish(dish)
+                    .insumo(insumo)
+                    .cantidad(BigDecimal.valueOf(cant))
+                    .modificable(mod)
+                    .build());
+            syncAvailability(productTenantId(dish));
+            return new GenericResponse(200, "Adicional convertido a ingrediente base", null);
         }
         if (cantidad != null && cantidad > 0) {
             additional.setCantidad(BigDecimal.valueOf(cantidad));
@@ -730,6 +767,7 @@ public class InventoryServiceImpl implements InventoryService {
             additional.setPrecio(BigDecimal.valueOf(precio));
         }
         additionalRepository.save(additional);
+        syncAvailability(additional.getDish() != null ? productTenantId(additional.getDish()) : null);
         return new GenericResponse(200, "Adicional actualizado", additional.getId());
     }
 
@@ -836,6 +874,9 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("idAsignacion", s.getId());
             item.put("name", sr.getNombre());
             item.put("insumos", buildInsumosList(sr.getId()));
+            item.put("importancia", importanciaDeSubReceta(s));
+            BigDecimal pr = s.getPrecio() != null ? s.getPrecio() : BigDecimal.ZERO;
+            item.put("precio", pr);
             items.add(item);
         }
         return new GenericResponse(200, "Sub-recetas del producto", items);
@@ -843,7 +884,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse assignSubReceta(Long dishId, Long subRecetaId) {
+    public GenericResponse assignSubReceta(Long dishId, Long subRecetaId, String importancia, Double precio) {
         TenantMenuProduct dish = findProduct(dishId);
         TenantMenuProduct subReceta = findSubReceta(subRecetaId);
         if (dish.getId().equals(subRecetaId)) {
@@ -852,13 +893,52 @@ public class InventoryServiceImpl implements InventoryService {
         if (subRecetaRepository.existsByDishIdAndSubRecetaId(dishId, subRecetaId)) {
             return new GenericResponse(400, "La sub-receta ya está asignada a este producto", null);
         }
-        subRecetaRepository.save(ProductSubReceta.builder()
+        ProductSubReceta rel = ProductSubReceta.builder()
                 .dish(dish)
                 .subReceta(subReceta)
-                .build());
+                .build();
+        aplicarImportanciaSubReceta(rel, importancia, precio);
+        subRecetaRepository.save(rel);
         syncAvailability(productTenantId(dish));
         return new GenericResponse(200,
-                "Sub-receta '" + subReceta.getNombre() + "' asignada a '" + dish.getNombre() + "'", null);
+                "Sub-receta '" + subReceta.getNombre() + "' asignada a '" + dish.getNombre() + "'", rel.getId());
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse updateSubRecetaImportance(Long dishId, Long subRecetaId, String importancia, Double precio) {
+        TenantMenuProduct dish = findProduct(dishId);
+        ProductSubReceta rel = subRecetaRepository.findByDishId(dishId).stream()
+                .filter(s -> s.getSubReceta().getId().equals(subRecetaId))
+                .findFirst()
+                .orElse(null);
+        if (rel == null) {
+            return new GenericResponse(404, "La sub-receta no está asignada a este producto", null);
+        }
+        aplicarImportanciaSubReceta(rel, importancia, precio);
+        subRecetaRepository.save(rel);
+        syncAvailability(productTenantId(dish));
+        return new GenericResponse(200, "Importancia de sub-receta actualizada", rel.getId());
+    }
+
+    /** Deriva la importancia (BASE/MODIFICABLE/ADICIONAL) de una relación sub-receta. */
+    private String importanciaDeSubReceta(ProductSubReceta rel) {
+        if (rel.getPrecio() != null) {
+            return "ADICIONAL";
+        }
+        return Boolean.TRUE.equals(rel.getModificable()) ? "MODIFICABLE" : "BASE";
+    }
+
+    /** Aplica importancia a una relación sub-receta (ADICIONAL ⇒ precio extra, resto ⇒ modificable). */
+    private void aplicarImportanciaSubReceta(ProductSubReceta rel, String importancia, Double precio) {
+        String imp = importancia == null ? "BASE" : importancia.toUpperCase();
+        if ("ADICIONAL".equals(imp)) {
+            rel.setModificable(false);
+            rel.setPrecio(precio != null ? BigDecimal.valueOf(precio) : BigDecimal.ZERO);
+        } else {
+            rel.setModificable("MODIFICABLE".equals(imp));
+            rel.setPrecio(null);
+        }
     }
 
     @Override

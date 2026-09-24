@@ -6,6 +6,7 @@ import com.lealtixservice.dto.MesaRequest;
 import com.lealtixservice.entity.Mesa;
 import com.lealtixservice.entity.TenantUser;
 import com.lealtixservice.enums.MesaEstado;
+import com.lealtixservice.enums.MesaForma;
 import com.lealtixservice.enums.RoleEnum;
 import com.lealtixservice.repository.MesaRepository;
 import com.lealtixservice.repository.TenantUserRepository;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -70,6 +72,10 @@ public class MesaServiceImpl implements MesaService {
                 .capacidad(request.getCapacidad() != null ? request.getCapacidad() : 4)
                 .estado(request.getEstado() != null ? request.getEstado() : MesaEstado.LIBRE)
                 .meseroUserId(request.getMeseroUserId())
+                .posicionX(request.getPosicionX())
+                .posicionY(request.getPosicionY())
+                .forma(request.getForma() != null ? request.getForma() : MesaForma.cuadrada)
+                .rotacion(normalizeRotacion(request.getRotacion()))
                 .build();
         mesa = mesaRepository.save(mesa);
         return MesaDTO.fromEntity(mesa, resolveMeseroName(mesa));
@@ -96,6 +102,18 @@ public class MesaServiceImpl implements MesaService {
         mesa.setMeseroUserId(request.getMeseroUserId());
         if (request.getEstado() != null) {
             applyEstado(mesa, request.getEstado());
+        }
+        if (request.getForma() != null) {
+            mesa.setForma(request.getForma());
+        }
+        if (request.getRotacion() != null) {
+            mesa.setRotacion(normalizeRotacion(request.getRotacion()));
+        }
+        if (request.getPosicionX() != null) {
+            mesa.setPosicionX(request.getPosicionX());
+        }
+        if (request.getPosicionY() != null) {
+            mesa.setPosicionY(request.getPosicionY());
         }
         mesa = mesaRepository.save(mesa);
         return MesaDTO.fromEntity(mesa, resolveMeseroName(mesa));
@@ -125,6 +143,73 @@ public class MesaServiceImpl implements MesaService {
 
     @Override
     @Transactional
+    public MesaDTO updatePosicion(Long id, Long tenantId, Double posicionX, Double posicionY) {
+        Mesa mesa = getMesa(id, tenantId);
+        if (posicionX == null || posicionY == null) {
+            throw new IllegalArgumentException("La posición es requerida (posicionX y posicionY)");
+        }
+        mesa.setPosicionX(posicionX);
+        mesa.setPosicionY(posicionY);
+        mesa = mesaRepository.save(mesa);
+        return MesaDTO.fromEntity(mesa, resolveMeseroName(mesa));
+    }
+
+    @Override
+    @Transactional
+    public MesaDTO updateForma(Long id, Long tenantId, MesaForma forma) {
+        Mesa mesa = getMesa(id, tenantId);
+        if (forma == null) {
+            throw new IllegalArgumentException("La forma es requerida");
+        }
+        mesa.setForma(forma);
+        mesa = mesaRepository.save(mesa);
+        return MesaDTO.fromEntity(mesa, resolveMeseroName(mesa));
+    }
+
+    @Override
+    @Transactional
+    public List<MesaDTO> unirMesas(Long tenantId, List<Long> mesaIds) {
+        if (mesaIds == null || mesaIds.size() < 2) {
+            throw new IllegalArgumentException("Selecciona al menos dos mesas para unir");
+        }
+
+        List<Mesa> mesas = mesaIds.stream().distinct().map(id -> {
+            Mesa m = getMesa(id, tenantId);
+            if (m.getEstado() != MesaEstado.LIBRE) {
+                throw new IllegalArgumentException("Solo puedes unir mesas libres. '" + m.getNombre() + "' está " + m.getEstado());
+            }
+            return m;
+        }).collect(Collectors.toList());
+
+        String grupoId = UUID.randomUUID().toString();
+        mesas.forEach(m -> {
+            m.setIdGrupoTemporal(grupoId);
+            m.setEstado(MesaEstado.LIBRE);
+        });
+        mesaRepository.saveAll(mesas);
+
+        return mesas.stream()
+                .map(m -> MesaDTO.fromEntity(m, resolveMeseroName(m)))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public List<MesaDTO> separarGrupo(Long tenantId, String grupoId) {
+        if (grupoId == null || grupoId.isBlank()) {
+            throw new IllegalArgumentException("El grupo es requerido");
+        }
+        List<Mesa> mesas = mesaRepository.findByTenantIdAndIdGrupoTemporal(tenantId, grupoId);
+        mesas.forEach(m -> m.setIdGrupoTemporal(null));
+        mesaRepository.saveAll(mesas);
+
+        return mesas.stream()
+                .map(m -> MesaDTO.fromEntity(m, resolveMeseroName(m)))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
     public void delete(Long id, Long tenantId) {
         Mesa mesa = getMesa(id, tenantId);
         mesaRepository.delete(mesa);
@@ -134,6 +219,13 @@ public class MesaServiceImpl implements MesaService {
         return mesaRepository.findById(id)
                 .filter(m -> m.getTenantId().equals(tenantId))
                 .orElseThrow(() -> new IllegalArgumentException("Mesa no encontrada para este local"));
+    }
+
+    private Integer normalizeRotacion(Integer rotacion) {
+        if (rotacion == null) {
+            return 0;
+        }
+        return ((rotacion % 360) + 360) % 360;
     }
 
     private void applyEstado(Mesa mesa, MesaEstado estado) {

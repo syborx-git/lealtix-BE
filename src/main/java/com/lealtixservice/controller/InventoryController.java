@@ -220,14 +220,17 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.removeRecipeIngredient(recipeId));
     }
 
-    @Operation(summary = "Actualizar cantidad/modificable de un insumo de receta")
+    @Operation(summary = "Actualizar cantidad/importancia de un insumo de receta")
     @PutMapping("/recipes/{recipeId}")
     public ResponseEntity<GenericResponse> updateRecipe(
             @PathVariable Long recipeId,
             @RequestBody Map<String, Object> body) {
         Double cantidad = toDouble(body.get("cantidad"));
         Boolean modificable = body.get("modificable") != null ? Boolean.valueOf(body.get("modificable").toString()) : null;
-        return ResponseEntity.ok(inventoryService.updateRecipeIngredient(recipeId, cantidad, modificable));
+        String importancia = body.get("importancia") != null ? body.get("importancia").toString() : null;
+        Double precio = toDouble(body.get("precio"));
+        return ResponseEntity.ok(
+                inventoryService.updateRecipeIngredient(recipeId, cantidad, modificable, importancia, precio));
     }
 
     /* ============ Adicionales ============ */
@@ -249,14 +252,15 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.addAdditional(dishId, insumoId, cantidad, precio));
     }
 
-    @Operation(summary = "Actualizar cantidad/precio de un adicional permitido")
+    @Operation(summary = "Actualizar cantidad/precio/importancia de un adicional permitido")
     @PutMapping("/additionals/{additionalId}")
     public ResponseEntity<GenericResponse> updateAdditional(
             @PathVariable Long additionalId,
             @RequestBody Map<String, Object> body) {
         Double cantidad = toDouble(body.get("cantidad"));
         Double precio = toDouble(body.get("precio"));
-        return ResponseEntity.ok(inventoryService.updateAdditional(additionalId, cantidad, precio));
+        String importancia = body.get("importancia") != null ? body.get("importancia").toString() : null;
+        return ResponseEntity.ok(inventoryService.updateAdditional(additionalId, cantidad, precio, importancia));
     }
 
     @Operation(summary = "Quitar adicional permitido")
@@ -308,12 +312,32 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.getSubRecetasByDish(dishId));
     }
 
-    @Operation(summary = "Asignar una sub-receta a un platillo o bebida")
+    @Operation(summary = "Asignar una sub-receta a un platillo o bebida con su importancia")
     @PostMapping("/dish/{dishId}/sub-recetas/{subRecetaId}")
     public ResponseEntity<GenericResponse> assignSubReceta(
             @PathVariable Long dishId,
-            @PathVariable Long subRecetaId) {
-        return ResponseEntity.ok(inventoryService.assignSubReceta(dishId, subRecetaId));
+            @PathVariable Long subRecetaId,
+            @RequestBody(required = false) Map<String, Object> body) {
+        String importancia = null;
+        Double precio = null;
+        if (body != null) {
+            importancia = body.get("importancia") != null ? body.get("importancia").toString() : null;
+            precio = toDouble(body.get("precio"));
+        }
+        return ResponseEntity.ok(
+                inventoryService.assignSubReceta(dishId, subRecetaId, importancia, precio));
+    }
+
+    @Operation(summary = "Cambiar la importancia de una sub-receta asignada a un platillo o bebida")
+    @PutMapping("/dish/{dishId}/sub-recetas/{subRecetaId}")
+    public ResponseEntity<GenericResponse> updateSubRecetaImportance(
+            @PathVariable Long dishId,
+            @PathVariable Long subRecetaId,
+            @RequestBody Map<String, Object> body) {
+        String importancia = body.get("importancia") != null ? body.get("importancia").toString() : null;
+        Double precio = toDouble(body.get("precio"));
+        return ResponseEntity.ok(
+                inventoryService.updateSubRecetaImportance(dishId, subRecetaId, importancia, precio));
     }
 
     @Operation(summary = "Quitar una sub-receta de un platillo o bebida")
