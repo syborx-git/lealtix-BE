@@ -38,6 +38,7 @@ public class TenantDTO {
     private String schedules;
     private Boolean kitchenModuleEnabled;
     private LocalDateTime kitchenEnabledAt;
+    private String customSiteHtml;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
