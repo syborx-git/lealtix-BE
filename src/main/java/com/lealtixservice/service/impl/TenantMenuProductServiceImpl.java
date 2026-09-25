@@ -237,10 +237,30 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
         for (TenantMenuProduct p : productRepository.findAllByTenantId(tenantId)) {
             entities.put(p.getId(), p);
         }
+
+        // Batch: recetas y adicionales de TODOS los productos en UNA sola consulta
+        // cada uno (evita el problema N+1 que hacía lentísima esta petición).
+        List<Long> productIds = new ArrayList<>();
+        for (TenantMenuProductDTO dto : products) {
+            if (dto.getId() != null) {
+                productIds.add(dto.getId());
+            }
+        }
+        Map<Long, List<ProductRecipe>> recipesByDish = new HashMap<>();
+        Map<Long, List<ProductAdditional>> additionalsByDish = new HashMap<>();
+        if (!productIds.isEmpty()) {
+            for (ProductRecipe r : recipeRepository.findByDishIdInWithInsumo(productIds)) {
+                recipesByDish.computeIfAbsent(r.getDish().getId(), k -> new ArrayList<>()).add(r);
+            }
+            for (ProductAdditional a : additionalRepository.findByDishIdInWithInsumo(productIds)) {
+                additionalsByDish.computeIfAbsent(a.getDish().getId(), k -> new ArrayList<>()).add(a);
+            }
+        }
+
         for (TenantMenuProductDTO dto : products) {
             TenantMenuProduct entity = entities.get(dto.getId());
             if (entity == null) continue;
-            List<ProductRecipe> recipes = recipeRepository.findByDishId(entity.getId());
+            List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of());
             double stock;
             if (!recipes.isEmpty()) {
                 double min = Double.MAX_VALUE;
@@ -277,7 +297,7 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
 
             // Receta (ingredientes base/modificables) y adicionales para el menú
             List<Map<String, Object>> recipeList = new ArrayList<>();
-            for (ProductRecipe r : recipeRepository.findByDishId(entity.getId())) {
+            for (ProductRecipe r : recipes) {
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("insumoId", r.getInsumo().getId());
                 item.put("insumoName", r.getInsumo().getNombre());
@@ -290,7 +310,7 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             dto.setRecipes(recipeList);
 
             List<Map<String, Object>> additionalList = new ArrayList<>();
-            for (ProductAdditional a : additionalRepository.findByDishId(entity.getId())) {
+            for (ProductAdditional a : additionalsByDish.getOrDefault(entity.getId(), List.of())) {
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("insumoId", a.getInsumo().getId());
                 item.put("insumoName", a.getInsumo().getNombre());

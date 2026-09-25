@@ -16,6 +16,16 @@ public interface ProductCrossSellingService {
      * @return Lista de productos sugeridos
      */
     List<CrossSellingDTO> getSuggestionsByProduct(Long productId, Long tenantId);
+
+    /**
+     * Obtiene en UNA sola consulta las sugerencias de varios productos del tenant
+     * (evita el problema N+1 al listar el menú). Devuelve un mapa productId -> sugerencias.
+     *
+     * @param productIds IDs de los productos principales
+     * @param tenantId ID del tenant
+     * @return mapa con las sugerencias agrupadas por producto
+     */
+    java.util.Map<Long, List<CrossSellingDTO>> getSuggestionsByProducts(List<Long> productIds, Long tenantId);
     
     /**
      * Crea una nueva configuración de cross-selling.
