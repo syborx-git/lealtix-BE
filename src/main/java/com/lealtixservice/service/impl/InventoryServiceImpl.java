@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,13 +50,61 @@ public class InventoryServiceImpl implements InventoryService {
     private jakarta.persistence.EntityManager entityManager;
 
     @Override
+    @Transactional(readOnly = true)
     public GenericResponse getInventoryByTenant(Long tenantId) {
         List<TenantMenuProduct> products = productRepository.findAllByTenantId(tenantId);
+
+        // ---- Carga batch (evita N+1): recetas, adicionales y sub-recetas en pocas consultas ----
+        List<Long> productIds = new ArrayList<>();
+        for (TenantMenuProduct p : products) {
+            if (p.getId() != null) productIds.add(p.getId());
+        }
+
+        Map<Long, List<ProductSubReceta>> subRecetasByDish = new HashMap<>();
+        List<Long> subRecetaProductIds = new ArrayList<>();
+        if (!productIds.isEmpty()) {
+            for (ProductSubReceta s : subRecetaRepository.findByDishIdInWithSubReceta(productIds)) {
+                subRecetasByDish.computeIfAbsent(s.getDish().getId(), k -> new ArrayList<>()).add(s);
+                if (s.getSubReceta() != null && s.getSubReceta().getId() != null) {
+                    subRecetaProductIds.add(s.getSubReceta().getId());
+                }
+            }
+        }
+
+        List<Long> allDishIds = new ArrayList<>(productIds);
+        allDishIds.addAll(subRecetaProductIds);
+
+        Map<Long, List<ProductRecipe>> recipesByDish = new HashMap<>();
+        if (!allDishIds.isEmpty()) {
+            for (ProductRecipe r : recipeRepository.findByDishIdInWithInsumo(allDishIds)) {
+                recipesByDish.computeIfAbsent(r.getDish().getId(), k -> new ArrayList<>()).add(r);
+            }
+        }
+
+        Map<Long, List<ProductAdditional>> additionalsByDish = new HashMap<>();
+        if (!productIds.isEmpty()) {
+            for (ProductAdditional a : additionalRepository.findByDishIdInWithInsumo(productIds)) {
+                additionalsByDish.computeIfAbsent(a.getDish().getId(), k -> new ArrayList<>()).add(a);
+            }
+        }
+
         List<Map<String, Object>> items = new ArrayList<>();
         for (TenantMenuProduct p : products) {
-            boolean dish = isDish(p);
-            double stock = dish ? stockDe(p) : safeStock(p);
-            double min = dish ? stockMinDe(p) : safeMin(p);
+            List<ProductRecipe> ownRecipes = recipesByDish.getOrDefault(p.getId(), List.of());
+            boolean dish = !ownRecipes.isEmpty();
+
+            // receta efectiva = recetas propias + recetas de las sub-recetas asignadas
+            List<ProductRecipe> efectiva = new ArrayList<>(ownRecipes);
+            List<ProductSubReceta> subs = subRecetasByDish.getOrDefault(p.getId(), List.of());
+            for (ProductSubReceta s : subs) {
+                if (s.getSubReceta() != null) {
+                    efectiva.addAll(recipesByDish.getOrDefault(s.getSubReceta().getId(), List.of()));
+                }
+            }
+
+            double stock = dish ? stockDeRecetas(efectiva) : safeStock(p);
+            double min = dish ? stockMinDeRecetas(efectiva) : safeMin(p);
+
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", p.getId());
             item.put("name", p.getNombre());
@@ -71,9 +120,9 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("unidad", p.getUnidad() != null ? p.getUnidad() : "pieza");
             item.put("esPlatillo", dish);
             item.put("esSubReceta", p.getEsSubReceta() != null && p.getEsSubReceta());
-            item.put("insumos", buildInsumosList(p.getId()));
-            item.put("adicionales", buildAdicionalesList(p.getId()));
-            item.put("subRecetas", buildSubRecetasList(p.getId()));
+            item.put("insumos", buildInsumosListFrom(ownRecipes));
+            item.put("adicionales", buildAdicionalesListFrom(additionalsByDish.getOrDefault(p.getId(), List.of())));
+            item.put("subRecetas", buildSubRecetasListFrom(subs));
             item.put("lowStock", min > 0 && stock <= min);
             item.put("outOfStock", stock <= 0);
             items.add(item);
@@ -787,6 +836,19 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional(readOnly = true)
     public GenericResponse getSubRecetasByTenant(Long tenantId) {
         List<TenantMenuProduct> subRecetas = productRepository.findSubRecetasByTenantId(tenantId);
+
+        // Batch de recetas de todas las sub-recetas (evita N+1)
+        List<Long> ids = new ArrayList<>();
+        for (TenantMenuProduct s : subRecetas) {
+            if (s.getId() != null) ids.add(s.getId());
+        }
+        Map<Long, List<ProductRecipe>> recipesByDish = new HashMap<>();
+        if (!ids.isEmpty()) {
+            for (ProductRecipe r : recipeRepository.findByDishIdInWithInsumo(ids)) {
+                recipesByDish.computeIfAbsent(r.getDish().getId(), k -> new ArrayList<>()).add(r);
+            }
+        }
+
         List<Map<String, Object>> items = new ArrayList<>();
         for (TenantMenuProduct s : subRecetas) {
             Map<String, Object> item = new LinkedHashMap<>();
@@ -797,7 +859,7 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("categoryIds", buildCategoryIds(s.getCategories()));
             item.put("categories", buildCategoryMaps(s.getCategories()));
             item.put("unidad", s.getUnidad() != null ? s.getUnidad() : "pieza");
-            item.put("insumos", buildInsumosList(s.getId()));
+            item.put("insumos", buildInsumosListFrom(recipesByDish.getOrDefault(s.getId(), List.of())));
             items.add(item);
         }
         return new GenericResponse(200, "Sub-recetas obtenidas", items);
@@ -1084,6 +1146,79 @@ public class InventoryServiceImpl implements InventoryService {
             list.add(item);
         }
         return list;
+    }
+
+    // ---- Variantes "batch" que trabajan con listas ya precargadas (evitan N+1) ----
+
+    private List<Map<String, Object>> buildInsumosListFrom(List<ProductRecipe> recipes) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (ProductRecipe r : recipes) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", r.getId());
+            item.put("insumoId", r.getInsumo().getId());
+            item.put("insumoName", r.getInsumo().getNombre());
+            item.put("unidad", r.getInsumo().getUnidad() != null ? r.getInsumo().getUnidad() : "pieza");
+            item.put("cantidad", r.getCantidad());
+            item.put("modificable", r.getModificable() != null && r.getModificable());
+            item.put("stock", r.getInsumo().getStock() != null ? r.getInsumo().getStock() : 0.0);
+            item.put("stockMinimo", r.getInsumo().getStockMinimo() != null ? r.getInsumo().getStockMinimo() : 0.0);
+            list.add(item);
+        }
+        return list;
+    }
+
+    private List<Map<String, Object>> buildAdicionalesListFrom(List<ProductAdditional> additionals) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (ProductAdditional a : additionals) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", a.getId());
+            item.put("insumoId", a.getInsumo().getId());
+            item.put("insumoName", a.getInsumo().getNombre());
+            item.put("unidad", a.getInsumo().getUnidad() != null ? a.getInsumo().getUnidad() : "pieza");
+            item.put("cantidad", a.getCantidad());
+            item.put("precio", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
+            item.put("stock", a.getInsumo().getStock() != null ? a.getInsumo().getStock() : 0.0);
+            list.add(item);
+        }
+        return list;
+    }
+
+    private List<Map<String, Object>> buildSubRecetasListFrom(List<ProductSubReceta> subs) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (ProductSubReceta s : subs) {
+            TenantMenuProduct sr = s.getSubReceta();
+            if (sr == null) continue;
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", sr.getId());
+            item.put("idAsignacion", s.getId());
+            item.put("name", sr.getNombre());
+            list.add(item);
+        }
+        return list;
+    }
+
+    private double stockDeRecetas(List<ProductRecipe> recipes) {
+        if (recipes.isEmpty()) return 0.0;
+        double min = Double.MAX_VALUE;
+        for (ProductRecipe r : recipes) {
+            double qty = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+            if (qty <= 0) continue;
+            double insumoStock = r.getInsumo().getStock() != null ? r.getInsumo().getStock() : 0.0;
+            min = Math.min(min, Math.floor(insumoStock / qty));
+        }
+        return min == Double.MAX_VALUE ? 0.0 : Math.max(0, min);
+    }
+
+    private double stockMinDeRecetas(List<ProductRecipe> recipes) {
+        if (recipes.isEmpty()) return 0.0;
+        double min = Double.MAX_VALUE;
+        for (ProductRecipe r : recipes) {
+            double qty = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+            if (qty <= 0) continue;
+            double insumoMin = r.getInsumo().getStockMinimo() != null ? r.getInsumo().getStockMinimo() : 0.0;
+            min = Math.min(min, Math.floor(insumoMin / qty));
+        }
+        return min == Double.MAX_VALUE ? 0.0 : Math.max(0, min);
     }
 
     /** Receta efectiva de un producto: sus insumos + los insumos de las sub-recetas asignadas. */
