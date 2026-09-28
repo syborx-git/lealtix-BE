@@ -21,6 +21,7 @@ public class TenantUserMapper {
                 .logoUrl(tenant.getLogoUrl())
                 .isActive(tenant.isActive())
                 .schedules(tenant.getSchedules())
+                .customSiteHtml(tenant.getCustomSiteHtml())
                 .createdAt(tenant.getCreatedAt())
                 .updatedAt(tenant.getUpdatedAt())
                 .build();

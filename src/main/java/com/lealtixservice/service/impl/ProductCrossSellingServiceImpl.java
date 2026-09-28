@@ -14,7 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -65,25 +71,30 @@ public class ProductCrossSellingServiceImpl implements ProductCrossSellingServic
 
     @Override
     @Transactional(readOnly = true)
-    public java.util.Map<Long, List<CrossSellingDTO>> getSuggestionsGroupedByProduct(Long tenantId) {
+    public Map<Long, List<CrossSellingDTO>> getSuggestionsByProducts(List<Long> productIds, Long tenantId) {
         if (tenantId == null) {
-            return java.util.Collections.emptyMap();
+            throw new IllegalArgumentException("tenantId es requerido");
+        }
+        if (productIds == null || productIds.isEmpty()) {
+            return Collections.emptyMap();
         }
 
-        List<ProductCrossSelling> allActive = crossSellingRepository.findActiveSuggestionsByTenantId(tenantId);
-        if (allActive == null || allActive.isEmpty()) {
-            return java.util.Collections.emptyMap();
-        }
+        Set<Long> ids = new HashSet<>(productIds);
 
-        java.util.Map<Long, List<CrossSellingDTO>> grouped = new java.util.HashMap<>();
-        for (ProductCrossSelling pcs : allActive) {
-            if (pcs.getProduct() == null || pcs.getProduct().getId() == null) continue;
-            grouped.computeIfAbsent(pcs.getProduct().getId(), k -> new java.util.ArrayList<>())
-                   .add(this.mapToDTO(pcs));
+        // UNA sola consulta para todo el tenant (evita el N+1)
+        List<ProductCrossSelling> all = crossSellingRepository.findActiveSuggestionsByTenant(tenantId);
+
+        Map<Long, List<CrossSellingDTO>> result = new HashMap<>();
+        for (ProductCrossSelling cs : all) {
+            Long productId = cs.getProduct().getId();
+            if (productId == null || !ids.contains(productId)) {
+                continue;
+            }
+            result.computeIfAbsent(productId, k -> new ArrayList<>()).add(mapToDTO(cs));
         }
-        return grouped;
+        return result;
     }
-    
+
     @Override
     @Transactional
     public ProductCrossSellingResponse createCrossSelling(ProductCrossSellingRequest request) {

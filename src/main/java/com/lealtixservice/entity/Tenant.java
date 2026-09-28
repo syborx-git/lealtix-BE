@@ -43,6 +43,10 @@ public class Tenant {
     @Column(name = "kitchen_enabled_at")
     private LocalDateTime kitchenEnabledAt;
 
+    /** HTML del sitio personalizado construido en el Web Studio (Admin Page). */
+    @Column(name = "custom_site_html", columnDefinition = "TEXT")
+    private String customSiteHtml;
+
     @Builder.Default
     private boolean isActive = true;
     @Builder.Default

@@ -240,19 +240,16 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             productIds.add(p.getId());
         }
 
-        // Cargar todas las recetas con insumos en 1 sola consulta
+// Batch: recetas y adicionales de TODOS los productos en UNA sola consulta
+        // cada uno (evita el problema N+1 que hacía lentísima esta petición).
         Map<Long, List<ProductRecipe>> recipesByDish = new HashMap<>();
+        Map<Long, List<ProductAdditional>> additionalsByDish = new HashMap<>();
         if (!productIds.isEmpty()) {
             for (ProductRecipe r : recipeRepository.findByDishIdInWithInsumo(productIds)) {
                 if (r.getDish() != null && r.getDish().getId() != null) {
                     recipesByDish.computeIfAbsent(r.getDish().getId(), k -> new ArrayList<>()).add(r);
                 }
             }
-        }
-
-        // Cargar todos los adicionales con insumos en 1 sola consulta
-        Map<Long, List<ProductAdditional>> additionalsByDish = new HashMap<>();
-        if (!productIds.isEmpty()) {
             for (ProductAdditional a : additionalRepository.findByDishIdInWithInsumo(productIds)) {
                 if (a.getDish() != null && a.getDish().getId() != null) {
                     additionalsByDish.computeIfAbsent(a.getDish().getId(), k -> new ArrayList<>()).add(a);
@@ -263,8 +260,7 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
         for (TenantMenuProductDTO dto : products) {
             TenantMenuProduct entity = entities.get(dto.getId());
             if (entity == null) continue;
-
-            List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), java.util.Collections.emptyList());
+List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of());
             double stock;
             if (!recipes.isEmpty()) {
                 double min = Double.MAX_VALUE;
@@ -299,7 +295,7 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             dto.setCategoryIds(categoryIds);
             dto.setCategories(categories);
 
-            // Receta mapeada en memoria (0 consultas SQL adicionales)
+// Receta mapeada en memoria (0 consultas SQL adicionales)
             List<Map<String, Object>> recipeList = new ArrayList<>(recipes.size());
             for (ProductRecipe r : recipes) {
                 if (r.getInsumo() == null) continue;
@@ -314,7 +310,7 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             }
             dto.setRecipes(recipeList);
 
-            // Adicionales mapeados en memoria (0 consultas SQL adicionales)
+// Adicionales mapeados en memoria (0 consultas SQL adicionales)
             List<ProductAdditional> additionals = additionalsByDish.getOrDefault(entity.getId(), java.util.Collections.emptyList());
             List<Map<String, Object>> additionalList = new ArrayList<>(additionals.size());
             for (ProductAdditional a : additionals) {

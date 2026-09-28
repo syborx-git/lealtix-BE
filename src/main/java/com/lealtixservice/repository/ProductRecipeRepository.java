@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,9 +16,10 @@ public interface ProductRecipeRepository extends JpaRepository<ProductRecipe, Lo
     Optional<ProductRecipe> findByDishIdAndInsumoId(Long dishId, Long insumoId);
     void deleteByDishId(Long dishId);
 
-    @Query("SELECT r FROM ProductRecipe r JOIN FETCH r.insumo WHERE r.dish.id IN :dishIds")
-    List<ProductRecipe> findByDishIdInWithInsumo(@Param("dishIds") List<Long> dishIds);
-
-    @Query("SELECT r FROM ProductRecipe r JOIN FETCH r.insumo WHERE r.dish.category.tenant.id = :tenantId")
-    List<ProductRecipe> findAllByTenantIdWithInsumo(@Param("tenantId") Long tenantId);
+/**
+     * Carga en UNA sola consulta todas las recetas de varios platillos,
+     * trayendo el insumo de forma anticipada (join fetch) para evitar N+1.
+     */
+    @Query("select r from ProductRecipe r join fetch r.insumo where r.dish.id in :dishIds")
+    List<ProductRecipe> findByDishIdInWithInsumo(@Param("dishIds") Collection<Long> dishIds);
 }

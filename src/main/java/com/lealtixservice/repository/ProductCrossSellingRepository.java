@@ -34,8 +34,9 @@ public interface ProductCrossSellingRepository extends JpaRepository<ProductCros
     );
 
     /**
-     * Encuentra todas las sugerencias activas de un tenant agrupadas para resolución en lote.
-     * Elimina el problema N+1 al cargar el menú.
+     * Obtiene TODAS las sugerencias activas de un tenant en UNA sola consulta,
+     * cargando de forma anticipada el producto principal, el producto sugerido y
+     * su categoría. Se usa para listar los productos sin caer en el problema N+1.
      */
     @Query("SELECT pcs FROM ProductCrossSelling pcs " +
            "JOIN FETCH pcs.product p " +
@@ -45,7 +46,7 @@ public interface ProductCrossSellingRepository extends JpaRepository<ProductCros
            "AND pcs.isActive = true " +
            "AND sp.isActive = true " +
            "ORDER BY p.id ASC, pcs.displayOrder ASC")
-    List<ProductCrossSelling> findActiveSuggestionsByTenantId(@Param("tenantId") Long tenantId);
+    List<ProductCrossSelling> findActiveSuggestionsByTenant(@Param("tenantId") Long tenantId);
     
     /**
      * Encuentra todas las configuraciones de cross-selling de un tenant (incluidas inactivas).

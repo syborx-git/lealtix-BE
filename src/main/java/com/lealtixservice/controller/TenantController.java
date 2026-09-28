@@ -147,6 +147,26 @@ public class TenantController {
     }
 
     /**
+     * Guarda el HTML del sitio personalizado (Web Studio / Admin Page) de un tenant.
+     * El landing público lo renderiza cuando el tenant tiene este HTML guardado.
+     */
+    @Operation(summary = "Guardar el sitio personalizado (Web Studio) de un Tenant")
+    @PutMapping("/{id}/custom-site")
+    public ResponseEntity<GenericResponse> saveCustomSite(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        Optional<Tenant> existing = tenantService.findById(id);
+        if (existing.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, "Tenant no encontrado", null));
+        }
+        Tenant tenant = existing.get();
+        tenant.setCustomSiteHtml(body != null ? body.get("html") : null);
+        tenantService.save(tenant);
+        return ResponseEntity.ok(new GenericResponse(200, "Sitio personalizado guardado", null));
+    }
+
+    /**
      * Elimina un Tenant por su ID.
      * @param id identificador del tenant
      * @return 204 si fue eliminado

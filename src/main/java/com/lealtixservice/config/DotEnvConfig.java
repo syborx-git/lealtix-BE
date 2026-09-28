@@ -38,37 +38,55 @@ public class DotEnvConfig {
                 System.out.println("[DotEnvConfig] No .env or environment.env file found in project root");
             }
 
-            List<String> lines = Files.readAllLines(envPath, StandardCharsets.UTF_8);
-            int loadedCount = 0;
+            if (envPath != null) {
+                // If .env starts with UTF-8 BOM, remove it from disk so spring-dotenv / dotenv-java parser won't crash
+                byte[] bytes = Files.readAllBytes(envPath);
+                if (bytes.length >= 3 && (bytes[0] & 0xFF) == 0xEF && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF) {
+                    byte[] cleanBytes = new byte[bytes.length - 3];
+                    System.arraycopy(bytes, 3, cleanBytes, 0, cleanBytes.length);
+                    Files.write(envPath, cleanBytes);
+                    bytes = cleanBytes;
+                    System.out.println("[DotEnvConfig] Automatically stripped UTF-8 BOM from " + envPath.getFileName());
+                }
 
-            for (String rawLine : lines) {
-                if (rawLine == null) continue;
-                String line = rawLine.trim();
-                // Skip empty lines and comments
-                if (line.isEmpty() || line.startsWith("#")) continue;
+                String content = new String(bytes, StandardCharsets.UTF_8);
+                String[] lines = content.split("\\r?\\n");
+                int loadedCount = 0;
 
-                // Split on first '=' to allow '=' in the value
-                int idx = line.indexOf('=');
-                if (idx <= 0) continue; // invalid line
+                for (String rawLine : lines) {
+                    if (rawLine == null) continue;
+                    String line = rawLine.trim();
+                    if (line.startsWith("\uFEFF")) {
+                        line = line.substring(1).trim();
+                    }
+                    // Skip empty lines and comments
+                    if (line.isEmpty() || line.startsWith("#")) continue;
 
-                String key = line.substring(0, idx).trim();
-                String value = line.substring(idx + 1).trim();
+                    // Split on first '=' to allow '=' in the value
+                    int idx = line.indexOf('=');
+                    if (idx <= 0) continue; // invalid line
 
-                // Remove surrounding single or double quotes if present
-                if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
-                    if (value.length() >= 2) {
-                        value = value.substring(1, value.length() - 1);
+                    String key = line.substring(0, idx).trim();
+                    String value = line.substring(idx + 1).trim();
+
+                    // Remove surrounding single or double quotes if present
+                    if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+                        if (value.length() >= 2) {
+                            value = value.substring(1, value.length() - 1);
+                        }
+                    }
+
+                    // Only set if not already defined in system properties or env vars
+                    if (System.getProperty(key) == null && System.getenv(key) == null) {
+                        System.setProperty(key, value);
+                        loadedCount++;
                     }
                 }
 
-                // Only set if not already defined in system properties or env vars
-                if (System.getProperty(key) == null && System.getenv(key) == null) {
-                    System.setProperty(key, value);
-                    loadedCount++;
-                }
+                System.out.println("[DotEnvConfig] Successfully loaded " + loadedCount + " environment variables from " + envPath.getFileName());
+            } else {
+                System.out.println("[DotEnvConfig] Continuing without file-based env vars (relying on system/docker environment)");
             }
-
-            System.out.println("[DotEnvConfig] Successfully loaded " + loadedCount + " environment variables from " + envPath.getFileName());
 
         } catch (Exception e) {
             System.err.println("[DotEnvConfig] Error loading environment variables: " + e.getMessage());

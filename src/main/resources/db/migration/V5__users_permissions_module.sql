@@ -7,6 +7,26 @@
 -- -----------------------------------------------------------------------
 -- 1. Modificaciones a tenant (V25)
 -- -----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS tenant (
+    id                     BIGSERIAL PRIMARY KEY,
+    nombre_negocio         VARCHAR(255),
+    direccion              VARCHAR(255),
+    telefono               VARCHAR(255),
+    tipo_negocio           VARCHAR(255),
+    slug                   VARCHAR(255) UNIQUE,
+    uidtenant              VARCHAR(255),
+    uid_tenant             VARCHAR(255),
+    schedules              VARCHAR(255),
+    user_id                BIGINT,
+    logo_url               VARCHAR(255),
+    slogan                 VARCHAR(255),
+    kitchen_module_enabled BOOLEAN DEFAULT FALSE,
+    kitchen_enabled_at     TIMESTAMP,
+    is_active              BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 ALTER TABLE tenant
     ADD COLUMN IF NOT EXISTS kitchen_module_enabled BOOLEAN,
     ADD COLUMN IF NOT EXISTS kitchen_enabled_at     TIMESTAMP;
@@ -17,6 +37,24 @@ CREATE INDEX IF NOT EXISTS idx_tenant_kitchen_enabled_at ON tenant(kitchen_enabl
 -- -----------------------------------------------------------------------
 -- 2. Modificaciones a tenant_config (V24)
 -- -----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS tenant_config (
+    id                     BIGSERIAL PRIMARY KEY,
+    tenant_id              BIGINT,
+    history                VARCHAR(500),
+    vision                 VARCHAR(500),
+    bussines_email         VARCHAR(150),
+    twitter                VARCHAR(255),
+    facebook               VARCHAR(255),
+    linkedin               VARCHAR(255),
+    instagram              VARCHAR(255),
+    tiktok                 VARCHAR(255),
+    schedules              TEXT,
+    kitchen_module_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    kitchen_enabled_at     TIMESTAMP,
+    created_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 ALTER TABLE tenant_config
     ADD COLUMN IF NOT EXISTS history                  VARCHAR(500),
     ADD COLUMN IF NOT EXISTS vision                   VARCHAR(500),
