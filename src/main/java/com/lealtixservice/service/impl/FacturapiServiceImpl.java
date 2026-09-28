@@ -1,7 +1,10 @@
 package com.lealtixservice.service.impl;
 
+import com.lealtixservice.dto.EmailAttachmentDTO;
+import com.lealtixservice.service.Emailservice;
 import com.lealtixservice.service.FacturapiService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +15,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,12 +35,85 @@ public class FacturapiServiceImpl implements FacturapiService {
     @Value("${facturapi.default.unit.key:H87}")
     private String defaultUnitKey;
 
+    @Autowired
+    private Emailservice emailService;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
     public Map<String, Object> createInvoice(Map<String, Object> payload) {
+        String customerEmail = extractCustomerEmail(payload.get("customer"));
         String customerId = createCustomer(payload.get("customer"));
-        return createInvoiceWithCustomer(customerId, payload);
+        Map<String, Object> invoice = createInvoiceWithCustomer(customerId, payload);
+
+        // Enviar la factura por correo (SendGrid con PDF + XML adjuntos).
+        String invoiceId = invoice != null ? String.valueOf(invoice.get("id")) : null;
+        if (invoiceId != null && !invoiceId.isBlank() && customerEmail != null && !customerEmail.isBlank()) {
+            emailInvoice(invoiceId, customerEmail);
+        }
+
+        return invoice;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String extractCustomerEmail(Object customerObj) {
+        if (customerObj instanceof Map) {
+            Object email = ((Map<String, Object>) customerObj).get("email");
+            return email != null ? String.valueOf(email) : null;
+        }
+        return null;
+    }
+
+    /**
+     * Envía la factura por correo usando SendGrid, adjuntando el PDF y el XML.
+     * Best-effort: si falla, no rompe la creación de la factura (solo se loguea).
+     */
+    @Override
+    public boolean emailInvoice(String invoiceId, String email) {
+        if (email == null || email.isBlank()) {
+            log.warn("Facturapi: no se envía factura {} por correo (sin email)", invoiceId);
+            return false;
+        }
+
+        try {
+            List<EmailAttachmentDTO> attachments = new ArrayList<>();
+
+            byte[] pdf = downloadInvoice(invoiceId, "pdf");
+            if (pdf != null && pdf.length > 0) {
+                attachments.add(EmailAttachmentDTO.builder()
+                        .content(Base64.getEncoder().encodeToString(pdf))
+                        .type("application/pdf")
+                        .filename("factura-" + invoiceId + ".pdf")
+                        .disposition("attachment")
+                        .build());
+            }
+
+            byte[] xml = downloadInvoice(invoiceId, "xml");
+            if (xml != null && xml.length > 0) {
+                attachments.add(EmailAttachmentDTO.builder()
+                        .content(Base64.getEncoder().encodeToString(xml))
+                        .type("application/xml")
+                        .filename("factura-" + invoiceId + ".xml")
+                        .disposition("attachment")
+                        .build());
+            }
+
+            String html = "<div style=\"font-family:Arial,sans-serif;color:#33211D\">"
+                    + "<h2 style=\"color:#DA9F5B\">Tu factura (CFDI)</h2>"
+                    + "<p>Hola,</p>"
+                    + "<p>Adjuntamos tu factura en PDF y XML.</p>"
+                    + "<p><strong>Folio:</strong> " + invoiceId + "</p>"
+                    + "<p>Gracias por tu compra.</p>"
+                    + "<p style=\"color:#999;font-size:12px\">Lealtix</p>"
+                    + "</div>";
+
+            emailService.sendEmailWithAttachments(email, "Tu factura Lealtix", html, attachments);
+            log.info("Facturapi: factura {} enviada por correo (SendGrid) a {}", invoiceId, email);
+            return true;
+        } catch (Exception e) {
+            log.error("Error enviando factura {} por correo (SendGrid) a {}: {}", invoiceId, email, e.getMessage(), e);
+            return false;
+        }
     }
 
     @SuppressWarnings("unchecked")
