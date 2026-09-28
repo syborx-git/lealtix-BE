@@ -194,6 +194,15 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             } catch (Exception e) {
                 log.error("Error al publicar evento SSE para orden {}: {}", order.getId(), e.getMessage(), e);
             }
+        } else if (order.getEstado() == OrderStatus.CONFIRMADA) {
+            // Órdenes creadas desde el POS/mesero (COMANDIX) nacen CONFIRMADA:
+            // notificar a cocina en tiempo real para que aparezcan al instante.
+            try {
+                orderSseService.publishOrderStatusChanged(orderDTO);
+                log.info("Evento SSE (cocina) publicado para orden {} del tenant {}", order.getId(), order.getTenant().getId());
+            } catch (Exception e) {
+                log.error("Error al publicar evento SSE de cocina para orden {}: {}", order.getId(), e.getMessage(), e);
+            }
         }
         
         return orderDTO;
@@ -438,8 +447,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         
         ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
         
-        // Publicar evento SSE para cambios de estado de cocina
-        if (newStatus == OrderStatus.EN_PREPARACION || newStatus == OrderStatus.LISTO) {
+        // Publicar evento SSE para cambios de estado de cocina (CONFIRMADA = enviada a cocina)
+        if (newStatus == OrderStatus.CONFIRMADA
+                || newStatus == OrderStatus.EN_PREPARACION
+                || newStatus == OrderStatus.LISTO
+                || newStatus == OrderStatus.PAGADA
+                || newStatus == OrderStatus.CANCELADA) {
             try {
                 orderSseService.publishOrderStatusChanged(orderDTO);
                 log.info("Evento SSE de cambio de estado publicado para orden {} del tenant {}", 
