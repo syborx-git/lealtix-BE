@@ -101,10 +101,20 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("La orden debe contener al menos un item");
         }
 
+        // Pre-cargar productos en lote para validar y mapear sin N+1
+        java.util.Set<Long> productIds = request.getItems().stream()
+                .map(CreateClientOrderRequest.OrderItemRequest::getProductId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, TenantMenuProduct> productMap = tenantMenuProductRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(TenantMenuProduct::getId, p -> p));
+
         // Validar stock disponible antes de crear la orden
         for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
-            TenantMenuProduct prod = tenantMenuProductRepository.findById(itemRequest.getProductId()).orElse(null);
-            if (prod == null) continue;
+            TenantMenuProduct prod = productMap.get(itemRequest.getProductId());
+            if (prod == null) {
+                throw new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId());
+            }
             if (!prod.isActive()) {
                 throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' no está disponible actualmente");
             }
@@ -123,12 +133,13 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         // Variable final para usar en el lambda
         final ClientOrder finalOrder = order;
 
-        // Crear y guardar los items
+        // Crear y guardar los items usando el productMap ya precargado en memoria
         List<ClientOrderItem> items = request.getItems().stream()
                 .map(itemRequest -> {
-                    TenantMenuProduct product = tenantMenuProductRepository.findById(itemRequest.getProductId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId()));
-
+                    TenantMenuProduct product = productMap.get(itemRequest.getProductId());
+                    if (product == null) {
+                        throw new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId());
+                    }
                     return ClientOrderItemMapper.toEntity(itemRequest, finalOrder, product);
                 })
                 .collect(Collectors.toList());
@@ -136,7 +147,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         items = clientOrderItemRepository.saveAll(items);
         order.setItems(items);
 
-        // Descontar stock del inventario conforme se confirma la comanda
+        // Descontar stock del inventario conforme se confirma la comanda (sincronizando disponibilidad solo una vez)
         try {
             for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
                 Double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
@@ -144,8 +155,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                         itemRequest.getProductId(),
                         qty,
                         itemRequest.getExcludedIngredientIds(),
-                        itemRequest.getAdditionalIngredientIds());
+                        itemRequest.getAdditionalIngredientIds(),
+                        false);
             }
+            inventoryService.syncProductAvailabilityByTenant(tenant.getId());
         } catch (Exception e) {
             log.error("Error descontando inventario para la orden {}: {}", order.getId(), e.getMessage(), e);
         }
@@ -242,10 +255,20 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("La orden debe contener al menos un item");
         }
 
+        // Pre-cargar productos en lote para validar y mapear sin N+1
+        java.util.Set<Long> productIds = request.getItems().stream()
+                .map(CreateClientOrderRequest.OrderItemRequest::getProductId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, TenantMenuProduct> productMap = tenantMenuProductRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(TenantMenuProduct::getId, p -> p));
+
         // Validar stock y disponibilidad antes de reemplazar los items
         for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
-            TenantMenuProduct prod = tenantMenuProductRepository.findById(itemRequest.getProductId()).orElse(null);
-            if (prod == null) continue;
+            TenantMenuProduct prod = productMap.get(itemRequest.getProductId());
+            if (prod == null) {
+                throw new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId());
+            }
             if (!prod.isActive()) {
                 throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' no está disponible actualmente");
             }
@@ -269,8 +292,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         final ClientOrder finalOrder = order;
         List<ClientOrderItem> items = request.getItems().stream()
                 .map(itemRequest -> {
-                    TenantMenuProduct product = tenantMenuProductRepository.findById(itemRequest.getProductId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId()));
+                    TenantMenuProduct product = productMap.get(itemRequest.getProductId());
+                    if (product == null) {
+                        throw new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId());
+                    }
                     return ClientOrderItemMapper.toEntity(itemRequest, finalOrder, product);
                 })
                 .collect(Collectors.toList());
@@ -278,7 +303,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         order.getItems().addAll(items);
         order.setCustomer(customer);
 
-        // Descontar el stock de la nueva versión
+        // Descontar el stock de la nueva versión (sincronizando disponibilidad solo una vez)
         try {
             for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
                 Double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
@@ -286,8 +311,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                         itemRequest.getProductId(),
                         qty,
                         itemRequest.getExcludedIngredientIds(),
-                        itemRequest.getAdditionalIngredientIds());
+                        itemRequest.getAdditionalIngredientIds(),
+                        false);
             }
+            inventoryService.syncProductAvailabilityByTenant(order.getTenant().getId());
         } catch (Exception e) {
             log.error("Error descontando inventario al actualizar la orden {}: {}", order.getId(), e.getMessage(), e);
         }

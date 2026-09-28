@@ -181,6 +181,11 @@ public interface InventoryService {
     GenericResponse deductForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds);
 
     /**
+     * Descuenta stock con opción de omitir la sincronización global por ítem en operaciones por lote.
+     */
+    GenericResponse deductForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds, boolean triggerSyncAvailability);
+
+    /**
      * Restaura el stock de los insumos al cancelar una comanda (inverso de deductForOrder).
      */
     GenericResponse restoreForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds);

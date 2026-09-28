@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -1020,6 +1021,12 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public GenericResponse deductForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds) {
+        return deductForOrder(productId, cantidad, excludedInsumoIds, additionalInsumoIds, true);
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse deductForOrder(Long productId, Double cantidad, List<Long> excludedInsumoIds, List<Long> additionalInsumoIds, boolean triggerSyncAvailability) {
         TenantMenuProduct product = findProduct(productId);
         double units = cantidad != null ? cantidad : 1.0;
         List<Map<String, Object>> deducted = new ArrayList<>();
@@ -1027,7 +1034,9 @@ public class InventoryServiceImpl implements InventoryService {
         List<ProductRecipe> recipes = effectiveRecipes(productId);
         if (recipes.isEmpty()) {
             deductProduct(product, units, deducted);
-            syncAvailability(productTenantId(product));
+            if (triggerSyncAvailability) {
+                syncAvailability(productTenantId(product));
+            }
             return new GenericResponse(200, "Stock descontado de " + product.getNombre(), deducted);
         }
 
@@ -1042,7 +1051,7 @@ public class InventoryServiceImpl implements InventoryService {
             deductInsumo(r.getInsumo(), qty * units, deducted);
         }
 
-        if (additionalInsumoIds != null) {
+        if (additionalInsumoIds != null && !additionalInsumoIds.isEmpty()) {
             for (ProductAdditional a : additionalRepository.findByDishId(productId)) {
                 if (additionalInsumoIds.contains(a.getInsumo().getId())) {
                     double qty = a.getCantidad() != null ? a.getCantidad().doubleValue() : 1.0;
@@ -1051,7 +1060,9 @@ public class InventoryServiceImpl implements InventoryService {
             }
         }
 
-        syncAvailability(productTenantId(product));
+        if (triggerSyncAvailability) {
+            syncAvailability(productTenantId(product));
+        }
 
         return new GenericResponse(200,
                 "Stock descontado: " + deducted.size() + " insumo(s) de " + product.getNombre(), deducted);
@@ -1419,11 +1430,57 @@ public class InventoryServiceImpl implements InventoryService {
         if (tenantId == null) return 0;
         int changes = 0;
         List<TenantMenuProduct> products = productRepository.findAllByTenantId(tenantId);
+        if (products == null || products.isEmpty()) return 0;
+
+        List<Long> productIds = products.stream().map(TenantMenuProduct::getId).collect(Collectors.toList());
+
+        // Batch load all recipes with insumo in 1 query
+        Map<Long, List<ProductRecipe>> directRecipes = new HashMap<>();
+        for (ProductRecipe r : recipeRepository.findByDishIdInWithInsumo(productIds)) {
+            if (r.getDish() != null && r.getDish().getId() != null) {
+                directRecipes.computeIfAbsent(r.getDish().getId(), k -> new ArrayList<>()).add(r);
+            }
+        }
+
+        // Batch load subrecetas in 1 query
+        Map<Long, List<Long>> subRecetaDishMap = new HashMap<>();
+        for (ProductSubReceta psr : subRecetaRepository.findByDishIdIn(productIds)) {
+            if (psr.getDish() != null && psr.getSubReceta() != null) {
+                subRecetaDishMap.computeIfAbsent(psr.getDish().getId(), k -> new ArrayList<>()).add(psr.getSubReceta().getId());
+            }
+        }
+
         for (TenantMenuProduct p : products) {
             Boolean auto = p.getAutoAvailability();
             boolean autoManaged = auto == null || auto;
             if (!autoManaged) continue;
-            boolean available = isProductAvailable(p);
+
+            // Combine direct recipes + sub-receta recipes in memory
+            List<ProductRecipe> recipes = new ArrayList<>(directRecipes.getOrDefault(p.getId(), java.util.Collections.emptyList()));
+            List<Long> subIds = subRecetaDishMap.getOrDefault(p.getId(), java.util.Collections.emptyList());
+            for (Long subId : subIds) {
+                recipes.addAll(directRecipes.getOrDefault(subId, java.util.Collections.emptyList()));
+            }
+
+            boolean available;
+            if (recipes.isEmpty()) {
+                available = safeStock(p) >= 1.0;
+            } else {
+                double min = Double.MAX_VALUE;
+                for (ProductRecipe r : recipes) {
+                    double qty = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+                    if (qty <= 0) continue;
+                    double insumoStock = (r.getInsumo() != null && r.getInsumo().getStock() != null) ? r.getInsumo().getStock() : 0.0;
+                    double availableUnits = Math.floor(insumoStock / qty);
+                    if (availableUnits < 1.0) {
+                        min = 0.0;
+                        break;
+                    }
+                    min = Math.min(min, availableUnits);
+                }
+                available = min != Double.MAX_VALUE && min >= 1.0;
+            }
+
             if (available != p.isActive()) {
                 p.setActive(available);
                 productRepository.save(p);
