@@ -50,10 +50,10 @@ public class TenantMenuProductController {
         try {
             List<TenantMenuProductDTO>  products = productService.getProductsByTenantId(tenantId);
             if (products != null && !products.isEmpty()) {
-                // Populate cross-selling suggestions for each product
+                // Populate cross-selling suggestions in a single batch query (resolves N+1 query issue)
+                java.util.Map<Long, List<CrossSellingDTO>> suggestionsMap = crossSellingService.getSuggestionsGroupedByProduct(tenantId);
                 products.forEach(product -> {
-                    List<CrossSellingDTO> suggestions = crossSellingService.getSuggestionsByProduct(product.getId(), tenantId);
-                    product.setCrossSellingProducts(suggestions);
+                    product.setCrossSellingProducts(suggestionsMap.getOrDefault(product.getId(), java.util.Collections.emptyList()));
                 });
 
                 List<TenantMenuProductDTO> sortedProducts = products.stream()

@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -94,8 +97,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.ok(new GenericResponse(400, message, new ArrayList<>()));
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<GenericResponse> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        log.warn("Error leyendo mensaje HTTP: {}", ex.getMessage());
+        return ResponseEntity.ok(new GenericResponse(400, "Cuerpo de solicitud inválido: " + ex.getMessage(), new ArrayList<>()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<GenericResponse> handleGenericException(Exception ex) {
-        return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor", new ArrayList<>()));
+        log.error("Error no controlado en la aplicación:", ex);
+        return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor: " + ex.getMessage(), new ArrayList<>()));
     }
 }

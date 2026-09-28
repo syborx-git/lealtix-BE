@@ -49,6 +49,14 @@ public class ComandaPago {
     @Column(name = "total", precision = 10, scale = 2, nullable = false)
     private BigDecimal total;
 
+    /**
+     * Propina cobrada en este pago. Va aparte del total a proposito: la propina no
+     * es ingreso del restaurante, asi que los reportes de ventas la excluyen y el
+     * corte de caja la reporta como un KPI separado.
+     */
+    @Column(name = "propina", precision = 10, scale = 2)
+    private BigDecimal propina;
+
     @Column(name = "estado", nullable = false, length = 20)
     private String estado;
 
@@ -77,6 +85,9 @@ public class ComandaPago {
         }
         if (total == null) {
             total = BigDecimal.ZERO;
+        }
+        if (propina == null) {
+            propina = BigDecimal.ZERO;
         }
     }
 }

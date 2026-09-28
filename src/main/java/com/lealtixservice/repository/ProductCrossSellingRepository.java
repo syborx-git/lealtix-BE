@@ -32,6 +32,20 @@ public interface ProductCrossSellingRepository extends JpaRepository<ProductCros
         @Param("productId") Long productId, 
         @Param("tenantId") Long tenantId
     );
+
+    /**
+     * Encuentra todas las sugerencias activas de un tenant agrupadas para resolución en lote.
+     * Elimina el problema N+1 al cargar el menú.
+     */
+    @Query("SELECT pcs FROM ProductCrossSelling pcs " +
+           "JOIN FETCH pcs.product p " +
+           "JOIN FETCH pcs.suggestedProduct sp " +
+           "JOIN FETCH sp.category " +
+           "WHERE pcs.tenant.id = :tenantId " +
+           "AND pcs.isActive = true " +
+           "AND sp.isActive = true " +
+           "ORDER BY p.id ASC, pcs.displayOrder ASC")
+    List<ProductCrossSelling> findActiveSuggestionsByTenantId(@Param("tenantId") Long tenantId);
     
     /**
      * Encuentra todas las configuraciones de cross-selling de un tenant (incluidas inactivas).

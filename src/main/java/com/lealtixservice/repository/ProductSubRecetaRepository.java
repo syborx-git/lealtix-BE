@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface ProductSubRecetaRepository extends JpaRepository<ProductSubReceta, Long> {
     List<ProductSubReceta> findByDishId(Long dishId);
+    List<ProductSubReceta> findByDishIdIn(List<Long> dishIds);
     void deleteByDishId(Long dishId);
     boolean existsByDishIdAndSubRecetaId(Long dishId, Long subRecetaId);
 }

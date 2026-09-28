@@ -18,6 +18,12 @@ public interface ProductCrossSellingService {
     List<CrossSellingDTO> getSuggestionsByProduct(Long productId, Long tenantId);
     
     /**
+     * Obtiene en lote todas las sugerencias activas de un tenant agrupadas por ID de producto.
+     * Optimización masiva para evitar N+1 en la carga del menú.
+     */
+    java.util.Map<Long, List<CrossSellingDTO>> getSuggestionsGroupedByProduct(Long tenantId);
+    
+    /**
      * Crea una nueva configuración de cross-selling.
      * 
      * @param request Datos de la configuración

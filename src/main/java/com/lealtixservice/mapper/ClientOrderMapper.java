@@ -58,6 +58,8 @@ public class ClientOrderMapper {
                 .subtotal(subtotal)
                 .descuento(descuento)
                 .total(total)
+                .propina(BigDecimal.ZERO)
+                .propinasLiquidadas(false)
                 .couponId(request.getCouponId())
                 .fecha(java.time.LocalDateTime.now())  // Establecer la fecha actual
                 .source(source)

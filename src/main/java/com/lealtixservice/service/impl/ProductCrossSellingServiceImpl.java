@@ -62,6 +62,27 @@ public class ProductCrossSellingServiceImpl implements ProductCrossSellingServic
             .map(this::mapToDTO)
             .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, List<CrossSellingDTO>> getSuggestionsGroupedByProduct(Long tenantId) {
+        if (tenantId == null) {
+            return java.util.Collections.emptyMap();
+        }
+
+        List<ProductCrossSelling> allActive = crossSellingRepository.findActiveSuggestionsByTenantId(tenantId);
+        if (allActive == null || allActive.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+
+        java.util.Map<Long, List<CrossSellingDTO>> grouped = new java.util.HashMap<>();
+        for (ProductCrossSelling pcs : allActive) {
+            if (pcs.getProduct() == null || pcs.getProduct().getId() == null) continue;
+            grouped.computeIfAbsent(pcs.getProduct().getId(), k -> new java.util.ArrayList<>())
+                   .add(this.mapToDTO(pcs));
+        }
+        return grouped;
+    }
     
     @Override
     @Transactional
