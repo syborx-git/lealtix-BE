@@ -9,4 +9,6 @@ public interface FacturapiService {
     List<Map<String, Object>> listInvoices();
 
     byte[] downloadInvoice(String invoiceId, String format);
+
+    boolean emailInvoice(String invoiceId, String email);
 }
