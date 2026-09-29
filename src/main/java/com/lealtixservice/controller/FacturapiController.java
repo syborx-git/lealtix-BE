@@ -40,6 +40,24 @@ public class FacturapiController {
         }
     }
 
+    @Operation(summary = "Enviar factura por correo", description = "Envía la factura al correo indicado (o al del cliente si no se especifica).")
+    @PostMapping("/invoices/{id}/email")
+    public ResponseEntity<?> sendInvoiceEmail(@PathVariable String id, @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            String email = body != null && body.get("email") != null ? String.valueOf(body.get("email")) : null;
+            boolean ok = facturapiService.emailInvoice(id, email);
+            if (ok) {
+                return ResponseEntity.ok(new GenericResponse(200, "Factura enviada por correo", null));
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, "No se pudo enviar la factura por correo", null));
+        } catch (Exception e) {
+            log.error("Error enviando factura {} por correo", id, e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, e.getMessage(), null));
+        }
+    }
+
     @Operation(summary = "Listar facturas de Facturapi", description = "Regresa las facturas generadas en Facturapi.")
     @GetMapping("/invoices")
     public ResponseEntity<?> listInvoices() {

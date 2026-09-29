@@ -57,6 +57,56 @@ public class EmailServiceImpl implements Emailservice {
         }
     }
 
+    /**
+     * Envía un correo HTML (sin plantilla dinámica) con adjuntos (ej. PDF/XML de factura).
+     */
+    public void sendEmailWithAttachments(String to, String subject, String htmlBody,
+                                         java.util.List<EmailAttachmentDTO> attachments) throws IOException {
+        log.info("📧 [EmailService] Enviando correo con adjuntos a: {}", to);
+        try {
+            Mail mail = new Mail();
+            mail.setFrom(new Email(emailFrom));
+            mail.setSubject(subject);
+
+            Personalization personalization = new Personalization();
+            personalization.addTo(new Email(to));
+            personalization.setSubject(subject);
+            mail.addPersonalization(personalization);
+
+            mail.addContent(new Content("text/html", htmlBody));
+
+            if (attachments != null) {
+                for (EmailAttachmentDTO a : attachments) {
+                    Attachments attachment = new Attachments();
+                    attachment.setContent(a.getContent());
+                    attachment.setType(a.getType());
+                    attachment.setFilename(a.getFilename());
+                    attachment.setDisposition(a.getDisposition() != null ? a.getDisposition() : "attachment");
+                    if (a.getContentId() != null) {
+                        attachment.setContentId(a.getContentId());
+                    }
+                    mail.addAttachments(attachment);
+                }
+            }
+
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+
+            Response response = sendGrid.api(request);
+            log.info("SendGrid response (correo con adjuntos): {} | X-Message-Id: {}",
+                    response.getStatusCode(), response.getHeaders().get("X-Message-Id"));
+
+            if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+                throw new IOException("SendGrid API error (status " + response.getStatusCode() + "): " + response.getBody());
+            }
+        } catch (IOException e) {
+            log.error("❌ Error al enviar correo con adjuntos a {}: {}", to, e.getMessage());
+            throw e;
+        }
+    }
+
     public void sendEmailWithTemplate(EmailDTO emailDTO) throws IOException {
         log.info("📧 [EmailService] Iniciando envío de email a: {}", emailDTO.getTo());
         log.debug("[EmailService] Template ID: {}", emailDTO.getTemplateId());
