@@ -14,10 +14,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,10 +88,16 @@ public class CajaController {
 
     @Operation(summary = "Tablero de caja: Cuentas Abiertas vs Cuentas Por Cobrar")
     @GetMapping("/tablero")
-    @RequirePermission(value = "process_payment", alternative = {"manage_all", "view_sales"})
+    @RequirePermission(value = "process_payment", alternative = {"manage_all", "view_sales", "view_reports", "view_dashboard"})
     public ResponseEntity<GenericResponse> getTablero(@RequestParam Long tenantId) {
         try {
             TableroCajaDTO tablero = cajaTurnoService.obtenerTablero(tenantId);
+            if (tablero == null) {
+                tablero = TableroCajaDTO.builder()
+                        .cuentasAbiertas(new ArrayList<>())
+                        .cuentasPorCobrar(new ArrayList<>())
+                        .build();
+            }
             return ResponseEntity.ok(new GenericResponse(200, "Tablero de caja", tablero));
         } catch (Exception e) {
             log.error("Error obteniendo tablero de caja", e);
@@ -151,14 +159,15 @@ public class CajaController {
         }
     }
 
-    @Operation(summary = "Corte y rendimiento por mesero")
+    @Operation(summary = "Corte y rendimiento por mesero (opcionalmente acotado a un día)")
     @GetMapping("/cortes/mesero/{idMesero}")
     public ResponseEntity<GenericResponse> getCorteMesero(
             @PathVariable Long idMesero,
             @RequestParam Long tenantId,
-            @RequestParam(required = false) Long idTurno) {
+            @RequestParam(required = false) Long idTurno,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
         try {
-            CorteMeseroDTO corte = cajaTurnoService.obtenerCorteMesero(tenantId, idMesero, idTurno);
+            CorteMeseroDTO corte = cajaTurnoService.obtenerCorteMesero(tenantId, idMesero, idTurno, fecha);
             return ResponseEntity.ok(new GenericResponse(200, "Corte de mesero", corte));
         } catch (Exception e) {
             log.error("Error obteniendo corte de mesero", e);

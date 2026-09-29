@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -175,12 +176,14 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
         List<ComandaCajaRowDTO> cuentasAbiertas = new ArrayList<>();
         List<ComandaCajaRowDTO> cuentasPorCobrar = new ArrayList<>();
 
-        for (ClientOrder order : ordenes) {
-            ComandaCajaRowDTO row = mapToComandaRowDTO(order);
-            if (order.getEstado() == OrderStatus.POR_COBRAR) {
-                cuentasPorCobrar.add(row);
-            } else {
-                cuentasAbiertas.add(row);
+        if (ordenes != null) {
+            for (ClientOrder order : ordenes) {
+                ComandaCajaRowDTO row = mapToComandaRowDTO(order);
+                if (order.getEstado() == OrderStatus.POR_COBRAR) {
+                    cuentasPorCobrar.add(row);
+                } else {
+                    cuentasAbiertas.add(row);
+                }
             }
         }
 
@@ -330,11 +333,15 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
 
     @Override
     @Transactional(readOnly = true)
-    public CorteMeseroDTO obtenerCorteMesero(Long tenantId, Long idMesero, Long idTurno) {
+    public CorteMeseroDTO obtenerCorteMesero(Long tenantId, Long idMesero, Long idTurno, LocalDate fecha) {
         TenantUser mesero = tenantUserRepository.findByIdAndTenantId(idMesero, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mesero no encontrado"));
+        String email = mesero.getEmail();
 
-        List<Pago> pagos = pagoRepository.findPagosByMesero(tenantId, idMesero, idTurno);
+        List<Pago> pagos = (fecha != null)
+                ? pagoRepository.findPagosByMeseroEnRango(
+                        tenantId, idMesero, email, fecha.atStartOfDay(), fecha.plusDays(1).atStartOfDay())
+                : pagoRepository.findPagosByMesero(tenantId, idMesero, email, idTurno);
 
         BigDecimal totalVentas = BigDecimal.ZERO;
         BigDecimal totalPropinas = BigDecimal.ZERO;
@@ -473,22 +480,35 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
 
     private ComandaCajaRowDTO mapToComandaRowDTO(ClientOrder o) {
         int itemsCount = o.getItems() != null ? o.getItems().stream().mapToInt(i -> i.getCantidad() != null ? i.getCantidad() : 1).sum() : 0;
+        String folio = "";
+        if (o.getId() != null) {
+            String strId = o.getId().toString();
+            folio = strId.length() > 8 ? strId.substring(0, 8).toUpperCase() : strId.toUpperCase();
+        }
+        String meseroNom = "General";
+        if (o.getMesero() != null && o.getMesero().getFullName() != null && !o.getMesero().getFullName().isBlank()) {
+            meseroNom = o.getMesero().getFullName();
+        }
+        String clienteNom = "Venta General";
+        if (o.getCustomer() != null && o.getCustomer().getName() != null && !o.getCustomer().getName().isBlank()) {
+            clienteNom = o.getCustomer().getName();
+        }
         return ComandaCajaRowDTO.builder()
                 .id(o.getId())
-                .folioComanda(o.getId().toString().substring(0, 8).toUpperCase())
-                .estado(o.getEstado().name())
+                .folioComanda(folio)
+                .estado(o.getEstado() != null ? o.getEstado().name() : "")
                 .idMesa(o.getMesa() != null ? o.getMesa().getId() : null)
                 .mesaNombre(o.getMesa() != null ? o.getMesa().getNombre() : "Mesa General")
                 .idMesero(o.getMesero() != null ? o.getMesero().getId() : null)
-                .meseroNombre(o.getMesero() != null ? o.getMesero().getFullName() : "General")
-                .clienteNombre(o.getCustomer() != null ? o.getCustomer().getName() : "Venta General")
-                .subtotal(o.getSubtotal() != null ? o.getSubtotal() : o.getTotal())
+                .meseroNombre(meseroNom)
+                .clienteNombre(clienteNom)
+                .subtotal(o.getSubtotal() != null ? o.getSubtotal() : (o.getTotal() != null ? o.getTotal() : BigDecimal.ZERO))
                 .descuento(o.getDescuento() != null ? o.getDescuento() : BigDecimal.ZERO)
-                .total(o.getTotal())
+                .total(o.getTotal() != null ? o.getTotal() : BigDecimal.ZERO)
                 .totalItems(itemsCount)
                 .horaApertura(o.getHoraApertura() != null ? o.getHoraApertura() : o.getFecha())
                 .fechaImpresionTicket(o.getFechaImpresionTicket())
-                .propinasLiquidadas(o.getPropinasLiquidadas())
+                .propinasLiquidadas(Boolean.TRUE.equals(o.getPropinasLiquidadas()))
                 .build();
     }
 }

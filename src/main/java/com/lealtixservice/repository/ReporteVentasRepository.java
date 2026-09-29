@@ -24,7 +24,7 @@ import java.util.UUID;
 @Repository
 public interface ReporteVentasRepository extends org.springframework.data.repository.Repository<ClientOrder, UUID> {
 
-    String ESTADOS_VENTA = "'CONFIRMADA','PAGADA','EN_PREPARACION','LISTO'";
+    String ESTADOS_VENTA = "'CONFIRMADA','PAGADA','EN_PREPARACION','LISTO','POR_COBRAR'";
 
     /**
      * Filtro de estados de venta, compartido por las cuatro consultas.

@@ -50,6 +50,13 @@ public class ClientOrderDTO {
      */
     private BigDecimal propina;
     
+    private Long mesaId;
+    private String mesaNombre;
+    private Integer mesaNumero;
+    private Long meseroId;
+    private String meseroNombre;
+    private Long idTurno;
+
     // Campos de cancelación
     private String cancelledBy;  // Email del usuario que canceló
     private LocalDateTime cancelledAt;  // Timestamp de cancelación
