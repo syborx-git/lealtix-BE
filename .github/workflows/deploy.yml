@@ -42,4 +42,9 @@ jobs:
                   STRIPE_WEBHOOK_SECRET: "whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S"
             YML
             docker compose up -d --build --force-recreate lealtix-backend
+            sleep 15
+            echo "===== docker compose ps ====="
+            docker compose ps || true
+            echo "===== docker compose logs lealtix-backend ====="
+            docker compose logs --tail=300 lealtix-backend || true
             echo "✅ Backend actualizado con éxito!"

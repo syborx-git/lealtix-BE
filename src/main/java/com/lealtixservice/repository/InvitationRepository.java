@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface InvitationRepository extends JpaRepository<Invitation, Long> {
     Optional<Invitation> findByTokenHash(String tokenHash);
 
-    Optional<Object> findByEmail(String email);
+    Optional<Invitation> findByEmail(String email);
+
+    void deleteByEmail(String email);
 }
 

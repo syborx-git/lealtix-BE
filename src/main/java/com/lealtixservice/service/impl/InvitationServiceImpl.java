@@ -49,11 +49,15 @@ public class InvitationServiceImpl implements InvitationService {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(Duration.ofHours(expiryHours));
 
+        // Limpia invitaciones previas del email (evita duplicados/conflictos de email único)
+        invitationRepository.deleteByEmail(dto.getEmail());
+        invitationRepository.flush(); // ejecuta el DELETE antes del INSERT siguiente
         Invitation invitation = new Invitation();
         invitation.setEmail(dto.getEmail());
         invitation.setTokenHash(tokenHash);
         invitation.setCreatedAt(now);
         invitation.setExpiresAt(expiresAt);
+        invitation.setUsedAt(null);
         invitation.setCreatedByIp(ipAddress);
 
         invitationRepository.save(invitation);
@@ -96,7 +100,7 @@ public class InvitationServiceImpl implements InvitationService {
 
     @Override
     public Invitation getInviteByEmail(String email) {
-        return (Invitation) invitationRepository.findByEmail(email).orElse(null);
+        return invitationRepository.findByEmail(email).orElse(null);
     }
 
     @Override
