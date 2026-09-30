@@ -24,6 +24,7 @@ REM --- Secretos (desarrollo). Reemplazar por valores reales ---
 set "JWT_SECRET=cambia-esta-clave-secreta-jwt-muy-larga-de-al-menos-256-bits-para-produccion-1234567890abc"
 set "STRIPE_API_KEY=sk_test_TODO_REEMPLAZAR"
 set "STRIPE_WEBHOOK_SECRET=whsec_TODO_REEMPLAZAR"
+set "FACTURAPI_API_KEY=TODO_REEMPLAZAR"
 set "SENDGRID_API_KEY=SG.TODO_REEMPLAZAR"
 set "CLOUDINARY_CLOUD_NAME=TODO_REEMPLAZAR"
 set "CLOUDINARY_API_KEY=TODO_REEMPLAZAR"

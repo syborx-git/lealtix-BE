@@ -176,7 +176,15 @@ public class ComandaAsientoServiceImpl implements ComandaAsientoService {
         List<ComandaPagoDTO> subComandas = new java.util.ArrayList<>();
         List<ComandaAsiento> aPagar = new java.util.ArrayList<>();
 
-        for (ComandaAsiento seat : seats) {
+        for (int i = 0; i < seats.size(); i++) {
+            ComandaAsiento seat = seats.get(i);
+            // La propina de la llamada se imputa al ultimo asiento liquidado para
+            // que el total del corte sume la propina exacta una sola vez.
+            boolean esUltimoAsiento = (i == seats.size() - 1);
+            BigDecimal propinaAsiento = (esUltimoAsiento && request.getPropina() != null)
+                    ? request.getPropina()
+                    : BigDecimal.ZERO;
+
             if (!seat.getOrder().getId().equals(orderId)) {
                 throw new IllegalArgumentException("El asiento " + seat.getId() + " no pertenece a la comanda " + orderId);
             }
@@ -193,6 +201,7 @@ public class ComandaAsientoServiceImpl implements ComandaAsientoService {
                     .folio(folioOriginal + "-" + seatSuffix(seat.getNumero()))  // p.ej. 12345-A, 12345-B
                     .folioOriginal(folioOriginal)
                     .total(seat.getTotal())
+                    .propina(propinaAsiento)
                     .estado("PAGADA")
                     .paidMethod(request.getMethod())
                     .paymentReference(request.getReference())

@@ -50,7 +50,7 @@ public class TenantMenuProductController {
         try {
             List<TenantMenuProductDTO>  products = productService.getProductsByTenantId(tenantId);
             if (products != null && !products.isEmpty()) {
-                // Cross-selling: UNA sola consulta para todos los productos (evita N+1)
+// Cross-selling: UNA sola consulta para todos los productos (evita N+1)
                 List<Long> productIds = products.stream()
                         .map(TenantMenuProductDTO::getId)
                         .filter(java.util.Objects::nonNull)

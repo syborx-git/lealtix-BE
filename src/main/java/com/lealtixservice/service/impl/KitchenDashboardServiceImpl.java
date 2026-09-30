@@ -116,8 +116,8 @@ public class KitchenDashboardServiceImpl implements KitchenDashboardService {
     private CompletedOrdersDTO getCompletedOrders(Long tenantId, LocalDateTime from, LocalDateTime to) {
         log.debug("Obteniendo órdenes completadas para tenantId={}", tenantId);
 
-        Long completedCount = clientOrderRepository.countCompletedOrders(tenantId, from, to);
-        Long successfulDeliveries = clientOrderRepository.countSuccessfulDeliveries(tenantId, from, to);
+        Long completedCount = clientOrderRepository.countCompletedOrders(tenantId, ClientOrderRepository.ESTADOS_ORDEN_FINALIZADA, from, to);
+        Long successfulDeliveries = clientOrderRepository.countSuccessfulDeliveries(tenantId, ClientOrderRepository.ESTADOS_ORDEN_FINALIZADA, from, to);
 
         return CompletedOrdersDTO.builder()
                 .completedOrders(completedCount != null ? completedCount : 0L)
