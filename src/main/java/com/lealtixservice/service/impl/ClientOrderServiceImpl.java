@@ -136,11 +136,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
         // Crear la orden
         ClientOrder order = ClientOrderMapper.toEntity(request, customer, tenant);
+        final ClientOrder orderRef = order;
 
         // Asociar Mesa si viene en el request
         if (request.getMesaId() != null) {
             mesaRepository.findById(request.getMesaId()).ifPresent(mesa -> {
-                order.setMesa(mesa);
+                orderRef.setMesa(mesa);
                 mesa.setEstado(MesaEstado.OCUPADA);
                 mesaRepository.save(mesa);
             });
@@ -148,12 +149,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
         // Asociar Mesero si viene en el request
         if (request.getMeseroId() != null) {
-            appUserRepository.findById(request.getMeseroId()).ifPresent(order::setMesero);
-            if (order.getMesero() == null) {
+            appUserRepository.findById(request.getMeseroId()).ifPresent(orderRef::setMesero);
+            if (orderRef.getMesero() == null) {
                 tenantUserRepository.findById(request.getMeseroId()).ifPresent(tu -> {
                     AppUser au = appUserRepository.findByEmail(tu.getEmail());
                     if (au != null) {
-                        order.setMesero(au);
+                        orderRef.setMesero(au);
                     }
                 });
             }
