@@ -16,7 +16,7 @@ public interface ProductAdditionalRepository extends JpaRepository<ProductAdditi
     Optional<ProductAdditional> findByDishIdAndInsumoId(Long dishId, Long insumoId);
     void deleteByDishId(Long dishId);
 
-    /**
+/**
      * Carga en UNA sola consulta todos los adicionales de varios platillos,
      * trayendo el insumo de forma anticipada (join fetch) para evitar N+1.
      */

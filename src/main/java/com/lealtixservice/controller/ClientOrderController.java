@@ -30,6 +30,7 @@ import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Tag(name = "Client Orders", description = "Operaciones relacionadas con órdenes/comandas de clientes")
@@ -169,12 +170,35 @@ public class ClientOrderController {
     @TenantOwnership(tenantIdParam = "tenantId")
     public ResponseEntity<GenericResponse> getOrdersByTenantAndStatusQuery(
             @RequestParam Long tenantId,
-            @RequestParam String status,
+            @RequestParam(required = false) String status,
             @Parameter(description = "Número de página (comenzando en 0)")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página")
             @RequestParam(defaultValue = "20") int size) {
         try {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("fecha").descending());
+
+            if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status.trim())) {
+                log.debug("Obteniendo todas las órdenes del tenant {} (página: {}, tamaño: {})", tenantId, page, size);
+                Page<ClientOrderDTO> orders = clientOrderService.getOrdersByTenant(tenantId, pageable);
+                return ResponseEntity.ok(new GenericResponse(200, "Órdenes encontradas", orders));
+            }
+
+            if (status.contains(",")) {
+                List<OrderStatus> statuses = java.util.Arrays.stream(status.split(","))
+                        .map(String::trim)
+                        .map(this::resolveOrderStatus)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toList());
+                if (statuses.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(new GenericResponse(400, "Estados inválidos: '" + status + "'", null));
+                }
+                log.debug("Obteniendo órdenes del tenant {} con estados {} (página: {}, tamaño: {})", tenantId, statuses, page, size);
+                Page<ClientOrderDTO> orders = clientOrderService.getOrdersByTenantAndStatuses(tenantId, statuses, pageable);
+                return ResponseEntity.ok(new GenericResponse(200, "Órdenes encontradas", orders));
+            }
+
             OrderStatus orderStatus = resolveOrderStatus(status);
             if (orderStatus == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -182,7 +206,6 @@ public class ClientOrderController {
                                 "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/CONFIRMADA, EN_PREPARACION/IN_PREPARATION, LISTO/READY, PAGADA/PAID, CANCELADA/CANCELLED", null));
             }
             log.debug("Obteniendo órdenes del tenant {} con estado {} (página: {}, tamaño: {})", tenantId, orderStatus, page, size);
-            Pageable pageable = PageRequest.of(page, size, Sort.by("fecha").descending());
             Page<ClientOrderDTO> orders = clientOrderService.getOrdersByTenantAndStatus(tenantId, orderStatus, pageable);
             return ResponseEntity.ok(new GenericResponse(200, "Órdenes encontradas", orders));
         } catch (Exception e) {
@@ -208,6 +231,8 @@ public class ClientOrderController {
             case "CONFIRMED", "CONFIRMADA", "CONFIRMADO"               -> OrderStatus.CONFIRMADA;
             case "IN_PREPARATION", "EN_PREPARACION", "PREPARING"           -> OrderStatus.EN_PREPARACION;
             case "READY", "LISTO", "COMPLETED"                             -> OrderStatus.LISTO;
+            case "OPEN", "ABIERTA"                                         -> OrderStatus.ABIERTA;
+            case "POR_COBRAR", "PRE_CUENTA"                                 -> OrderStatus.POR_COBRAR;
             case "PAID", "PAGADA"                                           -> OrderStatus.PAGADA;
             case "CANCELLED", "CANCELED", "CANCELADA", "RECHAZADO"        -> OrderStatus.CANCELADA;
             default -> null;

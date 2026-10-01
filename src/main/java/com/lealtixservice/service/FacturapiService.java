@@ -10,5 +10,8 @@ public interface FacturapiService {
 
     byte[] downloadInvoice(String invoiceId, String format);
 
-    boolean emailInvoice(String invoiceId, String email);
+    /**
+     * Envía la factura por correo. Devuelve null si se envió, o el mensaje de error si falló.
+     */
+    String emailInvoice(String invoiceId, String email);
 }

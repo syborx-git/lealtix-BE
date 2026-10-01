@@ -1,7 +1,6 @@
 package com.lealtixservice.repository;
 
 import com.lealtixservice.entity.ProductRecipe;
-import com.lealtixservice.entity.TenantMenuProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,7 +16,7 @@ public interface ProductRecipeRepository extends JpaRepository<ProductRecipe, Lo
     Optional<ProductRecipe> findByDishIdAndInsumoId(Long dishId, Long insumoId);
     void deleteByDishId(Long dishId);
 
-    /**
+/**
      * Carga en UNA sola consulta todas las recetas de varios platillos,
      * trayendo el insumo de forma anticipada (join fetch) para evitar N+1.
      */
