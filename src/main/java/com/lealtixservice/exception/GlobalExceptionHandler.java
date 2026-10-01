@@ -9,6 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.format.DateTimeParseException;
@@ -60,10 +62,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.ok(new GenericResponse(422, ex.getMessage(), new ArrayList<>()));
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<GenericResponse> handleAuthenticationException(AuthenticationException ex) {
+        log.warn("Error de autenticación o sesión expirada: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new GenericResponse(401, "Sesión no válida o expirada: " + ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<GenericResponse> handleAccessDeniedException(AccessDeniedException ex) {
+        log.warn("Acceso denegado: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new GenericResponse(403, "No tiene permisos para realizar esta operación: " + ex.getMessage(), null));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<GenericResponse> handleResponseStatusException(ResponseStatusException ex) {
         int status = ex.getStatusCode().value();
-        return ResponseEntity.ok(new GenericResponse(status, ex.getReason(), new ArrayList<>()));
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(new GenericResponse(status, ex.getReason(), null));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

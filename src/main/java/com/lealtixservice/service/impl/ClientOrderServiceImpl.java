@@ -134,13 +134,13 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
 
-        // Crear la orden
-        ClientOrder order = ClientOrderMapper.toEntity(request, customer, tenant);
+        // Crear la orden inicial
+        final ClientOrder initialOrder = ClientOrderMapper.toEntity(request, customer, tenant);
 
         // Asociar Mesa si viene en el request
         if (request.getMesaId() != null) {
             mesaRepository.findById(request.getMesaId()).ifPresent(mesa -> {
-                order.setMesa(mesa);
+                initialOrder.setMesa(mesa);
                 mesa.setEstado(MesaEstado.OCUPADA);
                 mesaRepository.save(mesa);
             });
@@ -148,24 +148,24 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
         // Asociar Mesero si viene en el request
         if (request.getMeseroId() != null) {
-            appUserRepository.findById(request.getMeseroId()).ifPresent(order::setMesero);
-            if (order.getMesero() == null) {
+            appUserRepository.findById(request.getMeseroId()).ifPresent(initialOrder::setMesero);
+            if (initialOrder.getMesero() == null) {
                 tenantUserRepository.findById(request.getMeseroId()).ifPresent(tu -> {
                     AppUser au = appUserRepository.findByEmail(tu.getEmail());
                     if (au != null) {
-                        order.setMesero(au);
+                        initialOrder.setMesero(au);
                     }
                 });
             }
         } else if (request.getMeseroEmail() != null && !request.getMeseroEmail().isBlank()) {
             AppUser au = appUserRepository.findByEmail(request.getMeseroEmail());
             if (au != null) {
-                order.setMesero(au);
+                initialOrder.setMesero(au);
             }
         }
 
         // Guardar la orden primero para obtener el ID
-        order = clientOrderRepository.save(order);
+        ClientOrder order = clientOrderRepository.save(initialOrder);
         
         // Variable final para usar en el lambda
         final ClientOrder finalOrder = order;

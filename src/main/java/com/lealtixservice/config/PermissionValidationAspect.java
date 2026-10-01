@@ -39,20 +39,21 @@ public class PermissionValidationAspect {
 
         // Obtener el rol del usuario autenticado
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AccessDeniedException("Usuario no autenticado");
+        if (authentication == null || !authentication.isAuthenticated() 
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new org.springframework.security.authentication.InsufficientAuthenticationException("Sesión no iniciada o token expirado");
         }
 
         String userRole = authentication.getAuthorities().stream()
                 .map(auth -> auth.getAuthority())
-                .filter(auth -> auth.startsWith("ROLE_"))
+                .filter(auth -> auth.startsWith("ROLE_") && !auth.equals("ROLE_ANONYMOUS"))
                 .findFirst()
                 .map(auth -> auth.substring(5)) // Remover "ROLE_"
                 .orElse(null);
 
         if (userRole == null) {
-            log.warn("Usuario {} no tiene rol asignado", authentication.getName());
-            throw new AccessDeniedException("Usuario no tiene rol asignado");
+            log.warn("Usuario {} no tiene rol asignado o sesión no válida", authentication.getName());
+            throw new org.springframework.security.authentication.InsufficientAuthenticationException("Usuario sin rol asignado o sesión no válida");
         }
 
         // Validar permiso principal
