@@ -35,8 +35,27 @@ public class CorsConfig {
 
     private List<String> allowedPatterns() {
         List<String> origins = parseAllowedOrigins();
+        // Garantizar SIEMPRE los dominios oficiales de produccion de Lealtix
+        List<String> requiredOrigins = List.of(
+                "https://admin.lealtix.com.mx",
+                "https://lealtix.com.mx",
+                "https://www.lealtix.com.mx",
+                "http://5.161.82.24:3000",
+                "http://5.161.82.24:4201",
+                "http://5.161.82.24:8082",
+                "http://localhost:3000",
+                "http://localhost:4200",
+                "http://localhost:4201"
+        );
+        for (String req : requiredOrigins) {
+            if (!origins.contains(req)) {
+                origins.add(req);
+            }
+        }
         // Permite los túneles públicos de cloudflared (pruebas/uso remoto)
-        origins.add("https://*.trycloudflare.com");
+        if (!origins.contains("https://*.trycloudflare.com")) {
+            origins.add("https://*.trycloudflare.com");
+        }
         return origins;
     }
 
