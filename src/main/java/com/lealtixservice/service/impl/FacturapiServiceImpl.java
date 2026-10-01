@@ -69,10 +69,10 @@ public class FacturapiServiceImpl implements FacturapiService {
      * Best-effort: si falla, no rompe la creación de la factura (solo se loguea).
      */
     @Override
-    public String emailInvoice(String invoiceId, String email) {
+    public boolean emailInvoice(String invoiceId, String email) {
         if (email == null || email.isBlank()) {
             log.warn("Facturapi: no se envía factura {} por correo (sin email)", invoiceId);
-            return "sin email de destino";
+            return false;
         }
 
         try {
@@ -109,10 +109,10 @@ public class FacturapiServiceImpl implements FacturapiService {
 
             emailService.sendEmailWithAttachments(email, "Tu factura Lealtix", html, attachments);
             log.info("Facturapi: factura {} enviada por correo (SendGrid) a {}", invoiceId, email);
-            return null;
+            return true;
         } catch (Exception e) {
             log.error("Error enviando factura {} por correo (SendGrid) a {}: {}", invoiceId, email, e.getMessage(), e);
-            return e.getMessage();
+            return false;
         }
     }
 

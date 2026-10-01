@@ -24,8 +24,8 @@ import java.util.UUID;
 })
 @Getter
 @Setter
-@ToString(exclude = {"customer", "tenant", "items", "mesa", "mesero", "clienteMesa", "turno"})
-@EqualsAndHashCode(exclude = {"customer", "tenant", "items", "mesa", "mesero", "clienteMesa", "turno"})
+@ToString(exclude = {"customer", "tenant", "items", "mesa", "mesero", "clienteMesa"})
+@EqualsAndHashCode(exclude = {"customer", "tenant", "items", "mesa", "mesero", "clienteMesa"})
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -109,32 +109,8 @@ public class ClientOrder {
     @JoinColumn(name = "paid_by")
     private AppUser paidBy;  // Usuario que registró el pago
 
-   @Column(name = "paid_at")
-   private LocalDateTime paidAt;  // Cuándo se registró el pago
-
-   /**
-    * Propina del pago directo (cobro sin división de cuenta).
-    * Es informacion adicional: NO se suma al total, no cuenta como ingreso en el
-    * reporte de ventas y el corte de caja la reporta aparte. Cuando la cuenta se
-    * divide, la propina vive en comanda_pago.propina.
-    */
-    @Builder.Default
-    @Column(name = "propina", precision = 10, scale = 2, nullable = false)
-    private BigDecimal propina = BigDecimal.ZERO;
-   
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_turno")
-    private Turno turno;
-
-    @Column(name = "fecha_impresion_ticket")
-    private LocalDateTime fechaImpresionTicket;
-
-    @Builder.Default
-    @Column(name = "propinas_liquidadas")
-    private Boolean propinasLiquidadas = false;
-
-    @Column(name = "fecha_liquidacion_propinas")
-    private LocalDateTime fechaLiquidacionPropinas;
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;  // Cuándo se registró el pago
 
     // Campos de cancelación
     @Column(name = "cancelled_by")
@@ -170,12 +146,6 @@ public class ClientOrder {
         }
         if (source == null) {
             source = "MANUAL";
-        }
-        if (propina == null) {
-            propina = BigDecimal.ZERO;
-        }
-        if (propinasLiquidadas == null) {
-            propinasLiquidadas = false;
         }
     }
 

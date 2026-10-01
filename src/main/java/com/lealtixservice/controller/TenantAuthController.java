@@ -63,8 +63,8 @@ public class TenantAuthController {
             }else{
 
             }
-            // Generar token JWT con tenantId y rol
-            String token = jwtUtil.generateToken(user.getEmail(), tenantId, user.getRol() != null ? user.getRol().name() : "ADMIN");
+            // Generar token JWT
+            String token = jwtUtil.generateToken(user.getEmail());
 
             // Obtener permisos del rol
             List<String> permissions = rolePermissionService.getPermissionsByRole(user.getRol().name());

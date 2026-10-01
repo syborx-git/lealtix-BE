@@ -11,8 +11,6 @@ public enum OrderStatus {
     CONFIRMADA("Orden confirmada por mesero"),
     EN_PREPARACION("En preparación"),
     LISTO("Listo para servir"),
-    ABIERTA("Comanda abierta en consumo"),
-    POR_COBRAR("Ticket impreso en mesa para cobro"),
     PAGADA("Pagada"),
     CANCELADA("Cancelada");
 

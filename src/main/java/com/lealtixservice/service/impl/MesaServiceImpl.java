@@ -101,9 +101,7 @@ public class MesaServiceImpl implements MesaService {
         validateMeseroIfPresent(tenantId, request.getMeseroUserId());
         mesa.setMeseroUserId(request.getMeseroUserId());
         if (request.getEstado() != null) {
-            List<Mesa> afectadas = mesasDelGrupoOMisma(tenantId, mesa);
-            afectadas.forEach(m -> applyEstado(m, request.getEstado()));
-            mesaRepository.saveAll(afectadas);
+            applyEstado(mesa, request.getEstado());
         }
         if (request.getForma() != null) {
             mesa.setForma(request.getForma());
@@ -138,9 +136,8 @@ public class MesaServiceImpl implements MesaService {
         if (estado == null) {
             throw new IllegalArgumentException("El estado es requerido");
         }
-        List<Mesa> afectadas = mesasDelGrupoOMisma(tenantId, mesa);
-        afectadas.forEach(m -> applyEstado(m, estado));
-        mesaRepository.saveAll(afectadas);
+        applyEstado(mesa, estado);
+        mesa = mesaRepository.save(mesa);
         return MesaDTO.fromEntity(mesa, resolveMeseroName(mesa));
     }
 
@@ -236,15 +233,6 @@ public class MesaServiceImpl implements MesaService {
         if (estado == MesaEstado.LIBRE) {
             mesa.setMeseroUserId(null);
         }
-    }
-
-    /** Devuelve la mesa sola si no está en un grupo temporal, o todas las mesas del grupo. */
-    private List<Mesa> mesasDelGrupoOMisma(Long tenantId, Mesa mesa) {
-        if (mesa.getIdGrupoTemporal() == null) {
-            return List.of(mesa);
-        }
-        List<Mesa> grupo = mesaRepository.findByTenantIdAndIdGrupoTemporal(tenantId, mesa.getIdGrupoTemporal());
-        return grupo.isEmpty() ? List.of(mesa) : grupo;
     }
 
     private void validateMeseroIfPresent(Long tenantId, Long meseroUserId) {

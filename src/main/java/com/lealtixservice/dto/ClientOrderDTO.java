@@ -43,20 +43,7 @@ public class ClientOrderDTO {
     private String paymentReference;  // Referencia del comprobante
     private String paidByName;  // Nombre del usuario que registró el pago
     private LocalDateTime paidAt;  // Timestamp cuando se registró el pago
-
-    /**
-     * Propina que se cobro por encima de la cuenta. Viaja aparte de {@code total}
-     * porque no es ingreso de la comanda: el corte de caja la reporta aparte.
-     */
-    private BigDecimal propina;
     
-    private Long mesaId;
-    private String mesaNombre;
-    private Integer mesaNumero;
-    private Long meseroId;
-    private String meseroNombre;
-    private Long idTurno;
-
     // Campos de cancelación
     private String cancelledBy;  // Email del usuario que canceló
     private LocalDateTime cancelledAt;  // Timestamp de cancelación

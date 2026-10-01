@@ -92,12 +92,7 @@ public class EmailServiceImpl implements Emailservice {
             Request request = new Request();
             request.setMethod(Method.POST);
             request.setEndpoint("mail/send");
-            String payload = mail.build();
-            int attachmentCount = (attachments != null) ? attachments.size() : 0;
-            log.info("SendGrid payload: {} bytes | adjuntos={} | incluyePDF={} | incluyeXML={}",
-                    payload.length(), attachmentCount,
-                    payload.contains(".pdf"), payload.contains(".xml"));
-            request.setBody(payload);
+            request.setBody(mail.build());
 
             Response response = sendGrid.api(request);
             log.info("SendGrid response (correo con adjuntos): {} | X-Message-Id: {}",

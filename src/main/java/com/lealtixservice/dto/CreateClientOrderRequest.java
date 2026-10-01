@@ -44,10 +44,6 @@ public class CreateClientOrderRequest {
 
     private String source;  // Origen: 'CHATBOT', 'MANUAL', 'POS', 'WEB', 'MOBILE'
     
-    private Long mesaId;
-    private Long meseroId;
-    private String meseroEmail;
-    
     /**
      * DTO anidado para los items de la orden
      */

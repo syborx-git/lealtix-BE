@@ -73,15 +73,6 @@ public class ClientOrderServiceImplRecordPaymentTest {
     @Mock
     private OrderSseService orderSseService;
 
-    @Mock
-    private com.lealtixservice.repository.TurnoRepository turnoRepository;
-
-    @Mock
-    private com.lealtixservice.repository.PagoRepository pagoRepository;
-
-    @Mock
-    private com.lealtixservice.repository.MesaRepository mesaRepository;
-
     @InjectMocks
     private ClientOrderServiceImpl clientOrderService;
 

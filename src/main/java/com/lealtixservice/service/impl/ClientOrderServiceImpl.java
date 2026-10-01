@@ -21,15 +21,8 @@ import com.lealtixservice.enums.OrderStatus;
 import com.lealtixservice.enums.PaymentMethod;
 import com.lealtixservice.enums.RedemptionChannel;
 import com.lealtixservice.exception.ResourceNotFoundException;
-import com.lealtixservice.entity.Mesa;
-import com.lealtixservice.entity.Pago;
-import com.lealtixservice.entity.Turno;
-import com.lealtixservice.enums.MesaEstado;
 import com.lealtixservice.mapper.ClientOrderItemMapper;
 import com.lealtixservice.mapper.ClientOrderMapper;
-import com.lealtixservice.repository.MesaRepository;
-import com.lealtixservice.repository.PagoRepository;
-import com.lealtixservice.repository.TurnoRepository;
 import com.lealtixservice.repository.AppUserRepository;
 import com.lealtixservice.repository.ClientOrderItemRepository;
 import com.lealtixservice.repository.ClientOrderRepository;
@@ -82,9 +75,6 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     private final CouponRedemptionService couponRedemptionService;
     private final OrderSseService orderSseService;
     private final InventoryService inventoryService;
-    private final TurnoRepository turnoRepository;
-    private final PagoRepository pagoRepository;
-    private final MesaRepository mesaRepository;
 
     @Override
     public ClientOrderDTO createOrder(CreateClientOrderRequest request) {
@@ -136,34 +126,6 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
         // Crear la orden
         ClientOrder order = ClientOrderMapper.toEntity(request, customer, tenant);
-        final ClientOrder orderRef = order;
-
-        // Asociar Mesa si viene en el request
-        if (request.getMesaId() != null) {
-            mesaRepository.findById(request.getMesaId()).ifPresent(mesa -> {
-                orderRef.setMesa(mesa);
-                mesa.setEstado(MesaEstado.OCUPADA);
-                mesaRepository.save(mesa);
-            });
-        }
-
-        // Asociar Mesero si viene en el request
-        if (request.getMeseroId() != null) {
-            appUserRepository.findById(request.getMeseroId()).ifPresent(orderRef::setMesero);
-            if (orderRef.getMesero() == null) {
-                tenantUserRepository.findById(request.getMeseroId()).ifPresent(tu -> {
-                    AppUser au = appUserRepository.findByEmail(tu.getEmail());
-                    if (au != null) {
-                        orderRef.setMesero(au);
-                    }
-                });
-            }
-        } else if (request.getMeseroEmail() != null && !request.getMeseroEmail().isBlank()) {
-            AppUser au = appUserRepository.findByEmail(request.getMeseroEmail());
-            if (au != null) {
-                order.setMesero(au);
-            }
-        }
 
         // Guardar la orden primero para obtener el ID
         order = clientOrderRepository.save(order);
@@ -408,14 +370,6 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     public Page<ClientOrderDTO> getOrdersByTenantAndStatus(Long tenantId, OrderStatus estado, Pageable pageable) {
         log.debug("Obteniendo órdenes del tenant {} con estado: {}", tenantId, estado);
         return clientOrderRepository.findByTenantIdAndEstado(tenantId, estado, pageable)
-                .map(ClientOrderMapper::toDTO);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ClientOrderDTO> getOrdersByTenantAndStatuses(Long tenantId, List<OrderStatus> estados, Pageable pageable) {
-        log.debug("Obteniendo órdenes del tenant {} con estados: {}", tenantId, estados);
-        return clientOrderRepository.findByTenantIdAndEstadoIn(tenantId, estados, pageable)
                 .map(ClientOrderMapper::toDTO);
     }
 
@@ -755,53 +709,11 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         // ===== FASE 3: REGISTRAR PAGO (TRANSACCIÓN PRINCIPAL) =====
-        BigDecimal propina = request.getPropina() == null ? BigDecimal.ZERO : request.getPropina();
         order.setPaidMethod(request.getMethod());
         order.setPaymentReference(request.getReference());
         order.setPaidBy(paidByUser);
         order.setPaidAt(LocalDateTime.now());
-        order.setPropina(propina);
         order.setEstado(OrderStatus.PAGADA);
-
-        if (order.getMesero() == null) {
-            order.setMesero(paidByUser);
-        }
-
-        // ===== VINCULAR CON TURNO ACTIVO Y GENERAR PAGO DE CAJA =====
-        Turno turno = turnoRepository.findFirstByTenantIdAndEstado(order.getTenant().getId(), "ABIERTO")
-                .orElse(null);
-
-        if (turno != null) {
-            order.setTurno(turno);
-            BigDecimal montoCuenta = order.getTotal() != null ? order.getTotal() : BigDecimal.ZERO;
-            turno.setTotalIngresos((turno.getTotalIngresos() != null ? turno.getTotalIngresos() : BigDecimal.ZERO).add(montoCuenta));
-            turno.setTotalPropinas((turno.getTotalPropinas() != null ? turno.getTotalPropinas() : BigDecimal.ZERO).add(propina));
-            turnoRepository.save(turno);
-
-            TenantUser cajeroUser = tenantUser != null ? tenantUser : turno.getCajero();
-            Pago pago = Pago.builder()
-                    .tenant(order.getTenant())
-                    .comanda(order)
-                    .turno(turno)
-                    .cajero(cajeroUser)
-                    .metodoPago(request.getMethod() != null ? request.getMethod().name() : "CASH")
-                    .montoCuenta(montoCuenta)
-                    .montoPropina(propina)
-                    .montoTotal(montoCuenta.add(propina))
-                    .referencia(request.getReference())
-                    .fecha(LocalDateTime.now())
-                    .estado("APLICADO")
-                    .build();
-            pagoRepository.save(pago);
-            log.info("Pago registrado en caja #{} para comanda {} en turno #{}", 
-                    pago.getIdPago(), orderId, turno.getIdTurno());
-        }
-
-        if (order.getMesa() != null) {
-            Mesa mesa = order.getMesa();
-            mesa.setEstado(MesaEstado.LIBRE);
-            mesaRepository.save(mesa);
-        }
 
         order = clientOrderRepository.save(order);
         log.info("Pago registrado exitosamente para orden {} por usuario {}. Método: {}", 
@@ -960,8 +872,6 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 .subtotal(BigDecimal.ZERO)
                 .descuento(BigDecimal.ZERO)
                 .total(BigDecimal.ZERO)
-                .propina(BigDecimal.ZERO)
-                .propinasLiquidadas(false)
                 .fecha(LocalDateTime.now())
                 .items(new ArrayList<>())
                 .source(request.getSource() != null && !request.getSource().isBlank()

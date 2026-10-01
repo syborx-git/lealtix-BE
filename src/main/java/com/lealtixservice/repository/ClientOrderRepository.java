@@ -4,7 +4,6 @@ import com.lealtixservice.entity.ClientOrder;
 import com.lealtixservice.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -21,39 +20,19 @@ import java.util.UUID;
 public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>, JpaSpecificationExecutor<ClientOrder> {
 
     /**
-     * Estados en los que una orden ya está finalizada: PAGADA (ya se cobró) o
-     * LISTO (salió de cocina y está en manos del mesero).
-     *
-     * Antes estas consultas comparaban contra los textos 'PAGADO' y 'COMPLETADO',
-     * que no existen ni en el enum OrderStatus ni en el CHECK chk_client_order_estado
-     * de la migration V26, por lo que siempre devolvian 0. Se resuelve con el enum
-     * para que un renombrado futuro rompa la compilacion en lugar de fallar en silencio.
-     */
-    List<OrderStatus> ESTADOS_ORDEN_FINALIZADA = List.of(OrderStatus.PAGADA, OrderStatus.LISTO);
-
-    /**
      * Buscar órdenes por tenant_id y customer_id
      */
-    @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
     Page<ClientOrder> findByTenantIdAndCustomerId(Long tenantId, Long customerId, Pageable pageable);
 
     /**
      * Buscar todas las órdenes de un tenant
      */
-    @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
     Page<ClientOrder> findByTenantId(Long tenantId, Pageable pageable);
 
     /**
      * Buscar órdenes por tenant_id y estado
      */
-    @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
     Page<ClientOrder> findByTenantIdAndEstado(Long tenantId, OrderStatus estado, Pageable pageable);
-
-    /**
-     * Buscar órdenes por tenant_id y múltiples estados (útil para comandas activas / cocina)
-     */
-    @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
-    Page<ClientOrder> findByTenantIdAndEstadoIn(Long tenantId, List<OrderStatus> estados, Pageable pageable);
 
     /**
      * Buscar órdenes de un cliente por fecha descendente
@@ -302,29 +281,25 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
     );
 
     /**
-     * Contar órdenes finalizadas (PAGADA o LISTO) en el periodo.
-     * Usar ClientOrderRepository.ESTADOS_ORDEN_FINALIZADA como parametro "estados".
+     * Contar órdenes completadas (estado = PAGADO o COMPLETADO)
      */
     @Query("SELECT COUNT(o) FROM ClientOrder o " +
            "WHERE o.tenant.id = :tenantId " +
-           "AND o.estado IN :estados " +
+           "AND (o.estado = 'PAGADO' OR o.estado = 'COMPLETADO') " +
            "AND o.fecha BETWEEN :from AND :to")
     Long countCompletedOrders(@Param("tenantId") Long tenantId,
-                              @Param("estados") List<OrderStatus> estados,
                               @Param("from") LocalDateTime from,
                               @Param("to") LocalDateTime to);
 
     /**
-     * Contar entregas exitosas (órdenes finalizadas y aceptadas).
-     * Usar ClientOrderRepository.ESTADOS_ORDEN_FINALIZADA como parametro "estados".
+     * Contar entregas exitosas (órdenes completadas y aceptadas)
      */
     @Query("SELECT COUNT(o) FROM ClientOrder o " +
            "WHERE o.tenant.id = :tenantId " +
-           "AND o.estado IN :estados " +
+           "AND (o.estado = 'PAGADO' OR o.estado = 'COMPLETADO') " +
            "AND o.acceptedAt IS NOT NULL " +
            "AND o.fecha BETWEEN :from AND :to")
     Long countSuccessfulDeliveries(@Param("tenantId") Long tenantId,
-                                   @Param("estados") List<OrderStatus> estados,
                                    @Param("from") LocalDateTime from,
                                    @Param("to") LocalDateTime to);
 
@@ -397,9 +372,4 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
     List<Object[]> findSalesReport(@Param("tenantId") Long tenantId,
                                    @Param("from") LocalDateTime from,
                                    @Param("to") LocalDateTime to);
-
-    @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
-    List<ClientOrder> findByTenantIdAndEstadoInOrderByFechaAsc(Long tenantId, List<OrderStatus> estados);
-
-    List<ClientOrder> findByTenantIdAndTurnoIdTurnoAndMeseroIdAndPropinasLiquidadasFalse(Long tenantId, Long idTurno, Long idMesero);
 }
