@@ -33,6 +33,11 @@ jobs:
             grep -q '^STRIPE_WEBHOOK_SECRET=' "$ENV_FILE" \
               && sed -i 's|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S|' "$ENV_FILE" \
               || echo 'STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S' >> "$ENV_FILE"
+            # CORS: permitir el panel de produccion y desarrollo
+            CORS_ORIGINS="https://admin.lealtix.com.mx,https://lealtix.com.mx,https://www.lealtix.com.mx,http://localhost:4200,http://localhost:4201,http://localhost:3000"
+            grep -q '^CORS_ALLOWED_ORIGINS=' "$ENV_FILE" \
+              && sed -i "s|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=$CORS_ORIGINS|" "$ENV_FILE" \
+              || echo "CORS_ALLOWED_ORIGINS=$CORS_ORIGINS" >> "$ENV_FILE"
             # Override para garantizar las variables en el contenedor
             cat > /var/www/lealtix/docker-compose.override.yml <<'YML'
             services:
@@ -40,6 +45,12 @@ jobs:
                 environment:
                   FACTURAPI_API_KEY: "sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF"
                   STRIPE_WEBHOOK_SECRET: "whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S"
+                  CORS_ALLOWED_ORIGINS: "https://admin.lealtix.com.mx,https://lealtix.com.mx,https://www.lealtix.com.mx,http://localhost:4200,http://localhost:4201,http://localhost:3000"
             YML
             docker compose up -d --build --force-recreate lealtix-backend
+            sleep 15
+            echo "===== docker compose ps ====="
+            docker compose ps || true
+            echo "===== docker compose logs lealtix-backend ====="
+            docker compose logs --tail=300 lealtix-backend || true
             echo "✅ Backend actualizado con éxito!"
