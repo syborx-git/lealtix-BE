@@ -165,10 +165,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         // Guardar la orden primero para obtener el ID
-        order = clientOrderRepository.save(order);
+        ClientOrder savedOrder = clientOrderRepository.save(order);
         
         // Variable final para usar en el lambda
-        final ClientOrder finalOrder = order;
+        final ClientOrder finalOrder = savedOrder;
 
         // Crear y guardar los items usando el productMap ya precargado en memoria
         List<ClientOrderItem> items = request.getItems().stream()
@@ -182,7 +182,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 .collect(Collectors.toList());
 
         items = clientOrderItemRepository.saveAll(items);
-        order.setItems(items);
+        savedOrder.setItems(items);
 
         // Descontar stock del inventario conforme se confirma la comanda (sincronizando disponibilidad solo una vez)
         try {
@@ -197,7 +197,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
             inventoryService.syncProductAvailabilityByTenant(tenant.getId());
         } catch (Exception e) {
-            log.error("Error descontando inventario para la orden {}: {}", order.getId(), e.getMessage(), e);
+            log.error("Error descontando inventario para la orden {}: {}", savedOrder.getId(), e.getMessage(), e);
         }
 
         // Calcular montos
@@ -206,10 +206,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         BigDecimal total = ClientOrderMapper.calculateTotal(subtotal, descuento);
 
         // Actualizar la orden con los montos calculados
-        order.setSubtotal(subtotal);
-        order.setDescuento(descuento);
-        order.setTotal(total);
-        order = clientOrderRepository.save(order);
+        savedOrder.setSubtotal(subtotal);
+        savedOrder.setDescuento(descuento);
+        savedOrder.setTotal(total);
+        savedOrder = clientOrderRepository.save(savedOrder);
 
         // Redimir cupón y obtener información completa si está presente
         String couponCode = request.getCouponCode();
@@ -217,28 +217,28 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         
         // Solo redimir coupon si hay un cliente asociado
         if (customer != null) {
-            couponDiscount = redeemCouponIfPresent(request, customer, tenant, order, subtotal);
+            couponDiscount = redeemCouponIfPresent(request, customer, tenant, savedOrder, subtotal);
         }
 
-        log.info("Orden creada exitosamente con ID: {}", order.getId());
-        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        log.info("Orden creada exitosamente con ID: {}", savedOrder.getId());
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(savedOrder, couponCode, couponDiscount);
         
         // Publicar evento SSE si la orden es de CHATBOT
-        if ("CHATBOT".equalsIgnoreCase(order.getSource())) {
+        if ("CHATBOT".equalsIgnoreCase(savedOrder.getSource())) {
             try {
                 orderSseService.publishNewChatbotOrder(orderDTO);
-                log.info("Evento SSE publicado para orden {} del tenant {}", order.getId(), order.getTenant().getId());
+                log.info("Evento SSE publicado para orden {} del tenant {}", savedOrder.getId(), savedOrder.getTenant().getId());
             } catch (Exception e) {
-                log.error("Error al publicar evento SSE para orden {}: {}", order.getId(), e.getMessage(), e);
+                log.error("Error al publicar evento SSE para orden {}: {}", savedOrder.getId(), e.getMessage(), e);
             }
-        } else if (order.getEstado() == OrderStatus.CONFIRMADA) {
+        } else if (savedOrder.getEstado() == OrderStatus.CONFIRMADA) {
             // Órdenes creadas desde el POS/mesero (COMANDIX) nacen CONFIRMADA:
             // notificar a cocina en tiempo real para que aparezcan al instante.
             try {
                 orderSseService.publishOrderStatusChanged(orderDTO);
-                log.info("Evento SSE (cocina) publicado para orden {} del tenant {}", order.getId(), order.getTenant().getId());
+                log.info("Evento SSE (cocina) publicado para orden {} del tenant {}", savedOrder.getId(), savedOrder.getTenant().getId());
             } catch (Exception e) {
-                log.error("Error al publicar evento SSE de cocina para orden {}: {}", order.getId(), e.getMessage(), e);
+                log.error("Error al publicar evento SSE de cocina para orden {}: {}", savedOrder.getId(), e.getMessage(), e);
             }
         }
         
