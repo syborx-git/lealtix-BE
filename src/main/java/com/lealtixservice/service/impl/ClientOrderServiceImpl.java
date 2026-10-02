@@ -165,7 +165,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         // Guardar la orden primero para obtener el ID
-        ClientOrder order = clientOrderRepository.save(initialOrder);
+        ClientOrder savedOrder = clientOrderRepository.save(initialOrder);
         
         // Variable final para usar en el lambda
         final ClientOrder finalOrder = savedOrder;
