@@ -165,7 +165,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         // Guardar la orden primero para obtener el ID
-        ClientOrder order = clientOrderRepository.save(initialOrder);
+        ClientOrder savedOrder = clientOrderRepository.save(initialOrder);
         
         // Variable final para usar en el lambda
         final ClientOrder finalOrder = savedOrder;
@@ -231,9 +231,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             } catch (Exception e) {
                 log.error("Error al publicar evento SSE para orden {}: {}", savedOrder.getId(), e.getMessage(), e);
             }
-        } else if (savedOrder.getEstado() == OrderStatus.CONFIRMADA) {
-            // Órdenes creadas desde el POS/mesero (COMANDIX) nacen CONFIRMADA:
-            // notificar a cocina en tiempo real para que aparezcan al instante.
+        }
+        
+        // Notificar a cocina en tiempo real para cualquier orden creada activa (CONFIRMADA o PENDIENTE)
+        if (savedOrder.getEstado() == OrderStatus.CONFIRMADA || savedOrder.getEstado() == OrderStatus.PENDIENTE) {
             try {
                 orderSseService.publishOrderStatusChanged(orderDTO);
                 log.info("Evento SSE (cocina) publicado para orden {} del tenant {}", savedOrder.getId(), savedOrder.getTenant().getId());
@@ -367,7 +368,14 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         order = clientOrderRepository.save(order);
 
         log.info("Orden {} actualizada exitosamente. Nuevo total: {}", orderId, total);
-        return ClientOrderMapper.toDTO(order, request.getCouponCode(), descuento);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, request.getCouponCode(), descuento);
+        try {
+            orderSseService.publishOrderStatusChanged(orderDTO);
+            log.info("Evento SSE (cocina) publicado al actualizar orden {} del tenant {}", order.getId(), order.getTenant().getId());
+        } catch (Exception e) {
+            log.error("Error al publicar evento SSE de cocina al actualizar orden {}: {}", order.getId(), e.getMessage(), e);
+        }
+        return orderDTO;
     }
 
     @Override
@@ -504,6 +512,67 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     }
 
     @Override
+    @Transactional
+    public ClientOrderDTO marcharSegundoTiempo(UUID orderId) {
+        log.info("Marchando segundos tiempos para orden {}", orderId);
+
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
+
+        if (order.getEstado() == OrderStatus.CANCELADA) {
+            throw new IllegalArgumentException("No se puede marchar el segundo tiempo de una orden CANCELADA");
+        }
+        if (order.getEstado() == OrderStatus.PAGADA) {
+            throw new IllegalArgumentException("No se puede marchar el segundo tiempo de una orden PAGADA");
+        }
+
+        // Actualizar comentarios de los ítems de 2do tiempo para indicar que están marchados
+        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        for (ClientOrderItem item : items) {
+            String comment = item.getComentarios();
+            if (comment != null && (comment.contains("2DO TIEMPO") || comment.contains("SEGUNDO TIEMPO"))) {
+                String updatedComment = comment
+                        .replace("[2DO TIEMPO ⏱️ - EN ESPERA]", "[2DO TIEMPO - MARCHADO]")
+                        .replace("[2DO TIEMPO - EN ESPERA]", "[2DO TIEMPO - MARCHADO]")
+                        .replace("[2DO TIEMPO]", "[2DO TIEMPO - MARCHADO]")
+                        .replace("[SEGUNDO TIEMPO]", "[2DO TIEMPO - MARCHADO]");
+                if (!updatedComment.contains("MARCHADO")) {
+                    updatedComment = "[2DO TIEMPO - MARCHADO] " + updatedComment;
+                }
+                item.setComentarios(updatedComment);
+                clientOrderItemRepository.save(item);
+            }
+        }
+
+        // Pasar orden a CONFIRMADA para que reingrese al riel de Confirmada de Cocina
+        order.setEstado(OrderStatus.CONFIRMADA);
+        order = clientOrderRepository.save(order);
+
+        log.info("Orden {} pasada a CONFIRMADA para preparación de 2do tiempo", orderId);
+
+        String couponCode = null;
+        BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
+        if (order.getCouponId() != null) {
+            Coupon coupon = couponRepository.findById(order.getCouponId()).orElse(null);
+            if (coupon != null) {
+                couponCode = coupon.getCode();
+            }
+        }
+
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+
+        // Notificar en tiempo real a Cocina vía SSE
+        try {
+            orderSseService.publishOrderStatusChanged(orderDTO);
+            log.info("Evento SSE de orden {} (2do tiempo marchado) publicado para cocina", orderId);
+        } catch (Exception e) {
+            log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
+        }
+
+        return orderDTO;
+    }
+
+    @Override
     public ClientOrderDTO cancelOrder(UUID orderId) {
         log.info("Cancelando orden: {}", orderId);
         return updateOrderStatus(orderId, OrderStatus.CANCELADA);
@@ -592,15 +661,15 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 throw new IllegalArgumentException("No se puede cambiar de PENDIENTE a " + newStatus);
             }
         }
-        // EN_PREPARACION puede ir a LISTO o CANCELADA
+        // EN_PREPARACION puede ir a LISTO, CANCELADA o CONFIRMADA (cuando hay segundos tiempos / ciclo parcial)
         else if (currentStatus == OrderStatus.EN_PREPARACION) {
-            if (newStatus != OrderStatus.LISTO && newStatus != OrderStatus.CANCELADA) {
+            if (newStatus != OrderStatus.LISTO && newStatus != OrderStatus.CANCELADA && newStatus != OrderStatus.CONFIRMADA) {
                 throw new IllegalArgumentException("No se puede cambiar de EN_PREPARACION a " + newStatus);
             }
         }
-        // LISTO solo puede ir a CANCELADA
+        // LISTO puede ir a CANCELADA o CONFIRMADA (para nueva ronda de preparación por segundos tiempos)
         else if (currentStatus == OrderStatus.LISTO) {
-            if (newStatus != OrderStatus.CANCELADA) {
+            if (newStatus != OrderStatus.CANCELADA && newStatus != OrderStatus.CONFIRMADA) {
                 throw new IllegalArgumentException("No se puede cambiar de LISTO a " + newStatus);
             }
         }
@@ -754,6 +823,37 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         // ===== FASE 3: REGISTRAR PAGO (TRANSACCIÓN PRINCIPAL) =====
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank() && order.getCouponId() == null) {
+            String couponCode = request.getCouponCode().trim();
+            TenantCustomer customer = order.getCustomer();
+            if (customer != null) {
+                RedeemCouponRequest redeemRequest = RedeemCouponRequest.builder()
+                        .redeemedBy(request.getUserEmail() != null ? request.getUserEmail() : customer.getEmail())
+                        .channel(RedemptionChannel.COMANDIX)
+                        .originalAmount(order.getSubtotal())
+                        .metadata("{\"orderId\":\"" + order.getId() + "\"}")
+                        .build();
+                try {
+                    RedemptionResponse response = couponRedemptionService.redeemCouponByCode(couponCode, redeemRequest, order.getTenant().getId());
+                    if (response != null && response.isSuccess()) {
+                        BigDecimal discount = response.getDiscountAmount() != null ? response.getDiscountAmount() : BigDecimal.ZERO;
+                        order.setDescuento(discount);
+                        BigDecimal totalConDescuento = order.getSubtotal().subtract(discount);
+                        if (totalConDescuento.compareTo(BigDecimal.ZERO) < 0) {
+                            totalConDescuento = BigDecimal.ZERO;
+                        }
+                        order.setTotal(totalConDescuento);
+                        if (response.getCouponId() != null) {
+                            order.setCouponId(response.getCouponId());
+                        }
+                        log.info("Cupón {} aplicado en cobro de orden {}. Descuento: {}", couponCode, order.getId(), discount);
+                    }
+                } catch (Exception ex) {
+                    log.warn("No se pudo redimir cupón {} en cobro de orden {}: {}", couponCode, order.getId(), ex.getMessage());
+                }
+            }
+        }
+
         BigDecimal propina = request.getPropina() == null ? BigDecimal.ZERO : request.getPropina();
         order.setPaidMethod(request.getMethod());
         order.setPaymentReference(request.getReference());

@@ -34,11 +34,13 @@ public class ClientOrderMapper {
             total = BigDecimal.ZERO;
         }
         
-        // Validar si la orden viene de COMANDIX - si es así, poner estado EN_PREPARACION
+        // Validar si la orden viene de COMANDIX / POS - si es así, poner estado CONFIRMADA
         OrderStatus estado = OrderStatus.PENDIENTE;
         java.time.LocalDateTime acceptedAt = null;
-        if (request.getRedemptionChannel() != null && 
-            request.getRedemptionChannel().name().equalsIgnoreCase("COMANDIX")) {
+        if ((request.getRedemptionChannel() != null && 
+            request.getRedemptionChannel().name().equalsIgnoreCase("COMANDIX")) ||
+            "POS".equalsIgnoreCase(request.getSource()) ||
+            "COMANDIX".equalsIgnoreCase(request.getSource())) {
             estado = OrderStatus.CONFIRMADA;
             acceptedAt = java.time.LocalDateTime.now();  // Registrar cuándo fue aceptada
         }

@@ -63,6 +63,9 @@ public class MesaServiceImpl implements MesaService {
         if (mesaRepository.existsByTenantIdAndNombre(tenantId, request.getNombre().trim())) {
             throw new IllegalArgumentException("Ya existe una mesa con ese nombre en este local");
         }
+        if (request.getNumero() != null && mesaRepository.existsByTenantIdAndNumero(tenantId, request.getNumero())) {
+            throw new IllegalArgumentException("Ya existe una mesa con el número " + request.getNumero() + " en este local");
+        }
         validateMeseroIfPresent(tenantId, request.getMeseroUserId());
 
         Mesa mesa = Mesa.builder()
@@ -93,6 +96,9 @@ public class MesaServiceImpl implements MesaService {
             mesa.setNombre(nombre);
         }
         if (request.getNumero() != null) {
+            if (mesaRepository.existsByTenantIdAndNumeroAndIdNot(tenantId, request.getNumero(), id)) {
+                throw new IllegalArgumentException("Ya existe una mesa con el número " + request.getNumero() + " en este local");
+            }
             mesa.setNumero(request.getNumero());
         }
         if (request.getCapacidad() != null) {

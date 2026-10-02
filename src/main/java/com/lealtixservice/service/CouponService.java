@@ -46,6 +46,11 @@ public interface CouponService {
     boolean hasActiveCouponForCampaign(Long customerId, Long campaignId);
 
     /**
+     * Asigna un cupón a un cliente (usando una campaña existente o creando un beneficio personalizado).
+     */
+    Coupon assignCoupon(com.lealtixservice.dto.AssignCouponRequest request);
+
+    /**
      * Convierte un Coupon a CouponResponseDTO
      */
     CouponResponseDTO toDTO(Coupon coupon);

@@ -36,9 +36,15 @@ public class RecordPaymentRequest {
     @DecimalMin(value = "0.0", message = "La propina no puede ser negativa")
     private BigDecimal propina;
 
+    /**
+     * Código de cupón opcional a aplicar durante el cobro/cierre de la comanda
+     */
+    private String couponCode;
+
     // Validaciones:
     // - Si method es CASH: reference es opcional
     // - Si method es CARD, TRANSFER, MIXED: reference es obligatorio
     // - userEmail es obligatorio para auditoría
     // - propina es opcional, pero si viene debe ser >= 0
+    // - couponCode es opcional
 }
