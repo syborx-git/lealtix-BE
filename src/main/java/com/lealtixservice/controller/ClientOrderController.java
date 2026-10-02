@@ -299,6 +299,28 @@ public class ClientOrderController {
         }
     }
 
+    @Operation(summary = "Marchar segundos tiempos de una orden para inicio de preparación en cocina")
+    @PostMapping("/{orderId}/marchar-segundo-tiempo")
+    public ResponseEntity<GenericResponse> marcharSegundoTiempo(@PathVariable UUID orderId) {
+        try {
+            log.info("Mesero solicita marchar segundos tiempos para orden {}", orderId);
+            ClientOrderDTO order = clientOrderService.marcharSegundoTiempo(orderId);
+            return ResponseEntity.ok(new GenericResponse(200, "Segundos tiempos marchados exitosamente a cocina", order));
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Orden no encontrada: {}", orderId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Error de validación al marchar segundos tiempos de orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error al marchar segundos tiempos de orden {}", orderId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno al marchar segundos tiempos", null));
+        }
+    }
+
     @Operation(summary = "Cancelar una orden")
     @DeleteMapping("/{orderId}/cancel")
     public ResponseEntity<GenericResponse> cancelOrder(@PathVariable UUID orderId) {

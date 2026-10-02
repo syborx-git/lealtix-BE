@@ -8,7 +8,12 @@ import com.lealtixservice.entity.TenantCustomer;
 import com.lealtixservice.enums.CouponStatus;
 import com.lealtixservice.exception.BusinessRuleException;
 import com.lealtixservice.exception.ResourceNotFoundException;
+import com.lealtixservice.dto.AssignCouponRequest;
+import com.lealtixservice.enums.RewardType;
+import com.lealtixservice.repository.CampaignRepository;
 import com.lealtixservice.repository.CouponRepository;
+import com.lealtixservice.repository.PromotionRewardRepository;
+import com.lealtixservice.repository.TenantCustomerRepository;
 import com.lealtixservice.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +21,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +35,9 @@ import java.util.stream.Collectors;
 public class CouponServiceImpl implements CouponService {
 
     private final CouponRepository couponRepository;
+    private final TenantCustomerRepository customerRepository;
+    private final CampaignRepository campaignRepository;
+    private final PromotionRewardRepository promotionRewardRepository;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -197,6 +207,103 @@ public class CouponServiceImpl implements CouponService {
     @Override
     public boolean hasActiveCouponForCampaign(Long customerId, Long campaignId) {
         return couponRepository.hasActiveCouponForCampaign(customerId, campaignId);
+    }
+
+    @Override
+    @Transactional
+    public Coupon assignCoupon(AssignCouponRequest request) {
+        if (request == null || request.getCustomerId() == null) {
+            throw new IllegalArgumentException("customerId es obligatorio");
+        }
+
+        log.info("Asignando cupón a cliente: customerId={}, campaignId={}",
+                request.getCustomerId(), request.getCampaignId());
+
+        TenantCustomer customer = customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con id: " + request.getCustomerId()));
+
+        Long tenantId = (customer.getTenant() != null && customer.getTenant().getId() != null)
+                ? customer.getTenant().getId()
+                : 1L;
+
+        Campaign campaign;
+        if (request.getCampaignId() != null) {
+            campaign = campaignRepository.findById(request.getCampaignId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Campaña no encontrada con id: " + request.getCampaignId()));
+        } else {
+            // Campaña personalizada o por defecto
+            String title = (request.getTitle() != null && !request.getTitle().isBlank())
+                    ? request.getTitle()
+                    : "Descuento Especial";
+            RewardType rewardType = request.getRewardType() != null ? request.getRewardType() : RewardType.PERCENT_DISCOUNT;
+            BigDecimal numericValue = request.getDiscountValue() != null ? request.getDiscountValue() : BigDecimal.valueOf(20.0);
+            String desc = (request.getDescription() != null && !request.getDescription().isBlank())
+                    ? request.getDescription()
+                    : (rewardType == RewardType.PERCENT_DISCOUNT ? numericValue + "% de descuento en tu consumo" : "$" + numericValue + " de descuento");
+
+            // Buscar si ya existe una campaña activa con el mismo título en este tenant
+            Optional<Campaign> existingCamp = campaignRepository.findByBusinessId(tenantId).stream()
+                    .filter(c -> com.lealtixservice.enums.CampaignStatus.ACTIVE.equals(c.getStatus()))
+                    .filter(c -> c.getTitle() != null && c.getTitle().equalsIgnoreCase(title))
+                    .findFirst();
+
+            if (existingCamp.isPresent()) {
+                campaign = existingCamp.get();
+            } else {
+                int days = (request.getDaysValid() != null && request.getDaysValid() > 0) ? request.getDaysValid() : 90;
+                LocalDate startDate = LocalDate.now();
+                LocalDate endDate = startDate.plusDays(days);
+
+                Campaign newCamp = Campaign.builder()
+                        .businessId(tenantId)
+                        .title(title)
+                        .subtitle("Beneficio exclusivo para cliente")
+                        .description(desc)
+                        .callToAction("Obtener beneficio")
+                        .channels("email")
+                        .isAutomatic(true)
+                        .isDraft(false)
+                        .status(com.lealtixservice.enums.CampaignStatus.ACTIVE)
+                        .promoType(com.lealtixservice.enums.PromoType.DISCOUNT)
+                        .segmentation("all")
+                        .startDate(startDate)
+                        .endDate(endDate)
+                        .totalSent(0)
+                        .totalFailed(0)
+                        .build();
+
+                campaign = campaignRepository.save(newCamp);
+
+                PromotionReward reward = PromotionReward.builder()
+                        .campaign(campaign)
+                        .rewardType(rewardType)
+                        .numericValue(numericValue)
+                        .description(desc)
+                        .minPurchaseAmount(BigDecimal.ZERO)
+                        .usageCount(0)
+                        .build();
+
+                promotionRewardRepository.save(reward);
+                campaign.setPromotionReward(reward);
+            }
+        }
+
+        // Si el cliente ya tiene un cupón activo para esta campaña, devolver el existente
+        boolean hasActive = couponRepository.hasActiveCouponForCampaign(customer.getId(), campaign.getId());
+        if (hasActive) {
+            log.info("El cliente {} ya cuenta con un cupón activo para la campaña {}, retornando el existente",
+                    customer.getId(), campaign.getId());
+            Optional<Coupon> existingCoupon = couponRepository.findByCustomerId(customer.getId()).stream()
+                    .filter(c -> c.getCampaign() != null && c.getCampaign().getId().equals(campaign.getId()))
+                    .filter(c -> CouponStatus.ACTIVE.equals(c.getStatus()) && !c.isExpired())
+                    .findFirst();
+            if (existingCoupon.isPresent()) {
+                return existingCoupon.get();
+            }
+        }
+
+        // Generar cupón usando las funciones del sistema
+        return generateWelcomeCoupon(campaign, customer);
     }
 
     @Override

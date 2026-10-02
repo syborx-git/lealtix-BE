@@ -55,6 +55,32 @@ public class CouponController {
         }
     }
 
+    @Operation(summary = "Asignar un cupón a un cliente")
+    @PostMapping("/assign")
+    public ResponseEntity<GenericResponse> assignCoupon(@RequestBody com.lealtixservice.dto.AssignCouponRequest request) {
+        try {
+            log.info("POST /api/coupons/assign - customerId={}, campaignId={}",
+                    request != null ? request.getCustomerId() : null,
+                    request != null ? request.getCampaignId() : null);
+
+            Coupon coupon = couponService.assignCoupon(request);
+            CouponResponseDTO dto = couponService.toDTO(coupon);
+            return ResponseEntity.ok(new GenericResponse(200, "Cupón asignado exitosamente", dto));
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Recurso no encontrado al asignar cupón: {}", ex.getMessage());
+            return ResponseEntity.ok(new GenericResponse(404, ex.getMessage(), null));
+        } catch (BusinessRuleException ex) {
+            log.warn("Regla de negocio no satisfecha al asignar cupón: {}", ex.getMessage());
+            return ResponseEntity.ok(new GenericResponse(422, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Parámetros inválidos al asignar cupón: {}", ex.getMessage());
+            return ResponseEntity.ok(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error al asignar cupón", e);
+            return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor: " + e.getMessage(), null));
+        }
+    }
+
     @Operation(summary = "Canjear un cupón (REDEEM)")
     @PostMapping("/redeem/{code}")
     public ResponseEntity<GenericResponse> redeemCoupon(
