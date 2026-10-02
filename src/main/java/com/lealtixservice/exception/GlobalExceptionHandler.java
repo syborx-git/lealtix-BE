@@ -9,6 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.format.DateTimeParseException;
@@ -16,6 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -57,10 +62,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.ok(new GenericResponse(422, ex.getMessage(), new ArrayList<>()));
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<GenericResponse> handleAuthenticationException(AuthenticationException ex) {
+        log.warn("Error de autenticación o sesión expirada: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new GenericResponse(401, "Sesión no válida o expirada: " + ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<GenericResponse> handleAccessDeniedException(AccessDeniedException ex) {
+        log.warn("Acceso denegado: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new GenericResponse(403, "No tiene permisos para realizar esta operación: " + ex.getMessage(), null));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<GenericResponse> handleResponseStatusException(ResponseStatusException ex) {
         int status = ex.getStatusCode().value();
-        return ResponseEntity.ok(new GenericResponse(status, ex.getReason(), new ArrayList<>()));
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(new GenericResponse(status, ex.getReason(), null));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -94,9 +114,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.ok(new GenericResponse(400, message, new ArrayList<>()));
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<GenericResponse> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        log.warn("Error leyendo mensaje HTTP: {}", ex.getMessage());
+        return ResponseEntity.ok(new GenericResponse(400, "Cuerpo de solicitud inválido: " + ex.getMessage(), new ArrayList<>()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<GenericResponse> handleGenericException(Exception ex) {
-        ex.printStackTrace();
+        log.error("Error no controlado en la aplicación:", ex);
         return ResponseEntity.ok(new GenericResponse(500, "Error interno del servidor: " + ex.getMessage(), new ArrayList<>()));
     }
 }

@@ -201,6 +201,9 @@ public class OrderSseService {
             case CONFIRMADA -> "CONFIRMADA";
             case EN_PREPARACION -> "EN_PREPARACION";
             case LISTO -> "LISTO";
+            case ABIERTA -> "ABIERTA";
+            case POR_COBRAR -> "POR_COBRAR";
+            default -> estado.name();
         };
     }
 

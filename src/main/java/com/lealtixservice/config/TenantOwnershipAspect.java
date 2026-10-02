@@ -34,14 +34,14 @@ public class TenantOwnershipAspect {
         }
         
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado");
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado o sesión expirada");
         }
         
         Object principal = authentication.getPrincipal();
         if (!(principal instanceof TenantUserPrincipal)) {
-            log.warn("Principal no es de tipo TenantUserPrincipal");
-            return;
+            log.warn("Principal no es de tipo TenantUserPrincipal: {}", principal);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Identidad de usuario inválida");
         }
         
         TenantUserPrincipal userPrincipal = (TenantUserPrincipal) principal;

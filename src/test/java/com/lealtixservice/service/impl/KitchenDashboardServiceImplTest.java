@@ -24,6 +24,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
+// El repositorio expone el catalogo de estados que cuentan como "comanda finalizada"
+// para que el mock y la consulta usen exactamente los mismos valores.
+import static com.lealtixservice.repository.ClientOrderRepository.ESTADOS_ORDEN_FINALIZADA;
+
 @ExtendWith(MockitoExtension.class)
 class KitchenDashboardServiceImplTest {
 
@@ -62,8 +66,8 @@ class KitchenDashboardServiceImplTest {
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
         when(clientOrderRepository.getTopDishes(tenantId, from, to)).thenReturn(getTopDishesData());
         when(dashboardService.getRepeatPurchaseRate(tenantId, from, to)).thenReturn(getRepeatPurchaseRate());
-        when(clientOrderRepository.countCompletedOrders(tenantId, from, to)).thenReturn(45L);
-        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, from, to)).thenReturn(42L);
+        when(clientOrderRepository.countCompletedOrders(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(45L);
+        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(42L);
         when(dashboardService.getCustomizationAnalysis(tenantId, from, to)).thenReturn(getCustomizationAnalysis());
         when(clientOrderRepository.getVIPCustomer(tenantId, from, to)).thenReturn(getVIPCustomerData());
 
@@ -87,8 +91,8 @@ class KitchenDashboardServiceImplTest {
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
         when(clientOrderRepository.getTopDishes(any(), any(), any())).thenReturn(new ArrayList<>());
         when(dashboardService.getRepeatPurchaseRate(any(), any(), any())).thenReturn(new RepeatPurchaseRateDTO());
-        when(clientOrderRepository.countCompletedOrders(any(), any(), any())).thenReturn(0L);
-        when(clientOrderRepository.countSuccessfulDeliveries(any(), any(), any())).thenReturn(0L);
+        when(clientOrderRepository.countCompletedOrders(any(), any(), any(), any())).thenReturn(0L);
+        when(clientOrderRepository.countSuccessfulDeliveries(any(), any(), any(), any())).thenReturn(0L);
         when(dashboardService.getCustomizationAnalysis(any(), any(), any())).thenReturn(new ArrayList<>());
         when(clientOrderRepository.getVIPCustomer(any(), any(), any())).thenReturn(null);
 
@@ -107,8 +111,8 @@ class KitchenDashboardServiceImplTest {
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
         when(clientOrderRepository.getTopDishes(tenantId, from, to)).thenReturn(getTopDishesData());
         when(dashboardService.getRepeatPurchaseRate(tenantId, from, to)).thenReturn(new RepeatPurchaseRateDTO());
-        when(clientOrderRepository.countCompletedOrders(tenantId, from, to)).thenReturn(0L);
-        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, from, to)).thenReturn(0L);
+        when(clientOrderRepository.countCompletedOrders(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(0L);
+        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(0L);
         when(dashboardService.getCustomizationAnalysis(tenantId, from, to)).thenReturn(new ArrayList<>());
         when(clientOrderRepository.getVIPCustomer(tenantId, from, to)).thenReturn(null);
 
@@ -136,8 +140,8 @@ class KitchenDashboardServiceImplTest {
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
         when(clientOrderRepository.getTopDishes(tenantId, from, to)).thenReturn(new ArrayList<>());
         when(dashboardService.getRepeatPurchaseRate(tenantId, from, to)).thenReturn(new RepeatPurchaseRateDTO());
-        when(clientOrderRepository.countCompletedOrders(tenantId, from, to)).thenReturn(0L);
-        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, from, to)).thenReturn(0L);
+        when(clientOrderRepository.countCompletedOrders(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(0L);
+        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(0L);
         when(dashboardService.getCustomizationAnalysis(tenantId, from, to)).thenReturn(new ArrayList<>());
         when(clientOrderRepository.getVIPCustomer(tenantId, from, to)).thenReturn(getVIPCustomerData());
 
@@ -160,8 +164,8 @@ class KitchenDashboardServiceImplTest {
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
         when(clientOrderRepository.getTopDishes(tenantId, from, to)).thenReturn(new ArrayList<>());
         when(dashboardService.getRepeatPurchaseRate(tenantId, from, to)).thenReturn(new RepeatPurchaseRateDTO());
-        when(clientOrderRepository.countCompletedOrders(tenantId, from, to)).thenReturn(0L);
-        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, from, to)).thenReturn(0L);
+        when(clientOrderRepository.countCompletedOrders(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(0L);
+        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(0L);
         when(dashboardService.getCustomizationAnalysis(tenantId, from, to)).thenReturn(new ArrayList<>());
         when(clientOrderRepository.getVIPCustomer(tenantId, from, to)).thenReturn(null);
 
@@ -178,8 +182,8 @@ class KitchenDashboardServiceImplTest {
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.empty());
         when(clientOrderRepository.getTopDishes(tenantId, from, to)).thenReturn(new ArrayList<>());
         when(dashboardService.getRepeatPurchaseRate(tenantId, from, to)).thenReturn(new RepeatPurchaseRateDTO());
-        when(clientOrderRepository.countCompletedOrders(tenantId, from, to)).thenReturn(0L);
-        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, from, to)).thenReturn(0L);
+        when(clientOrderRepository.countCompletedOrders(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(0L);
+        when(clientOrderRepository.countSuccessfulDeliveries(tenantId, ESTADOS_ORDEN_FINALIZADA, from, to)).thenReturn(0L);
         when(dashboardService.getCustomizationAnalysis(tenantId, from, to)).thenReturn(new ArrayList<>());
         when(clientOrderRepository.getVIPCustomer(tenantId, from, to)).thenReturn(null);
 

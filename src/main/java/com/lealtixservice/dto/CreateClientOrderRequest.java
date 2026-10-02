@@ -12,6 +12,8 @@ import java.util.List;
 import com.lealtixservice.enums.RedemptionChannel;
 import org.springframework.lang.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * DTO para crear una nueva orden
  */
@@ -19,6 +21,7 @@ import org.springframework.lang.Nullable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CreateClientOrderRequest {
     
     @Nullable
@@ -44,6 +47,10 @@ public class CreateClientOrderRequest {
 
     private String source;  // Origen: 'CHATBOT', 'MANUAL', 'POS', 'WEB', 'MOBILE'
     
+    private Long mesaId;
+    private Long meseroId;
+    private String meseroEmail;
+    
     /**
      * DTO anidado para los items de la orden
      */
@@ -51,6 +58,7 @@ public class CreateClientOrderRequest {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class OrderItemRequest {
         
         @NotNull(message = "productId es requerido")
@@ -71,5 +79,10 @@ public class CreateClientOrderRequest {
 
         /** Insumos adicionales seleccionados por el cliente (se descuentan) */
         private List<Long> additionalIngredientIds;
+
+        private String asientoId;
+        private String asientoAlias;
+        private Integer tiempo;
+        private Boolean tiempoMarchado;
     }
 }

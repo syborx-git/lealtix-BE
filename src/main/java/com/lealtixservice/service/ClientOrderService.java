@@ -54,6 +54,11 @@ public interface ClientOrderService {
     Page<ClientOrderDTO> getOrdersByTenantAndStatus(Long tenantId, OrderStatus estado, Pageable pageable);
 
     /**
+     * Obtiene órdenes de un tenant filtradas por múltiples estados
+     */
+    Page<ClientOrderDTO> getOrdersByTenantAndStatuses(Long tenantId, List<OrderStatus> estados, Pageable pageable);
+
+    /**
      * Obtiene órdenes de un rango de fechas
      */
     List<ClientOrderDTO> getOrdersByDateRange(Long tenantId, LocalDateTime startDate, LocalDateTime endDate);

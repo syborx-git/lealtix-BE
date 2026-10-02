@@ -45,12 +45,12 @@ public class FacturapiController {
     public ResponseEntity<?> sendInvoiceEmail(@PathVariable String id, @RequestBody(required = false) Map<String, Object> body) {
         try {
             String email = body != null && body.get("email") != null ? String.valueOf(body.get("email")) : null;
-            boolean ok = facturapiService.emailInvoice(id, email);
-            if (ok) {
+            String error = facturapiService.emailInvoice(id, email);
+            if (error == null) {
                 return ResponseEntity.ok(new GenericResponse(200, "Factura enviada por correo", null));
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new GenericResponse(400, "No se pudo enviar la factura por correo", null));
+                    .body(new GenericResponse(400, "No se pudo enviar la factura por correo: " + error, null));
         } catch (Exception e) {
             log.error("Error enviando factura {} por correo", id, e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
