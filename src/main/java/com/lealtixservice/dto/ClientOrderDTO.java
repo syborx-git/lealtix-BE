@@ -58,6 +58,7 @@ public class ClientOrderDTO {
     private Long meseroId;
     private String meseroNombre;
     private Long idTurno;
+    private LocalDateTime horaApertura;
 
     // Campos de cancelación
     private String cancelledBy;  // Email del usuario que canceló

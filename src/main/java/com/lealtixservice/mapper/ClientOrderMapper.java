@@ -123,6 +123,7 @@ public class ClientOrderMapper {
                         ? (order.getMesero().getFullName() != null && !order.getMesero().getFullName().isBlank() ? order.getMesero().getFullName() : order.getMesero().getEmail())
                         : (order.getPaidBy() != null ? (order.getPaidBy().getFullName() != null && !order.getPaidBy().getFullName().isBlank() ? order.getPaidBy().getFullName() : order.getPaidBy().getEmail()) : null))
                 .idTurno(order.getTurno() != null ? order.getTurno().getIdTurno() : null)
+                .horaApertura(order.getHoraApertura() != null ? order.getHoraApertura() : order.getFecha())
                 .cancelledBy(order.getCancelledBy())
                 .cancelledAt(order.getCancelledAt())
                 .cancellationReason(order.getCancellationReason())

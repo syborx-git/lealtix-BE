@@ -23,6 +23,12 @@ public class SplitOrderRequest {
 
     private Long customerId;
 
+    private Long mesaId;
+
+    private Long meseroId;
+
+    private String horaApertura;
+
     @NotNull(message = "items es requerido")
     private List<CreateClientOrderRequest.OrderItemRequest> items;
 

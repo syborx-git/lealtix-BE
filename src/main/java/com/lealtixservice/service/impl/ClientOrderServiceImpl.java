@@ -634,6 +634,83 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     }
 
     @Override
+    @Transactional
+    public ClientOrderDTO marcharTodosLosTiempos(UUID orderId) {
+        log.info("Marchando todos los tiempos para orden {}", orderId);
+
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
+
+        if (order.getEstado() == OrderStatus.CANCELADA) {
+            throw new IllegalArgumentException("No se pueden marchar tiempos de una orden CANCELADA");
+        }
+        if (order.getEstado() == OrderStatus.PAGADA) {
+            throw new IllegalArgumentException("No se pueden marchar tiempos de una orden PAGADA");
+        }
+
+        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        for (ClientOrderItem item : items) {
+            String comment = item.getComentarios();
+            if (comment != null) {
+                boolean changed = false;
+                if (comment.contains("2DO TIEMPO") || comment.contains("SEGUNDO TIEMPO")) {
+                    String updated = comment
+                            .replace("[2DO TIEMPO ⏱️ - EN ESPERA]", "[2DO TIEMPO - MARCHADO]")
+                            .replace("[2DO TIEMPO - EN ESPERA]", "[2DO TIEMPO - MARCHADO]")
+                            .replace("[2DO TIEMPO]", "[2DO TIEMPO - MARCHADO]")
+                            .replace("[SEGUNDO TIEMPO]", "[2DO TIEMPO - MARCHADO]");
+                    if (!updated.contains("MARCHADO")) {
+                        updated = "[2DO TIEMPO - MARCHADO] " + updated;
+                    }
+                    comment = updated;
+                    changed = true;
+                }
+                if (comment.contains("3ER TIEMPO") || comment.contains("TERCER TIEMPO")) {
+                    String updated = comment
+                            .replace("[3ER TIEMPO ⏱️ - EN ESPERA]", "[3ER TIEMPO - MARCHADO]")
+                            .replace("[3ER TIEMPO - EN ESPERA]", "[3ER TIEMPO - MARCHADO]")
+                            .replace("[3ER TIEMPO]", "[3ER TIEMPO - MARCHADO]")
+                            .replace("[TERCER TIEMPO]", "[3ER TIEMPO - MARCHADO]");
+                    if (!updated.contains("MARCHADO")) {
+                        updated = "[3ER TIEMPO - MARCHADO] " + updated;
+                    }
+                    comment = updated;
+                    changed = true;
+                }
+                if (changed) {
+                    item.setComentarios(comment);
+                    clientOrderItemRepository.save(item);
+                }
+            }
+        }
+
+        order.setEstado(OrderStatus.CONFIRMADA);
+        order = clientOrderRepository.save(order);
+
+        log.info("Orden {} pasada a CONFIRMADA para preparación de todos los tiempos", orderId);
+
+        String couponCode = null;
+        BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
+        if (order.getCouponId() != null) {
+            Coupon coupon = couponRepository.findById(order.getCouponId()).orElse(null);
+            if (coupon != null) {
+                couponCode = coupon.getCode();
+            }
+        }
+
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+
+        try {
+            orderSseService.publishOrderStatusChanged(orderDTO);
+            log.info("Evento SSE de orden {} (todos los tiempos marchados) publicado para cocina", orderId);
+        } catch (Exception e) {
+            log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
+        }
+
+        return orderDTO;
+    }
+
+    @Override
     public ClientOrderDTO cancelOrder(UUID orderId) {
         log.info("Cancelando orden: {}", orderId);
         return updateOrderStatus(orderId, OrderStatus.CANCELADA);
@@ -1120,18 +1197,42 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             disponible.put(req.getProductId(), restante - qty);
         }
 
-        // ===== FASE 3: CREAR LA COMANDA NUEVA (SIN volver a descontar stock: ya está contabilizado) =====
+        // ===== FASE 3: CREAR LA COMANDA NUEVA (conservando mesa, cliente, mesero y hora original) =====
+        TenantCustomer targetCustomer = order.getCustomer();
+        if (targetCustomer == null && request.getCustomerId() != null) {
+            targetCustomer = tenantCustomerRepository.findById(request.getCustomerId()).orElse(null);
+        }
+
+        Mesa targetMesa = order.getMesa();
+        if (targetMesa == null && request.getMesaId() != null) {
+            targetMesa = mesaRepository.findById(request.getMesaId()).orElse(null);
+        }
+
+        AppUser targetMesero = order.getMesero();
+        if (targetMesero == null && request.getMeseroId() != null) {
+            targetMesero = appUserRepository.findById(request.getMeseroId()).orElse(null);
+        }
+
+        LocalDateTime mismaFecha = order.getFecha() != null ? order.getFecha() : LocalDateTime.now();
+        LocalDateTime mismaHoraApertura = order.getHoraApertura() != null ? order.getHoraApertura() : mismaFecha;
+
         ClientOrder splitCopy = ClientOrder.builder()
-                .customer(order.getCustomer())
+                .customer(targetCustomer)
                 .tenant(order.getTenant())
                 .estado(order.getEstado())  // Misma etapa: hereda "lista para pagar" si la original era LISTO
+                .mesa(targetMesa)           // Misma mesa asignada que la orden completa
+                .mesero(targetMesero)       // Mismo mesero que la orden completa
+                .clienteMesa(order.getClienteMesa() != null ? order.getClienteMesa() : targetCustomer) // Mismo cliente
+                .horaApertura(mismaHoraApertura) // Misma hora de apertura
+                .fecha(mismaFecha)          // Misma fecha y hora de registro que la orden original
+                .turno(order.getTurno())    // Mismo turno
                 .acceptedAt(order.getAcceptedAt())
+                .readyAt(order.getReadyAt())
                 .subtotal(BigDecimal.ZERO)
                 .descuento(BigDecimal.ZERO)
                 .total(BigDecimal.ZERO)
                 .propina(BigDecimal.ZERO)
                 .propinasLiquidadas(false)
-                .fecha(LocalDateTime.now())
                 .items(new ArrayList<>())
                 .source(request.getSource() != null && !request.getSource().isBlank()
                         ? request.getSource()
@@ -1199,6 +1300,14 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
         ClientOrderDTO originalDto = ClientOrderMapper.toDTO(order, null, origDescuento);
         ClientOrderDTO newDto = ClientOrderMapper.toDTO(splitCopy, null, splitSubtotal);
+
+        try {
+            orderSseService.publishOrderStatusChanged(originalDto);
+            orderSseService.publishOrderCreated(newDto);
+        } catch (Exception e) {
+            log.warn("No se pudo notificar evento SSE para comanda dividida: {}", e.getMessage());
+        }
+
         return new SplitOrderResponse(originalDto, newDto);
     }
 
