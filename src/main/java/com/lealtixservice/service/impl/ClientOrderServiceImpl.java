@@ -573,6 +573,67 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     }
 
     @Override
+    @Transactional
+    public ClientOrderDTO marcharTercerTiempo(UUID orderId) {
+        log.info("Marchando terceros tiempos para orden {}", orderId);
+
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
+
+        if (order.getEstado() == OrderStatus.CANCELADA) {
+            throw new IllegalArgumentException("No se puede marchar el tercer tiempo de una orden CANCELADA");
+        }
+        if (order.getEstado() == OrderStatus.PAGADA) {
+            throw new IllegalArgumentException("No se puede marchar el tercer tiempo de una orden PAGADA");
+        }
+
+        // Actualizar comentarios de los ítems de 3er tiempo para indicar que están marchados
+        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        for (ClientOrderItem item : items) {
+            String comment = item.getComentarios();
+            if (comment != null && (comment.contains("3ER TIEMPO") || comment.contains("TERCER TIEMPO"))) {
+                String updatedComment = comment
+                        .replace("[3ER TIEMPO ⏱️ - EN ESPERA]", "[3ER TIEMPO - MARCHADO]")
+                        .replace("[3ER TIEMPO - EN ESPERA]", "[3ER TIEMPO - MARCHADO]")
+                        .replace("[3ER TIEMPO]", "[3ER TIEMPO - MARCHADO]")
+                        .replace("[TERCER TIEMPO]", "[3ER TIEMPO - MARCHADO]");
+                if (!updatedComment.contains("MARCHADO")) {
+                    updatedComment = "[3ER TIEMPO - MARCHADO] " + updatedComment;
+                }
+                item.setComentarios(updatedComment);
+                clientOrderItemRepository.save(item);
+            }
+        }
+
+        // Pasar orden a CONFIRMADA para que reingrese al riel de Confirmada de Cocina
+        order.setEstado(OrderStatus.CONFIRMADA);
+        order = clientOrderRepository.save(order);
+
+        log.info("Orden {} pasada a CONFIRMADA para preparación de 3er tiempo", orderId);
+
+        String couponCode = null;
+        BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
+        if (order.getCouponId() != null) {
+            Coupon coupon = couponRepository.findById(order.getCouponId()).orElse(null);
+            if (coupon != null) {
+                couponCode = coupon.getCode();
+            }
+        }
+
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+
+        // Notificar en tiempo real a Cocina vía SSE
+        try {
+            orderSseService.publishOrderStatusChanged(orderDTO);
+            log.info("Evento SSE de orden {} (3er tiempo marchado) publicado para cocina", orderId);
+        } catch (Exception e) {
+            log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
+        }
+
+        return orderDTO;
+    }
+
+    @Override
     public ClientOrderDTO cancelOrder(UUID orderId) {
         log.info("Cancelando orden: {}", orderId);
         return updateOrderStatus(orderId, OrderStatus.CANCELADA);
@@ -784,9 +845,11 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         ClientOrder order = clientOrderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
 
-        if (order.getEstado() != OrderStatus.LISTO && order.getEstado() != OrderStatus.CONFIRMADA) {
-            throw new IllegalArgumentException(
-                    "Solo se puede registrar pago de órdenes en estado LISTO o CONFIRMADA. Estado actual: " + order.getEstado());
+        if (order.getEstado() == OrderStatus.PAGADA) {
+            throw new IllegalArgumentException("La orden ya se encuentra PAGADA.");
+        }
+        if (order.getEstado() == OrderStatus.CANCELADA) {
+            throw new IllegalArgumentException("No se puede registrar pago para una orden CANCELADA.");
         }
 
         // Validar que referencia está presente para métodos que la requieren
@@ -804,22 +867,25 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         // ===== FASE 2: VALIDAR USUARIO =====
-        if (request.getUserEmail() == null || request.getUserEmail().isBlank()) {
-            throw new IllegalArgumentException("Email del usuario que registra el pago es requerido");
-        }
+        String email = (request.getUserEmail() != null && !request.getUserEmail().isBlank()) 
+                ? request.getUserEmail().trim() 
+                : "cajero@lealtix.com";
 
-        TenantUser tenantUser = tenantUserRepository.findByEmail(request.getUserEmail())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Usuario no encontrado en tenant con email: " + request.getUserEmail()));
+        final Long tenantId = order.getTenant().getId();
+        TenantUser tenantUser = tenantUserRepository.findByEmail(email)
+                .orElseGet(() -> tenantUserRepository.findAllByTenantId(tenantId).stream().findFirst().orElse(null));
 
-        AppUser paidByUser = appUserRepository.findByEmail(request.getUserEmail());
+        AppUser paidByUser = appUserRepository.findByEmail(email);
         if (paidByUser == null) {
-            paidByUser = AppUser.builder()
-                    .email(request.getUserEmail())
-                    .fullName(tenantUser.getNombre())
-                    .isActive(true)
-                    .build();
-            paidByUser = appUserRepository.save(paidByUser);
+            paidByUser = appUserRepository.findAll().stream().findFirst().orElse(null);
+            if (paidByUser == null) {
+                paidByUser = AppUser.builder()
+                        .email(email)
+                        .fullName(tenantUser != null ? tenantUser.getNombre() : "Usuario Sistema")
+                        .isActive(true)
+                        .build();
+                paidByUser = appUserRepository.save(paidByUser);
+            }
         }
 
         // ===== FASE 3: REGISTRAR PAGO (TRANSACCIÓN PRINCIPAL) =====
@@ -852,6 +918,10 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     log.warn("No se pudo redimir cupón {} en cobro de orden {}: {}", couponCode, order.getId(), ex.getMessage());
                 }
             }
+        }
+
+        if (request.getMonto() != null && request.getMonto().compareTo(BigDecimal.ZERO) > 0) {
+            order.setTotal(request.getMonto());
         }
 
         BigDecimal propina = request.getPropina() == null ? BigDecimal.ZERO : request.getPropina();

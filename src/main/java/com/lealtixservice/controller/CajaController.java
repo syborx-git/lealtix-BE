@@ -54,7 +54,7 @@ public class CajaController {
 
     @Operation(summary = "Abrir un turno de caja")
     @PostMapping("/turnos/abrir")
-    @RequirePermission(value = "process_payment", alternative = {"manage_all"})
+    @RequirePermission(value = "process_payment", alternative = {"manage_all", "view_sales"})
     public ResponseEntity<GenericResponse> abrirTurno(@Valid @RequestBody AbrirTurnoRequest request) {
         try {
             TurnoDTO turno = cajaTurnoService.abrirTurno(request);
@@ -72,7 +72,7 @@ public class CajaController {
 
     @Operation(summary = "Cerrar turno y realizar corte de caja")
     @PostMapping("/turnos/cerrar")
-    @RequirePermission(value = "process_payment", alternative = {"manage_all"})
+    @RequirePermission(value = "process_payment", alternative = {"manage_all", "view_sales"})
     public ResponseEntity<GenericResponse> cerrarTurno(@Valid @RequestBody CerrarTurnoRequest request) {
         try {
             TurnoDTO turno = cajaTurnoService.cerrarTurno(request);
@@ -109,7 +109,7 @@ public class CajaController {
 
     @Operation(summary = "Imprimir ticket de pre-cuenta y cambiar estado a POR_COBRAR")
     @PostMapping("/comandas/{orderId}/imprimir-ticket")
-    @RequirePermission(value = "process_payment", alternative = {"manage_all"})
+    @RequirePermission(value = "process_payment", alternative = {"manage_all", "view_sales"})
     public ResponseEntity<GenericResponse> imprimirTicket(
             @PathVariable UUID orderId,
             @RequestParam Long tenantId) {
@@ -128,7 +128,7 @@ public class CajaController {
 
     @Operation(summary = "Procesar cobro de comanda en caja (Transaccional ACID)")
     @PostMapping("/comandas/{orderId}/pagar")
-    @RequirePermission(value = "process_payment", alternative = {"manage_all"})
+    @RequirePermission(value = "process_payment", alternative = {"manage_all", "view_sales"})
     public ResponseEntity<GenericResponse> pagarComanda(
             @PathVariable UUID orderId,
             @Valid @RequestBody CobrarComandaRequest request) {
@@ -145,13 +145,14 @@ public class CajaController {
         }
     }
 
-    @Operation(summary = "Resumen financiero del turno (Arqueo de caja)")
+    @Operation(summary = "Resumen financiero del turno o corte del día")
     @GetMapping("/turnos/{idTurno}/resumen")
     public ResponseEntity<GenericResponse> getResumenTurno(
             @PathVariable Long idTurno,
-            @RequestParam Long tenantId) {
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
         try {
-            ResumenTurnoCorteDTO resumen = cajaTurnoService.obtenerResumenTurno(tenantId, idTurno);
+            ResumenTurnoCorteDTO resumen = cajaTurnoService.obtenerResumenTurno(tenantId, idTurno, fecha);
             return ResponseEntity.ok(new GenericResponse(200, "Resumen de turno", resumen));
         } catch (Exception e) {
             log.error("Error obteniendo resumen de turno", e);

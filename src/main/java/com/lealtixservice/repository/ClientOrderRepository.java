@@ -402,4 +402,26 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
     List<ClientOrder> findByTenantIdAndEstadoInOrderByFechaAsc(Long tenantId, List<OrderStatus> estados);
 
     List<ClientOrder> findByTenantIdAndTurnoIdTurnoAndMeseroIdAndPropinasLiquidadasFalse(Long tenantId, Long idTurno, Long idMesero);
+
+    @Query("SELECT DISTINCT o FROM ClientOrder o " +
+           "LEFT JOIN o.mesa m " +
+           "LEFT JOIN o.mesero mes " +
+           "LEFT JOIN o.paidBy pb " +
+           "WHERE o.tenant.id = :tenantId " +
+           "AND (:idTurno IS NULL OR o.turno.idTurno = :idTurno) " +
+           "AND (" +
+           "  mes.id = :idMesero OR " +
+           "  (:email IS NOT NULL AND LOWER(mes.email) = LOWER(:email)) OR " +
+           "  (:nombre IS NOT NULL AND LOWER(mes.fullName) = LOWER(:nombre)) OR " +
+           "  (m.meseroUserId = :idMesero) OR " +
+           "  pb.id = :idMesero OR " +
+           "  (:email IS NOT NULL AND LOWER(pb.email) = LOWER(:email))" +
+           ") " +
+           "AND (o.propinasLiquidadas IS NULL OR o.propinasLiquidadas = false) " +
+           "AND (o.propina > 0 OR EXISTS (SELECT 1 FROM Pago p WHERE p.comanda = o AND p.montoPropina > 0))")
+    List<ClientOrder> findOrdenesConPropinasPendientes(@Param("tenantId") Long tenantId,
+                                                      @Param("idTurno") Long idTurno,
+                                                      @Param("idMesero") Long idMesero,
+                                                      @Param("email") String email,
+                                                      @Param("nombre") String nombre);
 }

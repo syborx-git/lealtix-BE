@@ -83,34 +83,75 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
     @Override
     @Transactional(readOnly = true)
     public ResumenTurnoCorteDTO obtenerResumenTurno(Long tenantId, Long idTurno) {
+        return obtenerResumenTurno(tenantId, idTurno, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResumenTurnoCorteDTO obtenerResumenTurno(Long tenantId, Long idTurno, LocalDate fecha) {
         Turno turno = turnoRepository.findById(idTurno)
                 .orElseThrow(() -> new ResourceNotFoundException("Turno no encontrado"));
 
-        List<Pago> pagos = pagoRepository.findByTurnoIdTurno(idTurno);
-        List<Object[]> desgloseRaw = pagoRepository.getDesgloseMetodosPago(idTurno);
+        List<Pago> pagos;
+        if (fecha != null) {
+            LocalDateTime desde = fecha.atStartOfDay();
+            LocalDateTime hasta = fecha.plusDays(1).atStartOfDay();
+            pagos = pagoRepository.findPagosEnRango(tenantId, idTurno, desde, hasta);
+        } else {
+            pagos = pagoRepository.findByTurnoIdTurno(idTurno);
+        }
 
-        List<DesgloseMetodoPagoDTO> desgloseMetodos = new ArrayList<>();
+        BigDecimal totalCuentaVentas = BigDecimal.ZERO;
+        BigDecimal totalPropinas = BigDecimal.ZERO;
         BigDecimal totalEfectivoCobrado = BigDecimal.ZERO;
+        Map<String, DesgloseMetodoPagoDTO> desgloseMap = new LinkedHashMap<>();
 
-        for (Object[] row : desgloseRaw) {
-            String metodo = (String) row[0];
-            Long count = ((Number) row[1]).longValue();
-            BigDecimal totalCuenta = (BigDecimal) row[2];
-            BigDecimal totalPropina = (BigDecimal) row[3];
-            BigDecimal totalRecaudado = totalCuenta.add(totalPropina);
-
-            if ("EFECTIVO".equalsIgnoreCase(metodo)) {
-                totalEfectivoCobrado = totalEfectivoCobrado.add(totalRecaudado);
+        for (Pago p : pagos) {
+            BigDecimal cuenta = p.getMontoCuenta() != null ? p.getMontoCuenta() : BigDecimal.ZERO;
+            BigDecimal propina = p.getMontoPropina() != null ? p.getMontoPropina() : BigDecimal.ZERO;
+            if (propina.compareTo(BigDecimal.ZERO) == 0 && p.getComanda() != null && p.getComanda().getPropina() != null) {
+                propina = p.getComanda().getPropina();
             }
 
-            desgloseMetodos.add(DesgloseMetodoPagoDTO.builder()
-                    .metodoPago(metodo)
-                    .transacciones(count)
-                    .totalCuenta(totalCuenta)
-                    .totalPropina(totalPropina)
-                    .totalRecaudado(totalRecaudado)
-                    .build());
+            totalCuentaVentas = totalCuentaVentas.add(cuenta);
+            totalPropinas = totalPropinas.add(propina);
+
+            String metodoRaw = (p.getMetodoPago() != null ? p.getMetodoPago().trim().toUpperCase() : "EFECTIVO");
+            String metodo = switch (metodoRaw) {
+                case "CASH", "EFECTIVO", "DINERO" -> "EFECTIVO";
+                case "CARD", "TARJETA", "MASTERCARD", "VISA", "DEBITO", "CREDITO" -> "TARJETA";
+                case "TRANSFER", "TRANSFERENCIA", "SPEI" -> "TRANSFERENCIA";
+                case "MIXED", "MIXTO" -> "MIXTO";
+                default -> metodoRaw;
+            };
+
+            BigDecimal recaudado = cuenta.add(propina);
+            if ("EFECTIVO".equalsIgnoreCase(metodo)) {
+                totalEfectivoCobrado = totalEfectivoCobrado.add(recaudado);
+            }
+
+            final BigDecimal finalPropina = propina;
+            desgloseMap.compute(metodo, (k, v) -> {
+                if (v == null) {
+                    return DesgloseMetodoPagoDTO.builder()
+                            .metodoPago(k)
+                            .transacciones(1L)
+                            .totalCuenta(cuenta)
+                            .totalPropina(finalPropina)
+                            .totalRecaudado(recaudado)
+                            .build();
+                } else {
+                    v.setTransacciones(v.getTransacciones() + 1);
+                    v.setTotalCuenta(v.getTotalCuenta().add(cuenta));
+                    v.setTotalPropina(v.getTotalPropina().add(finalPropina));
+                    v.setTotalRecaudado(v.getTotalRecaudado().add(recaudado));
+                    return v;
+                }
+            });
         }
+
+        List<DesgloseMetodoPagoDTO> desgloseMetodos = new ArrayList<>(desgloseMap.values());
+        desgloseMetodos.sort((a, b) -> b.getTotalRecaudado().compareTo(a.getTotalRecaudado()));
 
         long totalArticulos = pagos.stream()
                 .map(Pago::getComanda)
@@ -118,17 +159,26 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
                 .mapToLong(o -> o.getItems() != null ? o.getItems().stream().mapToLong(i -> i.getCantidad() != null ? i.getCantidad() : 1).sum() : 0)
                 .sum();
 
+        BigDecimal totalRecaudado = totalCuentaVentas.add(totalPropinas);
+
+        // Si fecha viene especificada (corte del día), las ventas corresponden al día.
+        // Si fecha es null (arqueo/cierre de turno completo), se usa el balance acumulado del turno.
+        BigDecimal ventasFinal = (fecha != null) ? totalRecaudado : turno.getTotalIngresos();
+        BigDecimal propinasFinal = (fecha != null) ? totalPropinas : turno.getTotalPropinas();
         BigDecimal efectivoEsperado = turno.getFondoInicial().add(totalEfectivoCobrado);
 
         return ResumenTurnoCorteDTO.builder()
                 .turno(mapToTurnoDTO(turno))
                 .totalArticulosVendidos(totalArticulos)
                 .totalComandasCobradas((long) pagos.size())
-                .totalVentas(turno.getTotalIngresos())
-                .totalPropinas(turno.getTotalPropinas())
+                .totalVentas(ventasFinal)
+                .totalCuenta(totalCuentaVentas)
+                .totalPropinas(propinasFinal)
+                .totalRecaudado(totalRecaudado)
                 .fondoInicial(turno.getFondoInicial())
                 .efectivoEsperadoEnCaja(efectivoEsperado)
                 .desgloseMetodos(desgloseMetodos)
+                .fechaCorte(fecha)
                 .build();
     }
 
@@ -201,9 +251,16 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
         ClientOrder order = clientOrderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comanda no encontrada"));
 
-        order.setEstado(OrderStatus.POR_COBRAR);
+        if (order.getEstado() != OrderStatus.PAGADA && order.getEstado() != OrderStatus.CANCELADA) {
+            order.setEstado(OrderStatus.POR_COBRAR);
+        }
         order.setFechaImpresionTicket(LocalDateTime.now());
-        clientOrderRepository.save(order);
+        ClientOrder savedPrecuentaOrder = clientOrderRepository.save(order);
+        try {
+            orderSseService.publishOrderStatusChanged(com.lealtixservice.mapper.ClientOrderMapper.toDTO(savedPrecuentaOrder));
+        } catch (Exception e) {
+            log.warn("No se pudo notificar evento SSE pre-cuenta para comanda {}: {}", order.getId(), e.getMessage());
+        }
 
         List<ItemPrecuentaDTO> itemsDTO = new ArrayList<>();
         if (order.getItems() != null) {
@@ -262,19 +319,35 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
                 .orElseGet(() -> turnoRepository.findFirstByTenantIdAndEstado(request.getTenantId(), "ABIERTO")
                         .orElseThrow(() -> new IllegalArgumentException("No hay ningún turno de caja ABIERTO para registrar el cobro.")));
 
-        TenantUser cajero = tenantUserRepository.findByIdAndTenantId(request.getCajeroId(), request.getTenantId())
-                .orElse(null);
+        TenantUser cajero = null;
+        if (request.getCajeroId() != null && request.getCajeroId() > 0) {
+            cajero = tenantUserRepository.findByIdAndTenantId(request.getCajeroId(), request.getTenantId()).orElse(null);
+        }
+        if (cajero == null) {
+            cajero = turno.getCajero();
+        }
+        if (cajero == null) {
+            cajero = tenantUserRepository.findAllByTenantId(request.getTenantId()).stream().findFirst().orElse(null);
+        }
 
-        BigDecimal montoCuenta = request.getMontoCuenta();
+        BigDecimal montoCuenta = request.getMontoCuenta() != null ? request.getMontoCuenta() : (order.getTotal() != null ? order.getTotal() : BigDecimal.ZERO);
         BigDecimal montoPropina = request.getMontoPropina() != null ? request.getMontoPropina() : BigDecimal.ZERO;
         BigDecimal montoTotal = montoCuenta.add(montoPropina);
+
+        String rawMetodo = (request.getMetodoPago() != null ? request.getMetodoPago().trim().toUpperCase() : "EFECTIVO");
+        PaymentMethod paymentMethod = switch (rawMetodo) {
+            case "CARD", "TARJETA", "VISA", "MASTERCARD", "DEBITO", "CREDITO" -> PaymentMethod.CARD;
+            case "TRANSFER", "TRANSFERENCIA", "SPEI" -> PaymentMethod.TRANSFER;
+            case "MIXED", "MIXTO", "VALES", "OTRO" -> PaymentMethod.MIXED;
+            default -> PaymentMethod.CASH;
+        };
 
         Pago pago = Pago.builder()
                 .tenant(order.getTenant())
                 .comanda(order)
                 .turno(turno)
                 .cajero(cajero)
-                .metodoPago(request.getMetodoPago().toUpperCase())
+                .metodoPago(rawMetodo)
                 .montoCuenta(montoCuenta)
                 .montoPropina(montoPropina)
                 .montoTotal(montoTotal)
@@ -291,15 +364,11 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
 
         order.setEstado(OrderStatus.PAGADA);
         order.setTurno(turno);
+        order.setTotal(montoCuenta);
         order.setPropina(montoPropina);
         order.setPaidAt(LocalDateTime.now());
         order.setPaymentReference(request.getReferencia());
-
-        try {
-            order.setPaidMethod(PaymentMethod.valueOf(request.getMetodoPago().toUpperCase()));
-        } catch (Exception e) {
-            order.setPaidMethod(PaymentMethod.CASH);
-        }
+        order.setPaidMethod(paymentMethod);
 
         if (order.getMesa() != null) {
             Mesa mesa = order.getMesa();
@@ -337,11 +406,12 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
         TenantUser mesero = tenantUserRepository.findByIdAndTenantId(idMesero, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mesero no encontrado"));
         String email = mesero.getEmail();
+        String nombre = mesero.getNombre();
 
         List<Pago> pagos = (fecha != null)
                 ? pagoRepository.findPagosByMeseroEnRango(
-                        tenantId, idMesero, email, fecha.atStartOfDay(), fecha.plusDays(1).atStartOfDay())
-                : pagoRepository.findPagosByMesero(tenantId, idMesero, email, idTurno);
+                        tenantId, idMesero, email, nombre, fecha.atStartOfDay(), fecha.plusDays(1).atStartOfDay())
+                : pagoRepository.findPagosByMesero(tenantId, idMesero, email, nombre, idTurno);
 
         BigDecimal totalVentas = BigDecimal.ZERO;
         BigDecimal totalPropinas = BigDecimal.ZERO;
@@ -352,12 +422,16 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
 
         for (Pago p : pagos) {
             BigDecimal cuenta = p.getMontoCuenta() != null ? p.getMontoCuenta() : BigDecimal.ZERO;
-            BigDecimal propina = p.getMontoPropina() != null ? p.getMontoPropina() : BigDecimal.ZERO;
+            BigDecimal propinaRaw = p.getMontoPropina() != null ? p.getMontoPropina() : BigDecimal.ZERO;
+            if (propinaRaw.compareTo(BigDecimal.ZERO) == 0 && p.getComanda() != null && p.getComanda().getPropina() != null) {
+                propinaRaw = p.getComanda().getPropina();
+            }
+            final BigDecimal propina = propinaRaw;
 
             totalVentas = totalVentas.add(cuenta);
             totalPropinas = totalPropinas.add(propina);
 
-            if (p.getComanda() != null && Boolean.FALSE.equals(p.getComanda().getPropinasLiquidadas())) {
+            if (p.getComanda() != null && !Boolean.TRUE.equals(p.getComanda().getPropinasLiquidadas())) {
                 propinasPendientes = propinasPendientes.add(propina);
             }
 
@@ -421,12 +495,27 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
                 .orElse(null);
 
         List<ClientOrder> ordenesPendientes = clientOrderRepository
-                .findByTenantIdAndTurnoIdTurnoAndMeseroIdAndPropinasLiquidadasFalse(
-                        request.getTenantId(), request.getIdTurno(), request.getIdMesero()
+                .findOrdenesConPropinasPendientes(
+                        request.getTenantId(), request.getIdTurno(), request.getIdMesero(), mesero.getEmail(), mesero.getNombre()
                 );
 
+        if (ordenesPendientes.isEmpty()) {
+            ordenesPendientes = clientOrderRepository
+                    .findOrdenesConPropinasPendientes(
+                            request.getTenantId(), null, request.getIdMesero(), mesero.getEmail(), mesero.getNombre()
+                    );
+        }
+
         BigDecimal montoBruto = ordenesPendientes.stream()
-                .map(o -> o.getPropina() != null ? o.getPropina() : BigDecimal.ZERO)
+                .map(o -> {
+                    if (o.getPropina() != null && o.getPropina().compareTo(BigDecimal.ZERO) > 0) {
+                        return o.getPropina();
+                    }
+                    List<Pago> pgs = pagoRepository.findByComandaId(o.getId());
+                    return pgs.stream()
+                            .map(p -> p.getMontoPropina() != null ? p.getMontoPropina() : BigDecimal.ZERO)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (montoBruto.compareTo(BigDecimal.ZERO) <= 0) {

@@ -47,69 +47,65 @@ public class DateRangeResolver {
         LocalDate hoy = LocalDate.now();
         PresetReporte p = preset == null ? PresetReporte.HOY : preset;
 
-        return switch (p) {
-            case HOY -> new PeriodoComparativo(
+        if (p == PresetReporte.HOY) {
+            return new PeriodoComparativo(
                     p,
                     rango(hoy, hoy, "Hoy"),
                     rango(hoy.minusDays(1), hoy.minusDays(1), "Ayer")
             );
-            case AYER -> new PeriodoComparativo(
+        } else if (p == PresetReporte.AYER) {
+            return new PeriodoComparativo(
                     p,
                     rango(hoy.minusDays(1), hoy.minusDays(1), "Ayer"),
                     rango(hoy.minusDays(2), hoy.minusDays(2), "Anteayer")
             );
-            case ESTA_SEMANA -> {
-                LocalDate inicioSemana = hoy.with(DayOfWeek.MONDAY);
-                long diasTranscurridos = ChronoUnit.DAYS.between(inicioSemana, hoy) + 1;
-                yield new PeriodoComparativo(
-                        p,
-                        rango(inicioSemana, hoy, "Esta semana"),
-                        rango(inicioSemana.minusWeeks(1),
-                                inicioSemana.minusWeeks(1).plusDays(diasTranscurridos - 1),
-                                "Semana anterior (mismos dias)")
-                );
+        } else if (p == PresetReporte.ESTA_SEMANA) {
+            LocalDate inicioSemana = hoy.with(DayOfWeek.MONDAY);
+            long diasTranscurridos = ChronoUnit.DAYS.between(inicioSemana, hoy) + 1;
+            return new PeriodoComparativo(
+                    p,
+                    rango(inicioSemana, hoy, "Esta semana"),
+                    rango(inicioSemana.minusWeeks(1),
+                            inicioSemana.minusWeeks(1).plusDays(diasTranscurridos - 1),
+                            "Semana anterior (mismos dias)")
+            );
+        } else if (p == PresetReporte.SEMANA_PASADA) {
+            LocalDate inicio = hoy.with(DayOfWeek.MONDAY).minusWeeks(1);
+            return new PeriodoComparativo(
+                    p,
+                    rango(inicio, inicio.plusDays(6), "Semana pasada"),
+                    rango(inicio.minusWeeks(1), inicio.minusWeeks(1).plusDays(6), "Semana anterior")
+            );
+        } else if (p == PresetReporte.ESTE_MES) {
+            LocalDate inicioMes = hoy.withDayOfMonth(1);
+            int diaDelMes = hoy.getDayOfMonth();
+            return new PeriodoComparativo(
+                    p,
+                    rango(inicioMes, hoy, "Este mes"),
+                    rango(inicioMes.minusMonths(1), recortar(inicioMes.minusMonths(1), diaDelMes), "Mes anterior (mismos dias)")
+            );
+        } else if (p == PresetReporte.MES_PASADO) {
+            LocalDate inicioMes = hoy.withDayOfMonth(1).minusMonths(1);
+            return new PeriodoComparativo(
+                    p,
+                    rango(inicioMes, inicioMes.plusMonths(1).minusDays(1), "Mes pasado"),
+                    rango(inicioMes.minusMonths(1), inicioMes.minusMonths(1).plusMonths(1).minusDays(1), "Mes anterior")
+            );
+        } else {
+            LocalDate inicio = from != null ? from.toLocalDate() : hoy.minusDays(29);
+            LocalDate fin = to != null ? to.toLocalDate() : hoy;
+            if (fin.isBefore(inicio)) {
+                LocalDate swap = inicio;
+                inicio = fin;
+                fin = swap;
             }
-            case SEMANA_PASADA -> {
-                LocalDate inicio = hoy.with(DayOfWeek.MONDAY).minusWeeks(1);
-                yield new PeriodoComparativo(
-                        p,
-                        rango(inicio, inicio.plusDays(6), "Semana pasada"),
-                        rango(inicio.minusWeeks(1), inicio.minusWeeks(1).plusDays(6), "Semana anterior")
-                );
-            }
-            case ESTE_MES -> {
-                LocalDate inicioMes = hoy.withDayOfMonth(1);
-                int diaDelMes = hoy.getDayOfMonth();
-                yield new PeriodoComparativo(
-                        p,
-                        rango(inicioMes, hoy, "Este mes"),
-                        rango(inicioMes.minusMonths(1), recortar(inicioMes.minusMonths(1), diaDelMes), "Mes anterior (mismos dias)")
-                );
-            }
-            case MES_PASADO -> {
-                LocalDate inicioMes = hoy.withDayOfMonth(1).minusMonths(1);
-                yield new PeriodoComparativo(
-                        p,
-                        rango(inicioMes, inicioMes.plusMonths(1).minusDays(1), "Mes pasado"),
-                        rango(inicioMes.minusMonths(1), inicioMes.minusMonths(1).plusMonths(1).minusDays(1), "Mes anterior")
-                );
-            }
-            case PERSONALIZADO -> {
-                LocalDate inicio = from != null ? from.toLocalDate() : hoy.minusDays(29);
-                LocalDate fin = to != null ? to.toLocalDate() : hoy;
-                if (fin.isBefore(inicio)) {
-                    LocalDate swap = inicio;
-                    inicio = fin;
-                    fin = swap;
-                }
-                long dias = ChronoUnit.DAYS.between(inicio, fin) + 1;
-                yield new PeriodoComparativo(
-                        p,
-                        rango(inicio, fin, "Personalizado"),
-                        rango(inicio.minusDays(dias), inicio.minusDays(1), "Periodo anterior")
-                );
-            }
-        };
+            long dias = ChronoUnit.DAYS.between(inicio, fin) + 1;
+            return new PeriodoComparativo(
+                    p,
+                    rango(inicio, fin, "Personalizado"),
+                    rango(inicio.minusDays(dias), inicio.minusDays(1), "Periodo anterior")
+            );
+        }
     }
 
     /**

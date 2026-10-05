@@ -113,6 +113,8 @@ public class ClientOrderMapper {
                 .paidByName(order.getPaidBy() != null ? (order.getPaidBy().getFullName() != null && !order.getPaidBy().getFullName().isBlank() ? order.getPaidBy().getFullName() : order.getPaidBy().getEmail()) : null)
                 .paidAt(order.getPaidAt())
                 .propina(order.getPropina())
+                .propinasLiquidadas(order.getPropinasLiquidadas())
+                .fechaLiquidacionPropinas(order.getFechaLiquidacionPropinas())
                 .mesaId(order.getMesa() != null ? order.getMesa().getId() : null)
                 .mesaNombre(order.getMesa() != null ? order.getMesa().getNombre() : null)
                 .mesaNumero(order.getMesa() != null ? order.getMesa().getNumero() : null)

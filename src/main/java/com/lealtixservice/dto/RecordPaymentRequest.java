@@ -37,6 +37,12 @@ public class RecordPaymentRequest {
     private BigDecimal propina;
 
     /**
+     * Monto total de la cuenta a cobrar (opcional, si se ajusta en caja).
+     */
+    @DecimalMin(value = "0.0", message = "El monto de la cuenta no puede ser negativo")
+    private BigDecimal monto;
+
+    /**
      * Código de cupón opcional a aplicar durante el cobro/cierre de la comanda
      */
     private String couponCode;

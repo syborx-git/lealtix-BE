@@ -1,11 +1,15 @@
 package com.lealtixservice.controller;
 
 import com.lealtixservice.dto.GenericResponse;
+import com.lealtixservice.dto.reportes.AuditoriaMermasDTO;
 import com.lealtixservice.dto.reportes.CorteCajaDTO;
 import com.lealtixservice.dto.reportes.PresetReporte;
+import com.lealtixservice.dto.reportes.StockMinimoReporteDTO;
 import com.lealtixservice.dto.reportes.VentasTendenciasDTO;
 import com.lealtixservice.service.ReporteCorteCajaService;
 import com.lealtixservice.service.ReporteExcelService;
+import com.lealtixservice.service.ReporteMermasService;
+import com.lealtixservice.service.ReporteStockMinimoService;
 import com.lealtixservice.service.ReporteVentasService;
 import com.lealtixservice.util.RequirePermission;
 import com.lealtixservice.util.TenantOwnership;
@@ -48,6 +52,8 @@ public class ReportesController {
 
     private final ReporteVentasService reporteVentasService;
     private final ReporteCorteCajaService reporteCorteCajaService;
+    private final ReporteMermasService reporteMermasService;
+    private final ReporteStockMinimoService reporteStockMinimoService;
     private final ReporteExcelService excelService;
 
     // ==================== 1.1 Dashboard de Ventas y Tendencias ====================
@@ -196,6 +202,131 @@ public class ReportesController {
             log.error("Error inesperado exportando el reporte de corte de caja", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno exportando el reporte", null));
+        }
+    }
+
+    // ==================== 2.3 Auditoria de Mermas ====================
+
+    @Operation(summary = "Reporte 2.3: Auditoria de Mermas",
+            description = "Costeo de salidas no-venta por motivo, responsable e insumos, "
+                    + "con comparativa automatica contra el periodo anterior equivalente.")
+    @GetMapping("/mermas")
+    @RequirePermission(value = "view_reports", alternative = {"manage_mermas", "view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getAuditoriaMermas(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rapido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/mermas - tenantId={}, preset={}, from={}, to={}", tenantId, p, from, to);
+
+        try {
+            AuditoriaMermasDTO reporte = reporteMermasService.obtener(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de auditoria de mermas generado", reporte));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error generando el reporte de auditoria de mermas", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando el reporte de mermas", null));
+        }
+    }
+
+    @Operation(summary = "Reporte 2.3: exportar Auditoria de Mermas a Excel",
+            description = "Genera un .xlsx con hojas de resumen comparativo, desgloses por motivo, "
+                    + "responsable, top insumos y detalle cronologico.")
+    @GetMapping("/mermas/export")
+    @RequirePermission(value = "view_reports", alternative = {"manage_mermas", "view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarAuditoriaMermas(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rapido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/mermas/export - tenantId={}, preset={}, from={}, to={}", tenantId, p, from, to);
+
+        try {
+            byte[] archivo = reporteMermasService.exportar(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo(
+                    "mermas_" + p.name().toLowerCase() + "_"
+                            + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error inesperado exportando el reporte de mermas", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno exportando el reporte de mermas", null));
+        }
+    }
+
+    // ==================== 2.4 Alertas de Stock Minimo y Critico ====================
+
+    @Operation(summary = "Reporte 2.4: Alertas de Stock Minimo y Critico",
+            description = "Auditoria de insumos y productos con stock critico o agotado, "
+                    + "calculo de cantidades a reabastecer e inversion estimada de compra.")
+    @GetMapping("/stock-minimo")
+    @RequirePermission(value = "view_reports", alternative = {"view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getAlertasStockMinimo(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId) {
+
+        log.info("GET /api/reportes/stock-minimo - tenantId={}", tenantId);
+
+        try {
+            StockMinimoReporteDTO reporte = reporteStockMinimoService.obtener(tenantId);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de alertas de stock generado", reporte));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error generando el reporte de alertas de stock minimo", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando el reporte de stock", null));
+        }
+    }
+
+    @Operation(summary = "Reporte 2.4: exportar Alertas de Stock Minimo a Excel",
+            description = "Genera un .xlsx con hojas de resumen de stock, lista de compras recomendada "
+                    + "y auditoria de inventario general.")
+    @GetMapping("/stock-minimo/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarAlertasStockMinimo(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId) {
+
+        log.info("GET /api/reportes/stock-minimo/export - tenantId={}", tenantId);
+
+        try {
+            byte[] archivo = reporteStockMinimoService.exportar(tenantId);
+            String nombre = excelService.nombreArchivo(
+                    "stock_minimo_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error inesperado exportando el reporte de stock", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno exportando el reporte de stock", null));
         }
     }
 }

@@ -79,6 +79,11 @@ public interface ClientOrderService {
     ClientOrderDTO marcharSegundoTiempo(UUID orderId);
 
     /**
+     * Marcha los terceros tiempos de una comanda, actualizando sus ítems y pasando la orden a CONFIRMADA para cocina.
+     */
+    ClientOrderDTO marcharTercerTiempo(UUID orderId);
+
+    /**
      * Cancela una orden (cambia estado a CANCELADA)
      */
     ClientOrderDTO cancelOrder(UUID orderId);

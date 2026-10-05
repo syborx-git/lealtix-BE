@@ -14,6 +14,14 @@ public interface CajaTurnoService {
 
     ResumenTurnoCorteDTO obtenerResumenTurno(Long tenantId, Long idTurno);
 
+    /**
+     * Resumen financiero del turno o corte del día en curso.
+     *
+     * @param fecha día a acotar (opcional). Si viene, el resumen y desglose
+     *              corresponden estrictamente a las ventas de ese día.
+     */
+    ResumenTurnoCorteDTO obtenerResumenTurno(Long tenantId, Long idTurno, LocalDate fecha);
+
     TurnoDTO cerrarTurno(CerrarTurnoRequest request);
 
     TableroCajaDTO obtenerTablero(Long tenantId);
