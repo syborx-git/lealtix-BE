@@ -30,6 +30,7 @@ public class ClientOrderItemDTO {
     private String comentarios;
     private List<Long> excludedIngredientIds;   // Ingredientes modificables que el cliente pidió quitar
     private List<Long> additionalIngredientIds; // Insumos adicionales seleccionados por el cliente
+    private Boolean esBebida;                   // true si el item es bebida (Barra), false/null si es platillo (Cocina)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

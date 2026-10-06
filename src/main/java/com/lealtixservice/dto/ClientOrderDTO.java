@@ -37,6 +37,10 @@ public class ClientOrderDTO {
     private BigDecimal couponDiscount;  // Descuento específico del cupón
     private LocalDateTime acceptedAt;  // Timestamp cuando fue aceptado en cocina
     private LocalDateTime readyAt;  // Timestamp cuando estuvo listo
+    private OrderStatus barraEstado;
+    private OrderStatus cocinaEstado;
+    private LocalDateTime barraReadyAt;
+    private LocalDateTime cocinaReadyAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private PaymentMethod paidMethod;  // Método de pago: CASH, CARD, TRANSFER, MIXED

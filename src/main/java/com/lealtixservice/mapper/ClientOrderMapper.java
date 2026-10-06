@@ -11,6 +11,7 @@ import com.lealtixservice.enums.OrderStatus;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -72,19 +73,36 @@ public class ClientOrderMapper {
      * Convierte una entidad ClientOrder a un DTO ClientOrderDTO
      */
     public static ClientOrderDTO toDTO(ClientOrder order) {
-        return toDTO(order, null, null);
+        return toDTO(order, null, null, null);
+    }
+
+    public static ClientOrderDTO toDTO(ClientOrder order, Set<Long> beverageProductIds) {
+        return toDTO(order, null, null, beverageProductIds);
     }
 
     /**
      * Convierte una entidad ClientOrder a un DTO ClientOrderDTO con información de cupón
      */
     public static ClientOrderDTO toDTO(ClientOrder order, String couponCode, BigDecimal couponDiscount) {
+        return toDTO(order, couponCode, couponDiscount, null);
+    }
+
+    /**
+     * Convierte una entidad ClientOrder a un DTO ClientOrderDTO con información de cupón y clasificación de bebidas
+     */
+    public static ClientOrderDTO toDTO(ClientOrder order, String couponCode, BigDecimal couponDiscount, Set<Long> beverageProductIds) {
         if (order == null) return null;
         
         List<ClientOrderItemDTO> itemsDTO = null;
         if (order.getItems() != null) {
             itemsDTO = order.getItems().stream()
-                    .map(ClientOrderItemMapper::toDTO)
+                    .map(item -> {
+                        Boolean esBebida = null;
+                        if (beverageProductIds != null && item.getProduct() != null && item.getProduct().getId() != null) {
+                            esBebida = beverageProductIds.contains(item.getProduct().getId());
+                        }
+                        return ClientOrderItemMapper.toDTO(item, esBebida);
+                    })
                     .collect(Collectors.toList());
         }
         
@@ -96,6 +114,10 @@ public class ClientOrderMapper {
                 .tenantId(order.getTenant() != null ? order.getTenant().getId() : null)
                 .fecha(order.getFecha())
                 .estado(order.getEstado())
+                .barraEstado(order.getBarraEstado())
+                .cocinaEstado(order.getCocinaEstado())
+                .barraReadyAt(order.getBarraReadyAt())
+                .cocinaReadyAt(order.getCocinaReadyAt())
                 .subtotal(order.getSubtotal())
                 .descuento(order.getDescuento())
                 .total(order.getTotal())

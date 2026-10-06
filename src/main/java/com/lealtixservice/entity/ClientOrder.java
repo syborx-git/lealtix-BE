@@ -91,6 +91,20 @@ public class ClientOrder {
     @Column(name = "ready_at")
     private LocalDateTime readyAt;  // EN_PREPARACION -> LISTO
 
+    @Column(name = "barra_estado", length = 20)
+    @Enumerated(EnumType.STRING)
+    private OrderStatus barraEstado;
+
+    @Column(name = "cocina_estado", length = 20)
+    @Enumerated(EnumType.STRING)
+    private OrderStatus cocinaEstado;
+
+    @Column(name = "barra_ready_at")
+    private LocalDateTime barraReadyAt;
+
+    @Column(name = "cocina_ready_at")
+    private LocalDateTime cocinaReadyAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

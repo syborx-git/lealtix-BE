@@ -18,7 +18,8 @@ public enum RoleEnum {
             "view_kitchen_orders", "update_order_status", "view_pending_orders"
     )),
     CAJA(Arrays.asList(
-            "view_sales", "process_payment", "manage_transactions", "view_cash_register"
+            "view_sales", "process_payment", "manage_transactions", "view_cash_register",
+            "view_reports", "view_dashboard"
     )),
     MARKETING(Arrays.asList(
             "view_campaigns", "create_campaign", "view_analytics", "manage_redemptions"

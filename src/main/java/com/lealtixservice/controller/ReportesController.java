@@ -7,9 +7,11 @@ import com.lealtixservice.dto.reportes.PresetReporte;
 import com.lealtixservice.dto.reportes.StockMinimoReporteDTO;
 import com.lealtixservice.dto.reportes.VentasTendenciasDTO;
 import com.lealtixservice.service.ReporteCorteCajaService;
+import com.lealtixservice.dto.reportes.AuditoriaTicketsCanceladosDTO;
 import com.lealtixservice.service.ReporteExcelService;
 import com.lealtixservice.service.ReporteMermasService;
 import com.lealtixservice.service.ReporteStockMinimoService;
+import com.lealtixservice.service.ReporteTicketsCanceladosService;
 import com.lealtixservice.service.ReporteVentasService;
 import com.lealtixservice.util.RequirePermission;
 import com.lealtixservice.util.TenantOwnership;
@@ -54,6 +56,7 @@ public class ReportesController {
     private final ReporteCorteCajaService reporteCorteCajaService;
     private final ReporteMermasService reporteMermasService;
     private final ReporteStockMinimoService reporteStockMinimoService;
+    private final ReporteTicketsCanceladosService reporteTicketsCanceladosService;
     private final ReporteExcelService excelService;
 
     // ==================== 1.1 Dashboard de Ventas y Tendencias ====================
@@ -327,6 +330,77 @@ public class ReportesController {
             log.error("Error inesperado exportando el reporte de stock", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno exportando el reporte de stock", null));
+        }
+    }
+
+    // ==================== 4.1 Auditoría de Tickets Cancelados ====================
+
+    @Operation(summary = "Reporte 4.1: Auditoría de Tickets Cancelados",
+            description = "KPIs de comandas anuladas, monto económico no percibido, tasa de cancelación, "
+                    + "distribución por motivo, trazabilidad por responsable y detalle cronológico.")
+    @GetMapping("/tickets-cancelados")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getAuditoriaTicketsCancelados(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rápido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/tickets-cancelados - tenantId={}, preset={}, from={}, to={}",
+                tenantId, p, from, to);
+
+        try {
+            AuditoriaTicketsCanceladosDTO reporte = reporteTicketsCanceladosService.obtener(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de tickets cancelados generado", reporte));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error inesperado generando la auditoría de tickets cancelados", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando la auditoría de tickets cancelados", null));
+        }
+    }
+
+    @Operation(summary = "Reporte 4.1: Exportar Auditoría de Tickets Cancelados a Excel",
+            description = "Genera un archivo .xlsx con hojas de resumen de KPIs, desglose por motivo, "
+                    + "desglose por responsable y detalle cronológico de cancelaciones.")
+    @GetMapping("/tickets-cancelados/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarAuditoriaTicketsCancelados(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rápido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/tickets-cancelados/export - tenantId={}, preset={}, from={}, to={}",
+                tenantId, p, from, to);
+
+        try {
+            byte[] archivo = reporteTicketsCanceladosService.exportar(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo(
+                    "tickets_cancelados_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error inesperado exportando el reporte de tickets cancelados", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno exportando el reporte de tickets cancelados", null));
         }
     }
 }

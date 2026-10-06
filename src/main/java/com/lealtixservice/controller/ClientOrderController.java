@@ -245,12 +245,24 @@ public class ClientOrderController {
             @PathVariable UUID orderId,
             @Valid @RequestBody UpdateOrderStatusRequest request) {
         try {
-            log.info("Actualizando estado de orden {} a: {}", orderId, request.getEstado());
+            log.info("Actualizando estado de orden {} a: {} (área: {})", orderId, request.getEstado(), request.getArea());
+            String userEmail = request.getUserEmail();
+            if (userEmail == null || userEmail.isBlank()) {
+                org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                    userEmail = auth.getName();
+                }
+            }
+            String reason = request.getReason();
+            if ((reason == null || reason.isBlank()) && userEmail != null && !userEmail.contains("@") && "CANCELADA".equalsIgnoreCase(request.getEstado().name())) {
+                reason = userEmail;
+            }
             ClientOrderDTO order = clientOrderService.updateOrderStatus(
                     orderId, 
                     request.getEstado(),
-                    request.getUserEmail(),
-                    request.getReason()
+                    userEmail,
+                    reason,
+                    request.getArea()
             );
             return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
         } catch (ResourceNotFoundException ex) {
@@ -273,7 +285,8 @@ public class ClientOrderController {
     @RequireKitchenModule
     public ResponseEntity<GenericResponse> updateOrderStatusDedicated(
             @RequestParam UUID orderId,
-            @RequestParam String status) {
+            @RequestParam String status,
+            @RequestParam(required = false) String area) {
         try {
             OrderStatus orderStatus = resolveOrderStatus(status);
             if (orderStatus == null) {
@@ -281,8 +294,8 @@ public class ClientOrderController {
                         .body(new GenericResponse(400,
                                 "Estado inválido: '" + status + "'. Valores aceptados: PENDING/PENDIENTE, CONFIRMED/CONFIRMADA, EN_PREPARACION/IN_PREPARATION, LISTO/READY, PAGADA/PAID, CANCELADA/CANCELLED", null));
             }
-            log.info("Actualizando estado de orden {} a: {} (dedicado)", orderId, orderStatus);
-            ClientOrderDTO order = clientOrderService.updateOrderStatus(orderId, orderStatus);
+            log.info("Actualizando estado de orden {} a: {} (dedicado, área: {})", orderId, orderStatus, area);
+            ClientOrderDTO order = clientOrderService.updateOrderStatus(orderId, orderStatus, null, null, area);
             return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
         } catch (ResourceNotFoundException ex) {
             log.warn("Orden no encontrada: {}", orderId);
