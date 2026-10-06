@@ -80,6 +80,18 @@ public class OrderSseService {
      * Construye el payload completo con toda la información requerida por el frontend.
      */
     public void publishNewChatbotOrder(ClientOrderDTO order) {
+        publishOrderCreated(order);
+    }
+
+    /**
+     * Publica un evento 'new-order' para cualquier orden creada (Chatbot, división de comanda, etc.).
+     */
+    public void publishOrderCreated(ClientOrderDTO order) {
+        if (order == null || order.getTenantId() == null) {
+            log.warn("[SSE] Orden o tenantId nulo al intentar publicar orden creada");
+            return;
+        }
+
         Long tenantId = order.getTenantId();
         List<SseEmitter> emitters = emittersByTenant.getOrDefault(tenantId, new CopyOnWriteArrayList<>());
 
@@ -92,7 +104,7 @@ public class OrderSseService {
             // Construir el evento SSE completo con toda la información
             OrderSseEventDTO event = buildOrderSseEvent(order);
             String payload = objectMapper.writeValueAsString(event);
-            
+
             log.info("[SSE] Enviando evento new-order para tenant {}, orden {}", tenantId, order.getId());
             sendToTenant(tenantId, NEW_ORDER_EVENT, payload);
         } catch (Exception e) {
@@ -161,8 +173,11 @@ public class OrderSseService {
                 .build();
 
         // Construir metadata
+        String origin = (order.getSource() != null && !order.getSource().isBlank())
+                ? order.getSource()
+                : "CHATBOT";
         OrderSseEventDTO.MetaDTO meta = OrderSseEventDTO.MetaDTO.builder()
-                .origin("CHATBOT")
+                .origin(origin)
                 .build();
 
         // Construir evento completo
