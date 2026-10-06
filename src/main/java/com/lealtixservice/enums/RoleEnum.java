@@ -8,7 +8,8 @@ public enum RoleEnum {
             "view_dashboard", "manage_users", "manage_campaigns", "manage_categories",
             "manage_products", "view_reports", "manage_settings",
             "view_mesas", "manage_mesas", "view_reservaciones", "manage_reservaciones",
-            "manage_recetas", "manage_mermas"
+            "manage_recetas", "manage_mermas", "manage_all", "process_payment",
+            "view_sales", "manage_transactions", "view_cash_register"
     )),
     MESERO(Arrays.asList(
             "view_comanda", "create_order", "edit_own_order"

@@ -22,19 +22,46 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
            "GROUP BY p.metodoPago")
     List<Object[]> getDesgloseMetodosPago(@Param("idTurno") Long idTurno);
 
-    @Query("SELECT DISTINCT p FROM Pago p WHERE p.tenant.id = :tenantId AND (" +
-           "p.comanda.mesero.id = :idMesero OR " +
-           "(:email IS NOT NULL AND p.comanda.mesero.email = :email) OR " +
-           "(p.comanda.paidBy IS NOT NULL AND (p.comanda.paidBy.id = :idMesero OR (:email IS NOT NULL AND p.comanda.paidBy.email = :email))) OR " +
-           "(p.cajero.id = :idMesero OR (:email IS NOT NULL AND p.cajero.email = :email))" +
+    @Query("SELECT DISTINCT p FROM Pago p " +
+           "LEFT JOIN p.comanda c " +
+           "WHERE p.tenant.id = :tenantId " +
+           "AND (:idTurno IS NULL OR p.turno.idTurno = :idTurno) " +
+           "AND (p.estado IS NULL OR p.estado = 'APLICADO' OR p.estado = 'PAGADO') " +
+           "AND p.fecha >= :desde AND p.fecha < :hasta " +
+           "ORDER BY p.fecha DESC")
+    List<Pago> findPagosEnRango(@Param("tenantId") Long tenantId,
+                                @Param("idTurno") Long idTurno,
+                                @Param("desde") LocalDateTime desde,
+                                @Param("hasta") LocalDateTime hasta);
+
+    @Query("SELECT DISTINCT p FROM Pago p " +
+           "LEFT JOIN p.comanda c " +
+           "LEFT JOIN c.mesero m " +
+           "LEFT JOIN c.paidBy pb " +
+           "LEFT JOIN c.mesa mesa " +
+           "LEFT JOIN p.cajero cj " +
+           "WHERE p.tenant.id = :tenantId AND (" +
+           "m.id = :idMesero OR " +
+           "(:email IS NOT NULL AND LOWER(m.email) = LOWER(:email)) OR " +
+           "(:nombre IS NOT NULL AND LOWER(m.fullName) = LOWER(:nombre)) OR " +
+           "(mesa.meseroUserId = :idMesero) OR " +
+           "pb.id = :idMesero OR " +
+           "(:email IS NOT NULL AND LOWER(pb.email) = LOWER(:email)) OR " +
+           "cj.id = :idMesero OR " +
+           "(:email IS NOT NULL AND LOWER(cj.email) = LOWER(:email))" +
            ") AND (:idTurno IS NULL OR p.turno.idTurno = :idTurno) ORDER BY p.fecha DESC")
     List<Pago> findPagosByMesero(@Param("tenantId") Long tenantId,
                                  @Param("idMesero") Long idMesero,
                                  @Param("email") String email,
+                                 @Param("nombre") String nombre,
                                  @Param("idTurno") Long idTurno);
 
+    default List<Pago> findPagosByMesero(Long tenantId, Long idMesero, String email, Long idTurno) {
+        return findPagosByMesero(tenantId, idMesero, email, null, idTurno);
+    }
+
     default List<Pago> findPagosByMesero(Long tenantId, Long idMesero, Long idTurno) {
-        return findPagosByMesero(tenantId, idMesero, null, idTurno);
+        return findPagosByMesero(tenantId, idMesero, null, null, idTurno);
     }
 
     /**
@@ -42,19 +69,34 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
      * Se usa rango [desde, hasta) porque {@code Pago.fecha} es un LocalDateTime
      * y la comparación por "solo la fecha" no es portable entre motores de BD.
      */
-    @Query("SELECT DISTINCT p FROM Pago p WHERE p.tenant.id = :tenantId AND (" +
-           "p.comanda.mesero.id = :idMesero OR " +
-           "(:email IS NOT NULL AND p.comanda.mesero.email = :email) OR " +
-           "(p.comanda.paidBy IS NOT NULL AND (p.comanda.paidBy.id = :idMesero OR (:email IS NOT NULL AND p.comanda.paidBy.email = :email))) OR " +
-           "(p.cajero.id = :idMesero OR (:email IS NOT NULL AND p.cajero.email = :email))" +
+    @Query("SELECT DISTINCT p FROM Pago p " +
+           "LEFT JOIN p.comanda c " +
+           "LEFT JOIN c.mesero m " +
+           "LEFT JOIN c.paidBy pb " +
+           "LEFT JOIN c.mesa mesa " +
+           "LEFT JOIN p.cajero cj " +
+           "WHERE p.tenant.id = :tenantId AND (" +
+           "m.id = :idMesero OR " +
+           "(:email IS NOT NULL AND LOWER(m.email) = LOWER(:email)) OR " +
+           "(:nombre IS NOT NULL AND LOWER(m.fullName) = LOWER(:nombre)) OR " +
+           "(mesa.meseroUserId = :idMesero) OR " +
+           "pb.id = :idMesero OR " +
+           "(:email IS NOT NULL AND LOWER(pb.email) = LOWER(:email)) OR " +
+           "cj.id = :idMesero OR " +
+           "(:email IS NOT NULL AND LOWER(cj.email) = LOWER(:email))" +
            ") AND p.fecha >= :desde AND p.fecha < :hasta ORDER BY p.fecha DESC")
     List<Pago> findPagosByMeseroEnRango(@Param("tenantId") Long tenantId,
                                         @Param("idMesero") Long idMesero,
                                         @Param("email") String email,
+                                        @Param("nombre") String nombre,
                                         @Param("desde") LocalDateTime desde,
                                         @Param("hasta") LocalDateTime hasta);
 
+    default List<Pago> findPagosByMeseroEnRango(Long tenantId, Long idMesero, String email, LocalDateTime desde, LocalDateTime hasta) {
+        return findPagosByMeseroEnRango(tenantId, idMesero, email, null, desde, hasta);
+    }
+
     default List<Pago> findPagosByMeseroEnRango(Long tenantId, Long idMesero, LocalDateTime desde, LocalDateTime hasta) {
-        return findPagosByMeseroEnRango(tenantId, idMesero, null, desde, hasta);
+        return findPagosByMeseroEnRango(tenantId, idMesero, null, null, desde, hasta);
     }
 }

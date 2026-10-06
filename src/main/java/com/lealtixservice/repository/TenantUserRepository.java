@@ -26,6 +26,9 @@ public interface TenantUserRepository extends JpaRepository<TenantUser, Long> {
     @Query("SELECT tu FROM TenantUser tu WHERE tu.tenant.id = :tenantId AND tu.activo = true")
     Page<TenantUser> findByTenantId(@Param("tenantId") Long tenantId, Pageable pageable);
     
+    @Query("SELECT tu FROM TenantUser tu WHERE tu.tenant.id = :tenantId AND tu.activo = true")
+    java.util.List<TenantUser> findAllByTenantId(@Param("tenantId") Long tenantId);
+    
     @Query("SELECT CASE WHEN COUNT(tu) > 0 THEN true ELSE false END FROM TenantUser tu WHERE tu.email = :email AND tu.tenant.id = :tenantId AND tu.activo = true")
     boolean existsByEmailAndTenantId(@Param("email") String email, @Param("tenantId") Long tenantId);
     

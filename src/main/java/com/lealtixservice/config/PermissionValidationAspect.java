@@ -56,6 +56,12 @@ public class PermissionValidationAspect {
             throw new org.springframework.security.authentication.InsufficientAuthenticationException("Usuario sin rol asignado o sesión no válida");
         }
 
+        // El rol ADMIN o SUPER_ADMIN tiene todos los privilegios en la plataforma
+        if ("ADMIN".equalsIgnoreCase(userRole) || "SUPER_ADMIN".equalsIgnoreCase(userRole)) {
+            log.debug("Permiso {} concedido automáticamente a rol administrativo {}", requirePermission.value(), userRole);
+            return;
+        }
+
         // Validar permiso principal
         String requiredPermission = requirePermission.value();
         if (!permissionValidator.hasPermission(userRole, requiredPermission)) {

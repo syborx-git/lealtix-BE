@@ -49,6 +49,8 @@ public class ClientOrderDTO {
      * porque no es ingreso de la comanda: el corte de caja la reporta aparte.
      */
     private BigDecimal propina;
+    private Boolean propinasLiquidadas;
+    private LocalDateTime fechaLiquidacionPropinas;
     
     private Long mesaId;
     private String mesaNombre;
@@ -56,6 +58,7 @@ public class ClientOrderDTO {
     private Long meseroId;
     private String meseroNombre;
     private Long idTurno;
+    private LocalDateTime horaApertura;
 
     // Campos de cancelación
     private String cancelledBy;  // Email del usuario que canceló
