@@ -585,6 +585,19 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 if (order.getEstado() != OrderStatus.CANCELADA) {
                     restoreStockForOrder(order);
                 }
+                if (order.getMesa() != null) {
+                    Mesa m = order.getMesa();
+                    boolean tieneOtrasActivas = clientOrderRepository.findByTenantId(order.getTenant().getId()).stream()
+                            .anyMatch(o -> !o.getId().equals(order.getId())
+                                    && o.getMesa() != null
+                                    && o.getMesa().getId().equals(m.getId())
+                                    && o.getEstado() != OrderStatus.PAGADA
+                                    && o.getEstado() != OrderStatus.CANCELADA);
+                    if (!tieneOtrasActivas) {
+                        m.setEstado(MesaEstado.LIBRE);
+                        mesaRepository.save(m);
+                    }
+                }
                 log.info("Orden {} cancelada por {}. Razón: {}", orderId, userEmail, reason);
             }
 

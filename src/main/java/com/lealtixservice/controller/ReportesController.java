@@ -8,6 +8,8 @@ import com.lealtixservice.dto.reportes.StockMinimoReporteDTO;
 import com.lealtixservice.dto.reportes.VentasTendenciasDTO;
 import com.lealtixservice.service.ReporteCorteCajaService;
 import com.lealtixservice.dto.reportes.AuditoriaTicketsCanceladosDTO;
+import com.lealtixservice.dto.reportes.AuditoriaCortesDiariosDTO;
+import com.lealtixservice.service.CorteCajaDiarioService;
 import com.lealtixservice.service.ReporteExcelService;
 import com.lealtixservice.service.ReporteMermasService;
 import com.lealtixservice.service.ReporteStockMinimoService;
@@ -57,6 +59,7 @@ public class ReportesController {
     private final ReporteMermasService reporteMermasService;
     private final ReporteStockMinimoService reporteStockMinimoService;
     private final ReporteTicketsCanceladosService reporteTicketsCanceladosService;
+    private final CorteCajaDiarioService corteCajaDiarioService;
     private final ReporteExcelService excelService;
 
     // ==================== 1.1 Dashboard de Ventas y Tendencias ====================
@@ -401,6 +404,77 @@ public class ReportesController {
             log.error("Error inesperado exportando el reporte de tickets cancelados", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno exportando el reporte de tickets cancelados", null));
+        }
+    }
+
+    // ==================== 4.2 Auditoría de Cortes del Día ====================
+
+    @Operation(summary = "Reporte 4.2: Auditoría de Cortes del Día",
+            description = "Consulta la conciliación y auditoría de cortes de caja diarios realizados, "
+                    + "comparando el dinero físico reportado contra los montos teóricos calculados por el sistema.")
+    @GetMapping("/cortes-diarios")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all", "process_payment"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getAuditoriaCortesDiarios(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rápido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/cortes-diarios - tenantId={}, preset={}, from={}, to={}",
+                tenantId, p, from, to);
+
+        try {
+            AuditoriaCortesDiariosDTO reporte = corteCajaDiarioService.obtenerAuditoria(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de auditoría de cortes diarios generado", reporte));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error inesperado generando la auditoría de cortes diarios", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando la auditoría de cortes diarios", null));
+        }
+    }
+
+    @Operation(summary = "Reporte 4.2: Exportar Auditoría de Cortes del Día a Excel",
+            description = "Genera un archivo .xlsx con hojas de resumen de KPIs, desglose por método, "
+                    + "distribución de cuadres y detalle cronológico de cortes.")
+    @GetMapping("/cortes-diarios/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all", "process_payment"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarAuditoriaCortesDiarios(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rápido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/cortes-diarios/export - tenantId={}, preset={}, from={}, to={}",
+                tenantId, p, from, to);
+
+        try {
+            byte[] archivo = corteCajaDiarioService.exportarExcel(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo(
+                    "cortes_diarios_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error inesperado exportando el reporte de cortes diarios", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno exportando el reporte de cortes diarios", null));
         }
     }
 }
