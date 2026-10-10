@@ -43,6 +43,9 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
     @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
     Page<ClientOrder> findByTenantId(Long tenantId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
+    List<ClientOrder> findByTenantId(Long tenantId);
+
     /**
      * Buscar órdenes por tenant_id y estado
      */

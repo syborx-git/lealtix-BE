@@ -3,10 +3,14 @@ package com.lealtixservice.controller;
 import com.lealtixservice.dto.GenericResponse;
 import com.lealtixservice.dto.reportes.AuditoriaMermasDTO;
 import com.lealtixservice.dto.reportes.CorteCajaDTO;
+import com.lealtixservice.dto.reportes.CorteInsumosDTO;
+import com.lealtixservice.dto.reportes.IngenieriaMenuDTO;
 import com.lealtixservice.dto.reportes.PresetReporte;
 import com.lealtixservice.dto.reportes.StockMinimoReporteDTO;
 import com.lealtixservice.dto.reportes.VentasTendenciasDTO;
 import com.lealtixservice.service.ReporteCorteCajaService;
+import com.lealtixservice.service.ReporteCorteInsumosService;
+import com.lealtixservice.service.ReporteIngenieriaMenuService;
 import com.lealtixservice.dto.reportes.AuditoriaTicketsCanceladosDTO;
 import com.lealtixservice.dto.reportes.AuditoriaCortesDiariosDTO;
 import com.lealtixservice.service.CorteCajaDiarioService;
@@ -60,6 +64,8 @@ public class ReportesController {
     private final ReporteStockMinimoService reporteStockMinimoService;
     private final ReporteTicketsCanceladosService reporteTicketsCanceladosService;
     private final CorteCajaDiarioService corteCajaDiarioService;
+    private final ReporteCorteInsumosService reporteCorteInsumosService;
+    private final ReporteIngenieriaMenuService reporteIngenieriaMenuService;
     private final ReporteExcelService excelService;
 
     // ==================== 1.1 Dashboard de Ventas y Tendencias ====================
@@ -475,6 +481,156 @@ public class ReportesController {
             log.error("Error inesperado exportando el reporte de cortes diarios", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno exportando el reporte de cortes diarios", null));
+        }
+    }
+
+    // ==================== 2.5 Corte Diario de Insumos (Cocina / Barra) ====================
+
+    @Operation(summary = "Reporte 2.5: Corte Diario de Insumos (Cocina / Barra)",
+            description = "Refleja el consumo de insumos por platillos vendidos, stock disponible al cierre, "
+                    + "comparativas de top productos e insumos con filtro por área (COCINA, BARRA, TODOS).")
+    @GetMapping("/corte-insumos")
+    @RequirePermission(value = "view_reports", alternative = {"view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getCorteInsumos(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rápido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @Parameter(description = "Área: COCINA, BARRA o TODOS (por defecto TODOS)")
+            @RequestParam(required = false) String area) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/corte-insumos - tenantId={}, preset={}, from={}, to={}, area={}",
+                tenantId, p, from, to, area);
+
+        try {
+            var reporte = reporteCorteInsumosService.obtener(tenantId, p, from, to, area);
+            return ResponseEntity.ok(new GenericResponse(200, "Corte diario de insumos generado", reporte));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error generando el corte diario de insumos", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando el reporte de corte de insumos", null));
+        }
+    }
+
+    @Operation(summary = "Reporte 2.5: exportar Corte Diario de Insumos a Excel",
+            description = "Genera un .xlsx con hojas de resumen, platillos vendidos, insumos consumidos y stock remanente.")
+    @GetMapping("/corte-insumos/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarCorteInsumos(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rápido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @Parameter(description = "Área: COCINA, BARRA o TODOS (por defecto TODOS)")
+            @RequestParam(required = false) String area) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/corte-insumos/export - tenantId={}, preset={}, from={}, to={}, area={}",
+                tenantId, p, from, to, area);
+
+        try {
+            byte[] archivo = reporteCorteInsumosService.exportar(tenantId, p, from, to, area);
+            String nombre = excelService.nombreArchivo(
+                    "corte_insumos_" + (area != null ? area.toLowerCase() : "todos") + "_"
+                            + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error inesperado exportando el corte de insumos", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno exportando el reporte", null));
+        }
+    }
+
+    // ==================== 2.1 Ingeniería de Menú ====================
+
+    @Operation(summary = "Reporte 2.1: Ingeniería de Menú (Matriz Kasavana & Smith)",
+            description = "Clasificación de platillos en 4 cuadrantes: Estrellas (⭐), Caballos de Batalla (🐎), "
+                    + "Rompecabezas (🧩) y Perros (🐕) según su popularidad y rentabilidad/margen de contribución.")
+    @GetMapping("/ingenieria-menu")
+    @RequirePermission(value = "view_reports", alternative = {"view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getIngenieriaMenu(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rápido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @Parameter(description = "Área: COCINA, BARRA o TODOS (por defecto TODOS)")
+            @RequestParam(required = false) String area) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/ingenieria-menu - tenantId={}, preset={}, from={}, to={}, area={}",
+                tenantId, p, from, to, area);
+
+        try {
+            var reporte = reporteIngenieriaMenuService.obtener(tenantId, p, from, to, area);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de ingeniería de menú generado", reporte));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error generando el reporte de ingeniería de menú", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando el reporte de ingeniería de menú", null));
+        }
+    }
+
+    @Operation(summary = "Reporte 2.1: exportar Ingeniería de Menú a Excel",
+            description = "Genera un .xlsx con hojas de resumen de cuadrantes y matriz detallada de rentabilidad por platillo.")
+    @GetMapping("/ingenieria-menu/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarIngenieriaMenu(
+            @Parameter(description = "ID del tenant") @RequestParam Long tenantId,
+            @Parameter(description = "Filtro rápido: HOY, AYER, ESTA_SEMANA, SEMANA_PASADA, ESTE_MES, MES_PASADO, PERSONALIZADO")
+            @RequestParam(required = false) String preset,
+            @Parameter(description = "Fecha inicio (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Fecha fin (solo para PERSONALIZADO)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @Parameter(description = "Área: COCINA, BARRA o TODOS (por defecto TODOS)")
+            @RequestParam(required = false) String area) {
+
+        PresetReporte p = PresetReporte.from(preset);
+        log.info("GET /api/reportes/ingenieria-menu/export - tenantId={}, preset={}, from={}, to={}, area={}",
+                tenantId, p, from, to, area);
+
+        try {
+            byte[] archivo = reporteIngenieriaMenuService.exportar(tenantId, p, from, to, area);
+            String nombre = excelService.nombreArchivo(
+                    "ingenieria_menu_" + (area != null ? area.toLowerCase() : "todos") + "_"
+                            + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error inesperado exportando el reporte de ingeniería de menú", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno exportando el reporte", null));
         }
     }
 }

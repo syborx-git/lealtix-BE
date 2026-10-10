@@ -44,4 +44,12 @@ public record KpiDTO(
         String direccion = cmp > 0 ? SUBE : (cmp < 0 ? BAJA : IGUAL);
         return new KpiDTO(key, label, actualSafe, anteriorSafe, variacion, direccion, formato);
     }
+
+    public static KpiDTO de(String key, String label, double actual, double anterior, String formato) {
+        return de(key, label, BigDecimal.valueOf(actual), BigDecimal.valueOf(anterior), formato);
+    }
+
+    public static KpiDTO de(String key, String label, int actual, int anterior, String formato) {
+        return de(key, label, BigDecimal.valueOf(actual), BigDecimal.valueOf(anterior), formato);
+    }
 }

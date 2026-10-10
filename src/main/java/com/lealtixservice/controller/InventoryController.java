@@ -201,7 +201,8 @@ public class InventoryController {
         Long insumoId = toLong(body.get("insumoId"));
         Double cantidad = toDouble(body.get("cantidad"));
         Boolean modificable = body.get("modificable") != null ? Boolean.valueOf(body.get("modificable").toString()) : null;
-        return ResponseEntity.ok(inventoryService.addRecipeIngredient(dishId, insumoId, cantidad, modificable));
+        String grupo = body.get("grupo") != null ? body.get("grupo").toString() : null;
+        return ResponseEntity.ok(inventoryService.addRecipeIngredient(dishId, insumoId, cantidad, modificable, grupo));
     }
 
     @Operation(summary = "Reemplazar la receta completa de un platillo")
@@ -229,8 +230,9 @@ public class InventoryController {
         Boolean modificable = body.get("modificable") != null ? Boolean.valueOf(body.get("modificable").toString()) : null;
         String importancia = body.get("importancia") != null ? body.get("importancia").toString() : null;
         Double precio = toDouble(body.get("precio"));
+        String grupo = body.get("grupo") != null ? body.get("grupo").toString() : null;
         return ResponseEntity.ok(
-                inventoryService.updateRecipeIngredient(recipeId, cantidad, modificable, importancia, precio));
+                inventoryService.updateRecipeIngredient(recipeId, cantidad, modificable, importancia, precio, grupo));
     }
 
     /* ============ Adicionales ============ */
@@ -249,7 +251,8 @@ public class InventoryController {
         Long insumoId = toLong(body.get("insumoId"));
         Double cantidad = toDouble(body.get("cantidad"));
         Double precio = toDouble(body.get("precio"));
-        return ResponseEntity.ok(inventoryService.addAdditional(dishId, insumoId, cantidad, precio));
+        String grupo = body.get("grupo") != null ? body.get("grupo").toString() : null;
+        return ResponseEntity.ok(inventoryService.addAdditional(dishId, insumoId, cantidad, precio, grupo));
     }
 
     @Operation(summary = "Actualizar cantidad/precio/importancia de un adicional permitido")
@@ -260,7 +263,8 @@ public class InventoryController {
         Double cantidad = toDouble(body.get("cantidad"));
         Double precio = toDouble(body.get("precio"));
         String importancia = body.get("importancia") != null ? body.get("importancia").toString() : null;
-        return ResponseEntity.ok(inventoryService.updateAdditional(additionalId, cantidad, precio, importancia));
+        String grupo = body.get("grupo") != null ? body.get("grupo").toString() : null;
+        return ResponseEntity.ok(inventoryService.updateAdditional(additionalId, cantidad, precio, importancia, grupo));
     }
 
     @Operation(summary = "Quitar adicional permitido")
@@ -282,10 +286,12 @@ public class InventoryController {
     public ResponseEntity<GenericResponse> createSubReceta(@RequestBody Map<String, Object> body) {
         Long tenantId = toLong(body.get("tenantId"));
         String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+        Double tamanoLote = toDouble(body.get("tamanoLote"));
+        String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> lines = (List<Map<String, Object>>) body.getOrDefault("lines", new java.util.ArrayList<>());
         List<Long> categoryIds = toLongList(body.get("categoryIds"));
-        return ResponseEntity.ok(inventoryService.createSubReceta(tenantId, nombre, lines, categoryIds));
+        return ResponseEntity.ok(inventoryService.createSubReceta(tenantId, nombre, tamanoLote, unidad, lines, categoryIds));
     }
 
     @Operation(summary = "Actualizar sub-receta")
@@ -294,10 +300,21 @@ public class InventoryController {
             @PathVariable Long subRecetaId,
             @RequestBody Map<String, Object> body) {
         String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+        Double tamanoLote = toDouble(body.get("tamanoLote"));
+        String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> lines = (List<Map<String, Object>>) body.getOrDefault("lines", new java.util.ArrayList<>());
         List<Long> categoryIds = toLongList(body.get("categoryIds"));
-        return ResponseEntity.ok(inventoryService.updateSubReceta(subRecetaId, nombre, lines, categoryIds));
+        return ResponseEntity.ok(inventoryService.updateSubReceta(subRecetaId, nombre, tamanoLote, unidad, lines, categoryIds));
+    }
+
+    @Operation(summary = "Producir lote / restock de sub-receta (descuenta insumos y suma preparación)")
+    @PostMapping("/sub-recetas/{subRecetaId}/producir-lote")
+    public ResponseEntity<GenericResponse> producirLote(
+            @PathVariable Long subRecetaId,
+            @RequestBody(required = false) Map<String, Object> body) {
+        Double lotes = body != null ? toDouble(body.get("lotes")) : 1.0;
+        return ResponseEntity.ok(inventoryService.producirLoteSubReceta(subRecetaId, lotes));
     }
 
     @Operation(summary = "Eliminar sub-receta")
@@ -312,7 +329,7 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.getSubRecetasByDish(dishId));
     }
 
-    @Operation(summary = "Asignar una sub-receta a un platillo o bebida con su importancia")
+    @Operation(summary = "Asignar una sub-receta a un platillo o bebida con su importancia y porción")
     @PostMapping("/dish/{dishId}/sub-recetas/{subRecetaId}")
     public ResponseEntity<GenericResponse> assignSubReceta(
             @PathVariable Long dishId,
@@ -320,15 +337,19 @@ public class InventoryController {
             @RequestBody(required = false) Map<String, Object> body) {
         String importancia = null;
         Double precio = null;
+        Double cantidad = null;
+        String unidad = null;
         if (body != null) {
             importancia = body.get("importancia") != null ? body.get("importancia").toString() : null;
             precio = toDouble(body.get("precio"));
+            cantidad = toDouble(body.get("cantidad"));
+            unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
         }
         return ResponseEntity.ok(
-                inventoryService.assignSubReceta(dishId, subRecetaId, importancia, precio));
+                inventoryService.assignSubReceta(dishId, subRecetaId, importancia, precio, cantidad, unidad));
     }
 
-    @Operation(summary = "Cambiar la importancia de una sub-receta asignada a un platillo o bebida")
+    @Operation(summary = "Cambiar la importancia o porción de una sub-receta asignada a un platillo o bebida")
     @PutMapping("/dish/{dishId}/sub-recetas/{subRecetaId}")
     public ResponseEntity<GenericResponse> updateSubRecetaImportance(
             @PathVariable Long dishId,
@@ -336,8 +357,10 @@ public class InventoryController {
             @RequestBody Map<String, Object> body) {
         String importancia = body.get("importancia") != null ? body.get("importancia").toString() : null;
         Double precio = toDouble(body.get("precio"));
+        Double cantidad = toDouble(body.get("cantidad"));
+        String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
         return ResponseEntity.ok(
-                inventoryService.updateSubRecetaImportance(dishId, subRecetaId, importancia, precio));
+                inventoryService.updateSubRecetaImportance(dishId, subRecetaId, importancia, precio, cantidad, unidad));
     }
 
     @Operation(summary = "Quitar una sub-receta de un platillo o bebida")

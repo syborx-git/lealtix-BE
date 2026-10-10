@@ -103,4 +103,18 @@ public interface ClientOrderItemRepository extends JpaRepository<ClientOrderItem
     List<Object[]> findMostCustomizedProducts(@Param("tenantId") Long tenantId,
                                                 @Param("from") LocalDateTime from,
                                                 @Param("to") LocalDateTime to);
+
+    /**
+     * Obtiene todos los ítems de órdenes no canceladas en un rango de fechas.
+     */
+    @Query("SELECT i FROM ClientOrderItem i " +
+           "JOIN FETCH i.product p " +
+           "LEFT JOIN FETCH p.category c " +
+           "JOIN i.order o " +
+           "WHERE o.tenant.id = :tenantId " +
+           "AND o.estado <> com.lealtixservice.enums.OrderStatus.CANCELADA " +
+           "AND o.fecha >= :from AND o.fecha <= :to")
+    List<ClientOrderItem> findNonCancelledItemsInPeriod(@Param("tenantId") Long tenantId,
+                                                        @Param("from") LocalDateTime from,
+                                                        @Param("to") LocalDateTime to);
 }

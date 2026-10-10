@@ -306,11 +306,12 @@ List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of
                 item.put("unidad", r.getInsumo().getUnidad() != null ? r.getInsumo().getUnidad() : "pieza");
                 item.put("modificable", r.getModificable() != null && r.getModificable());
                 item.put("tipoIngrediente", (r.getModificable() != null && r.getModificable()) ? "MODIFICABLE" : "BASE");
+                item.put("grupo", r.getGrupo());
                 recipeList.add(item);
             }
             dto.setRecipes(recipeList);
 
-// Adicionales mapeados en memoria (0 consultas SQL adicionales)
+            // Adicionales mapeados en memoria (0 consultas SQL adicionales)
             List<ProductAdditional> additionals = additionalsByDish.getOrDefault(entity.getId(), java.util.Collections.emptyList());
             List<Map<String, Object>> additionalList = new ArrayList<>(additionals.size());
             for (ProductAdditional a : additionals) {
@@ -322,6 +323,7 @@ List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of
                 item.put("unidad", a.getInsumo().getUnidad() != null ? a.getInsumo().getUnidad() : "pieza");
                 item.put("precio", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
                 item.put("tipoIngrediente", "ADICIONAL");
+                item.put("grupo", a.getGrupo());
                 additionalList.add(item);
             }
             dto.setAdditionals(additionalList);
