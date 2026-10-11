@@ -37,4 +37,12 @@ public record CorteInsumosDTO(
                 topInsumos == null ? List.of() : topInsumos
         );
     }
+
+    public TablaReporteDTO platillosDesplazados() {
+        return platillosVendidos;
+    }
+
+    public TablaReporteDTO stockRemanente() {
+        return stockDisponible;
+    }
 }

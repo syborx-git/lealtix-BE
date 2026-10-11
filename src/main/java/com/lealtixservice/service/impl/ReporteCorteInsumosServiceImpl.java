@@ -85,7 +85,7 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
         ));
 
         // 2. Platillos / Productos Desplazados
-        hojas.add(hojaDesdeTabla(datos.platillosDesplazados(), "Platillos Vendidos",
+        hojas.add(hojaDesdeTabla(datos.platillosVendidos(), "Platillos Vendidos",
                 "Desplazamiento de Platillos y Bebidas",
                 "Volumen e ingresos de productos vendidos en el periodo (" + areaNorm + ")"));
 
@@ -95,7 +95,7 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
                 "Desglose de materia prima consumida por recetas y costo económico (" + areaNorm + ")"));
 
         // 4. Inventario Disponible
-        hojas.add(hojaDesdeTabla(datos.stockRemanente(), "Stock Disponible",
+        hojas.add(hojaDesdeTabla(datos.stockDisponible(), "Stock Disponible",
                 "Inventario Disponible al Cierre",
                 "Stock remanente en almacén con estado de abastecimiento (" + areaNorm + ")"));
 
@@ -205,6 +205,11 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
         Map<Long, List<ProductRecipe>> insumosPorSubReceta = recetasDeSubRecetas.stream()
                 .collect(Collectors.groupingBy(r -> r.getDish().getId()));
 
+        // Map de insumos directamente vinculados a un producto (bebidas / venta directa)
+        Map<Long, Insumo> insumoPorProductoId = insumosTenant.stream()
+                .filter(i -> i.getProductoId() != null)
+                .collect(Collectors.toMap(Insumo::getProductoId, i -> i, (a, b) -> a));
+
         // 2. Calcular consumo de insumos derivados
         Map<Long, InsumoConsumidoAcumulado> insumosConsumidosMap = new HashMap<>();
 
@@ -257,6 +262,22 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
                     )).acumular(cantConsumida);
                 }
             }
+
+            // Directo producto -> insumo (si no tiene recetas ni subrecetas registradas pero está enlazado)
+            if (recs.isEmpty() && subs.isEmpty()) {
+                Insumo directIns = insumoPorProductoId.get(p.id);
+                if (directIns != null) {
+                    double cantTotal = 1.0 * qtyPlatillo;
+                    double costoUnit = costosPromedio.getOrDefault(directIns.getId(), 0.0);
+                    insumosConsumidosMap.computeIfAbsent(directIns.getId(), k -> new InsumoConsumidoAcumulado(
+                            directIns.getId(),
+                            directIns.getNombre(),
+                            directIns.getUnidad() != null ? directIns.getUnidad() : "pz",
+                            p.area,
+                            costoUnit
+                    )).acumular(cantTotal);
+                }
+            }
         }
 
         result.variedadInsumosUsados = insumosConsumidosMap.size();
@@ -273,7 +294,9 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
             fila.put("categoria", p.categoria);
             fila.put("area", p.area);
             fila.put("unidades", p.cantidad);
+            fila.put("cantidad", p.cantidad);
             fila.put("precioPromedio", p.precio);
+            fila.put("precioUnitario", p.precio);
             fila.put("totalVenta", p.totalVenta);
             filasPlatillos.add(fila);
         }
@@ -298,7 +321,9 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
         // 4. Tablas de Insumos Consumidos
         List<Map<String, Object>> filasInsumos = new ArrayList<>();
         List<InsumoConsumidoAcumulado> listaInsumos = insumosConsumidosMap.values().stream()
-                .sorted(Comparator.comparingDouble((InsumoConsumidoAcumulado i) -> i.costoTotal()).reversed())
+                .sorted(Comparator.comparingDouble((InsumoConsumidoAcumulado i) -> i.costoTotal())
+                        .thenComparingDouble(i -> i.consumoTotal)
+                        .reversed())
                 .toList();
 
         for (InsumoConsumidoAcumulado i : listaInsumos) {
@@ -307,6 +332,7 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
             fila.put("unidad", i.unidad);
             fila.put("area", i.area);
             fila.put("consumoTotal", redondear(i.consumoTotal));
+            fila.put("cantidadConsumida", redondear(i.consumoTotal));
             fila.put("costoUnitario", BigDecimal.valueOf(i.costoUnitario).setScale(2, RoundingMode.HALF_UP));
             BigDecimal costoTot = BigDecimal.valueOf(i.costoTotal()).setScale(2, RoundingMode.HALF_UP);
             fila.put("costoTotal", costoTot);

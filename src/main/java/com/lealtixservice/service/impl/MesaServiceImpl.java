@@ -252,7 +252,10 @@ public class MesaServiceImpl implements MesaService {
             throw new IllegalArgumentException("El grupo es requerido");
         }
         List<Mesa> mesas = mesaRepository.findByTenantIdAndIdGrupoTemporal(tenantId, grupoId);
-        mesas.forEach(m -> m.setIdGrupoTemporal(null));
+        mesas.forEach(m -> {
+            m.setIdGrupoTemporal(null);
+            m.setEstado(MesaEstado.LIBRE);
+        });
         mesaRepository.saveAll(mesas);
 
         return mesas.stream()

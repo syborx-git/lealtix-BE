@@ -587,8 +587,9 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 }
                 if (order.getMesa() != null) {
                     Mesa m = order.getMesa();
+                    final UUID currentOrderId = order.getId();
                     boolean tieneOtrasActivas = clientOrderRepository.findByTenantId(order.getTenant().getId()).stream()
-                            .anyMatch(o -> !o.getId().equals(order.getId())
+                            .anyMatch(o -> !o.getId().equals(currentOrderId)
                                     && o.getMesa() != null
                                     && o.getMesa().getId().equals(m.getId())
                                     && o.getEstado() != OrderStatus.PAGADA
