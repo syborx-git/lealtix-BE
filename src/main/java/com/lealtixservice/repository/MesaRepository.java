@@ -21,4 +21,8 @@ public interface MesaRepository extends JpaRepository<Mesa, Long> {
     boolean existsByTenantIdAndNumero(Long tenantId, Integer numero);
 
     boolean existsByTenantIdAndNumeroAndIdNot(Long tenantId, Integer numero, Long id);
+
+    boolean existsByTenantIdAndIdentificador(Long tenantId, String identificador);
+
+    boolean existsByTenantIdAndIdentificadorAndIdNot(Long tenantId, String identificador, Long id);
 }

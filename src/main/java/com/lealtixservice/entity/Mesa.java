@@ -27,6 +27,10 @@ public class Mesa {
     @Column(length = 100, nullable = false)
     private String nombre;
 
+    /** Identificador único asignado por el usuario (ej. M-1, BARRA-1, 101) */
+    @Column(name = "identificador", length = 50)
+    private String identificador;
+
     private Integer numero;
 
     @Builder.Default
@@ -48,6 +52,16 @@ public class Mesa {
     /** Coordenada Y (px) del centro de la mesa sobre el plano del local */
     @Column(name = "posicion_y")
     private Double posicionY;
+
+    /** Ancho (px) de la mesa sobre el plano */
+    @Column(name = "ancho")
+    @Builder.Default
+    private Double ancho = 80.0;
+
+    /** Alto / Largo (px) de la mesa sobre el plano */
+    @Column(name = "alto")
+    @Builder.Default
+    private Double alto = 80.0;
 
     /** Forma visual de la mesa: redonda | cuadrada | rectangular */
     @Column(name = "forma", length = 20)
@@ -87,6 +101,12 @@ public class Mesa {
         }
         if (rotacion == null) {
             rotacion = 0;
+        }
+        if (ancho == null || ancho <= 0) {
+            ancho = 80.0;
+        }
+        if (alto == null || alto <= 0) {
+            alto = 80.0;
         }
     }
 

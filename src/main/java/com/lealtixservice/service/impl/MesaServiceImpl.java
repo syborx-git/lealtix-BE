@@ -60,24 +60,48 @@ public class MesaServiceImpl implements MesaService {
         if (request.getNombre() == null || request.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre de la mesa es requerido");
         }
-        if (mesaRepository.existsByTenantIdAndNombre(tenantId, request.getNombre().trim())) {
+        String nombre = request.getNombre().trim();
+        if (mesaRepository.existsByTenantIdAndNombre(tenantId, nombre)) {
             throw new IllegalArgumentException("Ya existe una mesa con ese nombre en este local");
         }
+
+        String identificador = request.getIdentificador() != null && !request.getIdentificador().isBlank()
+                ? request.getIdentificador().trim()
+                : (request.getNumero() != null ? String.valueOf(request.getNumero()) : null);
+
+        if (identificador == null || identificador.isBlank()) {
+            throw new IllegalArgumentException("El identificador único de la mesa es requerido");
+        }
+
+        if (mesaRepository.existsByTenantIdAndIdentificador(tenantId, identificador)) {
+            throw new IllegalArgumentException("Ya existe una mesa con el identificador '" + identificador + "' en este local");
+        }
+
         if (request.getNumero() != null && mesaRepository.existsByTenantIdAndNumero(tenantId, request.getNumero())) {
             throw new IllegalArgumentException("Ya existe una mesa con el número " + request.getNumero() + " en este local");
         }
         validateMeseroIfPresent(tenantId, request.getMeseroUserId());
 
+        MesaForma forma = request.getForma() != null ? request.getForma() : MesaForma.cuadrada;
+        Double ancho = request.getAncho() != null && request.getAncho() > 0 ? request.getAncho() : 80.0;
+        Double alto = request.getAlto() != null && request.getAlto() > 0 ? request.getAlto() : 80.0;
+        if (forma == MesaForma.redonda) {
+            alto = ancho;
+        }
+
         Mesa mesa = Mesa.builder()
                 .tenantId(tenantId)
-                .nombre(request.getNombre().trim())
+                .nombre(nombre)
+                .identificador(identificador)
                 .numero(request.getNumero())
-                .capacidad(request.getCapacidad() != null ? request.getCapacidad() : 4)
+                .capacidad(request.getCapacidad() != null && request.getCapacidad() > 0 ? request.getCapacidad() : 4)
                 .estado(request.getEstado() != null ? request.getEstado() : MesaEstado.LIBRE)
                 .meseroUserId(request.getMeseroUserId())
                 .posicionX(request.getPosicionX())
                 .posicionY(request.getPosicionY())
-                .forma(request.getForma() != null ? request.getForma() : MesaForma.cuadrada)
+                .ancho(ancho)
+                .alto(alto)
+                .forma(forma)
                 .rotacion(normalizeRotacion(request.getRotacion()))
                 .build();
         mesa = mesaRepository.save(mesa);
@@ -95,13 +119,20 @@ public class MesaServiceImpl implements MesaService {
             }
             mesa.setNombre(nombre);
         }
+        if (request.getIdentificador() != null && !request.getIdentificador().isBlank()) {
+            String iden = request.getIdentificador().trim();
+            if (mesaRepository.existsByTenantIdAndIdentificadorAndIdNot(tenantId, iden, id)) {
+                throw new IllegalArgumentException("Ya existe una mesa con el identificador '" + iden + "' en este local");
+            }
+            mesa.setIdentificador(iden);
+        }
         if (request.getNumero() != null) {
             if (mesaRepository.existsByTenantIdAndNumeroAndIdNot(tenantId, request.getNumero(), id)) {
                 throw new IllegalArgumentException("Ya existe una mesa con el número " + request.getNumero() + " en este local");
             }
             mesa.setNumero(request.getNumero());
         }
-        if (request.getCapacidad() != null) {
+        if (request.getCapacidad() != null && request.getCapacidad() > 0) {
             mesa.setCapacidad(request.getCapacidad());
         }
         validateMeseroIfPresent(tenantId, request.getMeseroUserId());
@@ -113,6 +144,18 @@ public class MesaServiceImpl implements MesaService {
         }
         if (request.getForma() != null) {
             mesa.setForma(request.getForma());
+        }
+        if (request.getAncho() != null && request.getAncho() > 0) {
+            mesa.setAncho(request.getAncho());
+            if (mesa.getForma() == MesaForma.redonda) {
+                mesa.setAlto(request.getAncho());
+            }
+        }
+        if (request.getAlto() != null && request.getAlto() > 0) {
+            mesa.setAlto(request.getAlto());
+            if (mesa.getForma() == MesaForma.redonda) {
+                mesa.setAncho(request.getAlto());
+            }
         }
         if (request.getRotacion() != null) {
             mesa.setRotacion(normalizeRotacion(request.getRotacion()));

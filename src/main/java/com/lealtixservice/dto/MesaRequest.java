@@ -10,6 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 public class MesaRequest {
     private String nombre;
+    private String identificador;
     private Integer numero;
     private Integer capacidad;
     private MesaEstado estado;
@@ -18,4 +19,6 @@ public class MesaRequest {
     private Double posicionY;
     private MesaForma forma;
     private Integer rotacion;
+    private Double ancho;
+    private Double alto;
 }
