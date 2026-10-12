@@ -19,6 +19,8 @@ public interface RestockHistoryRepository extends JpaRepository<RestockHistory, 
 
     List<RestockHistory> findByTenantIdOrderByCreatedAtDesc(Long tenantId);
 
+    List<RestockHistory> findByTenantIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long tenantId, LocalDateTime from, LocalDateTime to);
+
     /**
      * Costo unitario promedio por insumo a partir de los restocks.
      * Retorna: [0]=insumoId, [1]=sum(costoTotal), [2]=sum(cantidad)

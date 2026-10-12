@@ -8,5 +8,7 @@ import java.util.List;
 
 @Repository
 public interface InsumoRepository extends JpaRepository<Insumo, Long> {
+    List<Insumo> findByTenantId(Long tenantId);
+    List<Insumo> findByTenantIdOrderByNombreAsc(Long tenantId);
     List<Insumo> findByTenantIdAndIsActiveTrueOrderByNombreAsc(Long tenantId);
 }

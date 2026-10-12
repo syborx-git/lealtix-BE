@@ -74,6 +74,8 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
      */
     List<ClientOrder> findByTenantIdAndEstadoAndFechaBetween(Long tenantId, OrderStatus estado, LocalDateTime startDate, LocalDateTime endDate);
 
+    List<ClientOrder> findByTenantIdAndFechaBetween(Long tenantId, LocalDateTime from, LocalDateTime to);
+
     /**
      * Contar órdenes por estado y tenant
      */

@@ -19,6 +19,18 @@ import com.lealtixservice.service.ReporteMermasService;
 import com.lealtixservice.service.ReporteStockMinimoService;
 import com.lealtixservice.service.ReporteTicketsCanceladosService;
 import com.lealtixservice.service.ReporteVentasService;
+import com.lealtixservice.service.ReporteKardexService;
+import com.lealtixservice.service.ReporteRfmService;
+import com.lealtixservice.service.ReporteCampanasService;
+import com.lealtixservice.service.ReporteTiemposServicioService;
+import com.lealtixservice.service.ReporteMeserosService;
+import com.lealtixservice.service.ReporteMapaCalorService;
+import com.lealtixservice.dto.reportes.KardexReporteDTO;
+import com.lealtixservice.dto.reportes.RfmReporteDTO;
+import com.lealtixservice.dto.reportes.CampanasReporteDTO;
+import com.lealtixservice.dto.reportes.TiemposServicioReporteDTO;
+import com.lealtixservice.dto.reportes.RendimientoMeseroReporteDTO;
+import com.lealtixservice.dto.reportes.MapaCalorReporteDTO;
 import com.lealtixservice.util.RequirePermission;
 import com.lealtixservice.util.TenantOwnership;
 import io.swagger.v3.oas.annotations.Operation;
@@ -66,6 +78,12 @@ public class ReportesController {
     private final CorteCajaDiarioService corteCajaDiarioService;
     private final ReporteCorteInsumosService reporteCorteInsumosService;
     private final ReporteIngenieriaMenuService reporteIngenieriaMenuService;
+    private final ReporteKardexService reporteKardexService;
+    private final ReporteRfmService reporteRfmService;
+    private final ReporteCampanasService reporteCampanasService;
+    private final ReporteTiemposServicioService reporteTiemposServicioService;
+    private final ReporteMeserosService reporteMeserosService;
+    private final ReporteMapaCalorService reporteMapaCalorService;
     private final ReporteExcelService excelService;
 
     // ==================== 1.1 Dashboard de Ventas y Tendencias ====================
@@ -631,6 +649,282 @@ public class ReportesController {
             log.error("Error inesperado exportando el reporte de ingeniería de menú", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno exportando el reporte", null));
+        }
+    }
+
+    // ==================== 2.2 Kardex de Insumos ====================
+
+    @Operation(summary = "Reporte 2.2: Kardex de Insumos")
+    @GetMapping("/kardex")
+    @RequirePermission(value = "view_reports", alternative = {"view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getKardex(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            KardexReporteDTO reporte = reporteKardexService.obtener(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Kardex de insumos generado", reporte));
+        } catch (Exception e) {
+            log.error("Error generando kardex de insumos", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando kardex", null));
+        }
+    }
+
+    @GetMapping("/kardex/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_products", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarKardex(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            byte[] archivo = reporteKardexService.exportar(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo("kardex_insumos_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (Exception e) {
+            log.error("Error exportando kardex", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error exportando kardex", null));
+        }
+    }
+
+    // ==================== 3.1 Análisis RFM de Clientes ====================
+
+    @Operation(summary = "Reporte 3.1: Análisis RFM de Clientes")
+    @GetMapping("/rfm")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getRfm(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            RfmReporteDTO reporte = reporteRfmService.obtener(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte RFM generado", reporte));
+        } catch (Exception e) {
+            log.error("Error generando análisis RFM", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando RFM", null));
+        }
+    }
+
+    @GetMapping("/rfm/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarRfm(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            byte[] archivo = reporteRfmService.exportar(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo("analisis_rfm_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (Exception e) {
+            log.error("Error exportando RFM", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error exportando RFM", null));
+        }
+    }
+
+    // ==================== 3.2 Rendimiento de Campañas ====================
+
+    @Operation(summary = "Reporte 3.2: Rendimiento de Campañas")
+    @GetMapping("/campanas")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getCampanas(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            CampanasReporteDTO reporte = reporteCampanasService.obtener(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de campañas generado", reporte));
+        } catch (Exception e) {
+            log.error("Error generando reporte de campañas", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando reporte de campañas", null));
+        }
+    }
+
+    @GetMapping("/campanas/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarCampanas(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            byte[] archivo = reporteCampanasService.exportar(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo("rendimiento_campanas_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (Exception e) {
+            log.error("Error exportando reporte de campañas", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error exportando reporte de campañas", null));
+        }
+    }
+
+    // ==================== 4.3 Tiempos de Servicio ====================
+
+    @Operation(summary = "Reporte 4.3: Tiempos de Servicio")
+    @GetMapping("/tiempos")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getTiempos(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            TiemposServicioReporteDTO reporte = reporteTiemposServicioService.obtener(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de tiempos de servicio generado", reporte));
+        } catch (Exception e) {
+            log.error("Error generando tiempos de servicio", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando tiempos", null));
+        }
+    }
+
+    @GetMapping("/tiempos/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarTiempos(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            byte[] archivo = reporteTiemposServicioService.exportar(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo("tiempos_servicio_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (Exception e) {
+            log.error("Error exportando tiempos", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error exportando tiempos", null));
+        }
+    }
+
+    // ==================== 4.4 Rendimiento por Mesero ====================
+
+    @Operation(summary = "Reporte 4.4: Rendimiento por Mesero")
+    @GetMapping("/meseros")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getMeseros(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            RendimientoMeseroReporteDTO reporte = reporteMeserosService.obtener(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Reporte de meseros generado", reporte));
+        } catch (Exception e) {
+            log.error("Error generando rendimiento de meseros", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando rendimiento de meseros", null));
+        }
+    }
+
+    @GetMapping("/meseros/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarMeseros(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            byte[] archivo = reporteMeserosService.exportar(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo("rendimiento_meseros_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (Exception e) {
+            log.error("Error exportando reporte de meseros", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error exportando reporte de meseros", null));
+        }
+    }
+
+    // ==================== 4.5 Mapa de Calor de Afluencia ====================
+
+    @Operation(summary = "Reporte 4.5: Mapa de Calor de Afluencia")
+    @GetMapping("/mapa-calor")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> getMapaCalor(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            MapaCalorReporteDTO reporte = reporteMapaCalorService.obtener(tenantId, p, from, to);
+            return ResponseEntity.ok(new GenericResponse(200, "Mapa de calor generado", reporte));
+        } catch (Exception e) {
+            log.error("Error generando mapa de calor", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno generando mapa de calor", null));
+        }
+    }
+
+    @GetMapping("/mapa-calor/export")
+    @RequirePermission(value = "view_reports", alternative = {"view_sales", "manage_all"})
+    @TenantOwnership(tenantIdParam = "tenantId")
+    public ResponseEntity<?> exportarMapaCalor(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        PresetReporte p = PresetReporte.from(preset);
+        try {
+            byte[] archivo = reporteMapaCalorService.exportar(tenantId, p, from, to);
+            String nombre = excelService.nombreArchivo("mapa_calor_afluencia_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                    .contentType(MediaType.parseMediaType(XLSX_MIME))
+                    .contentLength(archivo.length)
+                    .body(archivo);
+        } catch (Exception e) {
+            log.error("Error exportando mapa de calor", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error exportando mapa de calor", null));
         }
     }
 }
