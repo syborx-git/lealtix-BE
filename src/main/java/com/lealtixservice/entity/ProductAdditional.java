@@ -34,4 +34,8 @@ public class ProductAdditional {
     /** Precio extra que se cobra al cliente por este adicional */
     @Builder.Default
     private BigDecimal precio = BigDecimal.ZERO;
+
+    /** Grupo o sección (ej. Proteína, Salsas, Guarnición) */
+    @Column(length = 100)
+    private String grupo;
 }

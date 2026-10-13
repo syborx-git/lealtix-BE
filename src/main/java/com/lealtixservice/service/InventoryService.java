@@ -92,9 +92,12 @@ public interface InventoryService {
     GenericResponse getRecipesByDish(Long dishId);
 
     /**
-     * Recetas: agregar insumo a un platillo.
+     * Recetas: agregar insumo a un platillo (con grupo opcional).
      */
-    GenericResponse addRecipeIngredient(Long dishId, Long insumoId, Double cantidad, Boolean modificable);
+    GenericResponse addRecipeIngredient(Long dishId, Long insumoId, Double cantidad, Boolean modificable, String grupo);
+    default GenericResponse addRecipeIngredient(Long dishId, Long insumoId, Double cantidad, Boolean modificable) {
+        return addRecipeIngredient(dishId, insumoId, cantidad, modificable, null);
+    }
 
     /**
      * Recetas: reemplaza la receta completa de un platillo.
@@ -110,7 +113,10 @@ public interface InventoryService {
      * Recetas: actualizar cantidad e importancia (BASE/MODIFICABLE/ADICIONAL) de un insumo de la receta.
      * Si la importancia es ADICIONAL la línea se traslada a la tabla de adicionales (con un precio extra).
      */
-    GenericResponse updateRecipeIngredient(Long recipeId, Double cantidad, Boolean modificable, String importancia, Double precio);
+    GenericResponse updateRecipeIngredient(Long recipeId, Double cantidad, Boolean modificable, String importancia, Double precio, String grupo);
+    default GenericResponse updateRecipeIngredient(Long recipeId, Double cantidad, Boolean modificable, String importancia, Double precio) {
+        return updateRecipeIngredient(recipeId, cantidad, modificable, importancia, precio, null);
+    }
 
     /**
      * Adicionales: obtener insumos adicionales permitidos de un platillo.
@@ -118,15 +124,21 @@ public interface InventoryService {
     GenericResponse getAdditionalsByDish(Long dishId);
 
     /**
-     * Adicionales: permitir insumo adicional con un precio extra.
+     * Adicionales: permitir insumo adicional con un precio extra y grupo opcional.
      */
-    GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio);
+    GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo);
+    default GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio) {
+        return addAdditional(dishId, insumoId, cantidad, precio, null);
+    }
 
     /**
      * Adicionales: actualizar cantidad / precio e importancia de un adicional permitido.
      * Si la importancia deja de ser ADICIONAL, la línea vuelve a la receta base.
      */
-    GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio, String importancia);
+    GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio, String importancia, String grupo);
+    default GenericResponse updateAdditional(Long additionalId, Double cantidad, Double precio, String importancia) {
+        return updateAdditional(additionalId, cantidad, precio, importancia, null);
+    }
 
     /**
      * Adicionales: quitar adicional permitido.
@@ -140,13 +152,15 @@ public interface InventoryService {
     GenericResponse getSubRecetasByTenant(Long tenantId);
 
     /**
-     * Sub-recetas: crea una preparación (producto esSubReceta=true) con sus insumos.
+     * Sub-recetas: crea una preparación (producto esSubReceta=true) con su rendimiento, unidad y sus insumos.
      */
+    GenericResponse createSubReceta(Long tenantId, String nombre, Double tamanoLote, String unidad, List<Map<String, Object>> lines, List<Long> categoryIds);
     GenericResponse createSubReceta(Long tenantId, String nombre, List<Map<String, Object>> lines, List<Long> categoryIds);
 
     /**
-     * Sub-recetas: actualiza nombre e insumos de una preparación.
+     * Sub-recetas: actualiza nombre, rendimiento, unidad e insumos de una preparación.
      */
+    GenericResponse updateSubReceta(Long subRecetaId, String nombre, Double tamanoLote, String unidad, List<Map<String, Object>> lines, List<Long> categoryIds);
     GenericResponse updateSubReceta(Long subRecetaId, String nombre, List<Map<String, Object>> lines, List<Long> categoryIds);
 
     /**
@@ -160,15 +174,23 @@ public interface InventoryService {
     GenericResponse getSubRecetasByDish(Long dishId);
 
     /**
-     * Sub-recetas: asigna una sub-receta a un platillo o bebida con su importancia
-     * (BASE / MODIFICABLE / ADICIONAL + precio extra opcional).
+     * Sub-recetas: asigna una sub-receta a un platillo o bebida con su importancia,
+     * precio extra opcional y porción consumida (cantidad y unidad).
      */
+    GenericResponse assignSubReceta(Long dishId, Long subRecetaId, String importancia, Double precio, Double cantidad, String unidad);
     GenericResponse assignSubReceta(Long dishId, Long subRecetaId, String importancia, Double precio);
 
     /**
-     * Sub-recetas: cambia la importancia (BASE / MODIFICABLE / ADICIONAL) de una sub-receta ya asignada.
+     * Sub-recetas: cambia la importancia, precio extra y/o cantidad de porción de una sub-receta ya asignada.
      */
+    GenericResponse updateSubRecetaImportance(Long dishId, Long subRecetaId, String importancia, Double precio, Double cantidad, String unidad);
     GenericResponse updateSubRecetaImportance(Long dishId, Long subRecetaId, String importancia, Double precio);
+
+    /**
+     * Sub-recetas: produce uno o varios lotes de una preparación (restock).
+     * Descuenta del inventario los insumos necesarios y suma el rendimiento generado al stock de la sub-receta.
+     */
+    GenericResponse producirLoteSubReceta(Long subRecetaId, Double lotes);
 
     /**
      * Sub-recetas: quita una sub-receta de un platillo o bebida.

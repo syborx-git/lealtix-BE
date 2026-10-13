@@ -67,6 +67,10 @@ public class TenantMenuProduct {
     @Builder.Default
     private Boolean esSubReceta = false;
 
+    /** Rendimiento o producción estándar por lote para sub-recetas (ej. 1000 mililitros). */
+    @Builder.Default
+    private Double tamanoLote = 1.0;
+
     @Builder.Default
     private boolean isActive = true;
 

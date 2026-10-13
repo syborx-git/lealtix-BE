@@ -43,6 +43,13 @@ public class ClientOrderItemMapper {
      * Convierte una entidad ClientOrderItem a un DTO ClientOrderItemDTO
      */
     public static ClientOrderItemDTO toDTO(ClientOrderItem item) {
+        return toDTO(item, null);
+    }
+
+    /**
+     * Convierte una entidad ClientOrderItem a un DTO ClientOrderItemDTO indicando si es bebida
+     */
+    public static ClientOrderItemDTO toDTO(ClientOrderItem item, Boolean esBebida) {
         if (item == null) return null;
         
         // Calcular subtotal del item
@@ -64,6 +71,7 @@ public class ClientOrderItemMapper {
                 .comentarios(item.getComentarios())
                 .excludedIngredientIds(item.getExcludedIngredientIds())
                 .additionalIngredientIds(item.getAdditionalIngredientIds())
+                .esBebida(esBebida)
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
                 .build();

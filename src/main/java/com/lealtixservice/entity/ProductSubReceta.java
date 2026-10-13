@@ -37,4 +37,12 @@ public class ProductSubReceta {
     /** Precio extra si la sub-receta es ADICIONAL (costo extra); null = no adicional. */
     @Column(precision = 10, scale = 2)
     private BigDecimal precio;
+
+    /** Cantidad de la sub-receta que consume el platillo (ej. 120 mililitros). */
+    @Builder.Default
+    private Double cantidad = 1.0;
+
+    /** Unidad de medida de la porción consumida (ej. mililitros, gramos, pieza). */
+    @Column(length = 20)
+    private String unidad;
 }

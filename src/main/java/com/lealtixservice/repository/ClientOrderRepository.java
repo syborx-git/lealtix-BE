@@ -43,6 +43,9 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
     @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
     Page<ClientOrder> findByTenantId(Long tenantId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"customer", "mesa", "mesero", "clienteMesa"})
+    List<ClientOrder> findByTenantId(Long tenantId);
+
     /**
      * Buscar órdenes por tenant_id y estado
      */
@@ -70,6 +73,8 @@ public interface ClientOrderRepository extends JpaRepository<ClientOrder, UUID>,
      * Buscar órdenes pendientes de pago de un tenant
      */
     List<ClientOrder> findByTenantIdAndEstadoAndFechaBetween(Long tenantId, OrderStatus estado, LocalDateTime startDate, LocalDateTime endDate);
+
+    List<ClientOrder> findByTenantIdAndFechaBetween(Long tenantId, LocalDateTime from, LocalDateTime to);
 
     /**
      * Contar órdenes por estado y tenant

@@ -23,4 +23,6 @@ public class UpdateOrderStatusRequest {
     private String userEmail;  // Email del usuario que realiza el cambio (para auditoría)
     
     private String reason;     // Razón del cambio de estado (ej: "Cliente canceló", "Error en preparación")
+
+    private String area;       // "BARRA" | "COCINA" (opcional, para transiciones independientes por área)
 }

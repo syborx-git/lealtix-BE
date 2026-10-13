@@ -12,5 +12,7 @@ public interface MermaRepository extends JpaRepository<Merma, Long> {
 
     List<Merma> findByTenantIdOrderByFechaDesc(Long tenantId);
 
+    List<Merma> findByTenantIdAndFechaBetweenOrderByFechaDesc(Long tenantId, java.time.LocalDateTime from, java.time.LocalDateTime to);
+
     List<Merma> findByOrderIdOrderByFechaDesc(UUID orderId);
 }

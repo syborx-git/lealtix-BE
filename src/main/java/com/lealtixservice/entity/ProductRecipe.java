@@ -34,4 +34,8 @@ public class ProductRecipe {
     /** true = el cliente puede quitarlo (exclusión) */
     @Builder.Default
     private Boolean modificable = false;
+
+    /** Grupo o sección (ej. Proteína, Salsas, Guarnición) */
+    @Column(length = 100)
+    private String grupo;
 }
