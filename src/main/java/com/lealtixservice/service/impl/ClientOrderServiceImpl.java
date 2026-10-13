@@ -656,8 +656,13 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("No se puede marchar el segundo tiempo de una orden PAGADA");
         }
 
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+
         // Actualizar comentarios de los ítems de 2do tiempo para indicar que están marchados
-        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        List<ClientOrderItem> items = order.getItems() != null && !order.getItems().isEmpty()
+                ? order.getItems()
+                : clientOrderItemRepository.findByOrderId(orderId);
+        LocalDateTime now = LocalDateTime.now();
         for (ClientOrderItem item : items) {
             String comment = item.getComentarios();
             if (comment != null && (comment.contains("2DO TIEMPO") || comment.contains("SEGUNDO TIEMPO"))) {
@@ -670,15 +675,44 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     updatedComment = "[2DO TIEMPO - MARCHADO] " + updatedComment;
                 }
                 item.setComentarios(updatedComment);
+                item.setUpdatedAt(now);
                 clientOrderItemRepository.save(item);
             }
         }
 
-        // Pasar orden a CONFIRMADA para que reingrese al riel de Confirmada de Cocina
+        boolean hasCocinaT2 = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isT2 = c != null && (c.contains("2DO TIEMPO") || c.contains("SEGUNDO TIEMPO"));
+            return isT2 && (i.getProduct() == null || !beverageProductIds.contains(i.getProduct().getId()));
+        });
+        boolean hasBarraT2 = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isT2 = c != null && (c.contains("2DO TIEMPO") || c.contains("SEGUNDO TIEMPO"));
+            return isT2 && i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId());
+        });
+
+        // Fallback si no se detectó específicamente por tag pero la orden tiene ítems de cocina o barra
+        if (!hasCocinaT2 && !hasBarraT2) {
+            hasCocinaT2 = items.stream().anyMatch(i -> i.getProduct() == null || !beverageProductIds.contains(i.getProduct().getId()));
+            hasBarraT2 = items.stream().anyMatch(i -> i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId()));
+        }
+
+        if (hasCocinaT2) {
+            order.setCocinaEstado(OrderStatus.CONFIRMADA);
+            order.setCocinaReadyAt(null);
+        }
+        if (hasBarraT2) {
+            order.setBarraEstado(OrderStatus.CONFIRMADA);
+            order.setBarraReadyAt(null);
+        }
+
+        // Pasar orden a CONFIRMADA para que reingrese al riel de Confirmada de Cocina y Barra
         order.setEstado(OrderStatus.CONFIRMADA);
+        order.setReadyAt(null);
         order = clientOrderRepository.save(order);
 
-        log.info("Orden {} pasada a CONFIRMADA para preparación de 2do tiempo", orderId);
+        log.info("Orden {} pasada a CONFIRMADA para preparación de 2do tiempo (cocina: {}, barra: {})",
+                orderId, order.getCocinaEstado(), order.getBarraEstado());
 
         String couponCode = null;
         BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
@@ -689,12 +723,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
 
-        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount, beverageProductIds);
 
-        // Notificar en tiempo real a Cocina vía SSE
+        // Notificar en tiempo real a Cocina y Barra vía SSE
         try {
             orderSseService.publishOrderStatusChanged(orderDTO);
-            log.info("Evento SSE de orden {} (2do tiempo marchado) publicado para cocina", orderId);
+            log.info("Evento SSE de orden {} (2do tiempo marchado) publicado para cocina/barra", orderId);
         } catch (Exception e) {
             log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
         }
@@ -717,8 +751,13 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("No se puede marchar el tercer tiempo de una orden PAGADA");
         }
 
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+
         // Actualizar comentarios de los ítems de 3er tiempo para indicar que están marchados
-        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        List<ClientOrderItem> items = order.getItems() != null && !order.getItems().isEmpty()
+                ? order.getItems()
+                : clientOrderItemRepository.findByOrderId(orderId);
+        LocalDateTime now = LocalDateTime.now();
         for (ClientOrderItem item : items) {
             String comment = item.getComentarios();
             if (comment != null && (comment.contains("3ER TIEMPO") || comment.contains("TERCER TIEMPO"))) {
@@ -731,15 +770,43 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     updatedComment = "[3ER TIEMPO - MARCHADO] " + updatedComment;
                 }
                 item.setComentarios(updatedComment);
+                item.setUpdatedAt(now);
                 clientOrderItemRepository.save(item);
             }
         }
 
-        // Pasar orden a CONFIRMADA para que reingrese al riel de Confirmada de Cocina
+        boolean hasCocinaT3 = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isT3 = c != null && (c.contains("3ER TIEMPO") || c.contains("TERCER TIEMPO"));
+            return isT3 && (i.getProduct() == null || !beverageProductIds.contains(i.getProduct().getId()));
+        });
+        boolean hasBarraT3 = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isT3 = c != null && (c.contains("3ER TIEMPO") || c.contains("TERCER TIEMPO"));
+            return isT3 && i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId());
+        });
+
+        if (!hasCocinaT3 && !hasBarraT3) {
+            hasCocinaT3 = items.stream().anyMatch(i -> i.getProduct() == null || !beverageProductIds.contains(i.getProduct().getId()));
+            hasBarraT3 = items.stream().anyMatch(i -> i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId()));
+        }
+
+        if (hasCocinaT3) {
+            order.setCocinaEstado(OrderStatus.CONFIRMADA);
+            order.setCocinaReadyAt(null);
+        }
+        if (hasBarraT3) {
+            order.setBarraEstado(OrderStatus.CONFIRMADA);
+            order.setBarraReadyAt(null);
+        }
+
+        // Pasar orden a CONFIRMADA para que reingrese al riel de Confirmada de Cocina y Barra
         order.setEstado(OrderStatus.CONFIRMADA);
+        order.setReadyAt(null);
         order = clientOrderRepository.save(order);
 
-        log.info("Orden {} pasada a CONFIRMADA para preparación de 3er tiempo", orderId);
+        log.info("Orden {} pasada a CONFIRMADA para preparación de 3er tiempo (cocina: {}, barra: {})",
+                orderId, order.getCocinaEstado(), order.getBarraEstado());
 
         String couponCode = null;
         BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
@@ -750,12 +817,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
 
-        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount, beverageProductIds);
 
-        // Notificar en tiempo real a Cocina vía SSE
+        // Notificar en tiempo real a Cocina y Barra vía SSE
         try {
             orderSseService.publishOrderStatusChanged(orderDTO);
-            log.info("Evento SSE de orden {} (3er tiempo marchado) publicado para cocina", orderId);
+            log.info("Evento SSE de orden {} (3er tiempo marchado) publicado para cocina/barra", orderId);
         } catch (Exception e) {
             log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
         }
@@ -778,7 +845,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("No se pueden marchar tiempos de una orden PAGADA");
         }
 
-        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+
+        List<ClientOrderItem> items = order.getItems() != null && !order.getItems().isEmpty()
+                ? order.getItems()
+                : clientOrderItemRepository.findByOrderId(orderId);
+        LocalDateTime now = LocalDateTime.now();
         for (ClientOrderItem item : items) {
             String comment = item.getComentarios();
             if (comment != null) {
@@ -809,15 +881,30 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 }
                 if (changed) {
                     item.setComentarios(comment);
+                    item.setUpdatedAt(now);
                     clientOrderItemRepository.save(item);
                 }
             }
         }
 
+        boolean hasCocina = items.stream().anyMatch(i -> i.getProduct() == null || !beverageProductIds.contains(i.getProduct().getId()));
+        boolean hasBarra = items.stream().anyMatch(i -> i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId()));
+
+        if (hasCocina) {
+            order.setCocinaEstado(OrderStatus.CONFIRMADA);
+            order.setCocinaReadyAt(null);
+        }
+        if (hasBarra) {
+            order.setBarraEstado(OrderStatus.CONFIRMADA);
+            order.setBarraReadyAt(null);
+        }
+
         order.setEstado(OrderStatus.CONFIRMADA);
+        order.setReadyAt(null);
         order = clientOrderRepository.save(order);
 
-        log.info("Orden {} pasada a CONFIRMADA para preparación de todos los tiempos", orderId);
+        log.info("Orden {} pasada a CONFIRMADA para preparación de todos los tiempos (cocina: {}, barra: {})",
+                orderId, order.getCocinaEstado(), order.getBarraEstado());
 
         String couponCode = null;
         BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
@@ -828,11 +915,11 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
 
-        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount, beverageProductIds);
 
         try {
             orderSseService.publishOrderStatusChanged(orderDTO);
-            log.info("Evento SSE de orden {} (todos los tiempos marchados) publicado para cocina", orderId);
+            log.info("Evento SSE de orden {} (todos los tiempos marchados) publicado para cocina/barra", orderId);
         } catch (Exception e) {
             log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
         }
