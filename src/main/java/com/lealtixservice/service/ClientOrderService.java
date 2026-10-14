@@ -28,8 +28,8 @@ public interface ClientOrderService {
 
     /**
      * Actualiza los items, montos y cliente de una orden existente.
-     * Solo permitido dentro de la prórroga de 3 minutos de haber sido enviada
-     * y únicamente en estado PENDIENTE o CONFIRMADA.
+     * Permitido en cualquier momento mientras la orden no esté PAGADA ni CANCELADA
+     * (permite agregar platillos si llega otro comensal o piden más).
      */
     ClientOrderDTO updateOrder(UUID orderId, CreateClientOrderRequest request);
 

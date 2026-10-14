@@ -64,7 +64,7 @@ public class ClientOrderController {
         }
     }
 
-    @Operation(summary = "Actualizar una orden existente dentro de la prórroga de 3 minutos")
+    @Operation(summary = "Actualizar una orden existente (mientras no esté pagada ni cancelada)")
     @PutMapping("/{orderId}")
     public ResponseEntity<GenericResponse> updateOrder(
             @PathVariable UUID orderId,
