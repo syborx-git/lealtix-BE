@@ -50,7 +50,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,10 +69,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 @Transactional
 public class ClientOrderServiceImpl implements ClientOrderService {
-
-    /** Prórroga de edición de comandas enviadas (en minutos) */
-    public static final int EDIT_WINDOW_MINUTES = 3;
-    private static final long EDIT_WINDOW_SECONDS = EDIT_WINDOW_MINUTES * 60L;
 
     private final ClientOrderRepository clientOrderRepository;
     private final ClientOrderItemRepository clientOrderItemRepository;
@@ -287,21 +282,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("La orden no pertenece al tenant especificado");
         }
 
-        // Validar la prórroga de edición (3 minutos desde el envío)
-        LocalDateTime sentAt = order.getFecha() != null ? order.getFecha() : order.getCreatedAt();
-        if (sentAt != null) {
-            long elapsedSeconds = Duration.between(sentAt, LocalDateTime.now()).getSeconds();
-            if (elapsedSeconds > EDIT_WINDOW_SECONDS) {
-                throw new IllegalArgumentException(
-                        "El tiempo de prórroga de " + EDIT_WINDOW_MINUTES + " minutos para editar la comanda ha expirado");
-            }
-        }
-
-        // Validar que el estado permite edición (aún no tomada por cocina / pagada / cancelada)
-        if (order.getEstado() != OrderStatus.PENDIENTE && order.getEstado() != OrderStatus.CONFIRMADA) {
+        // La comanda puede editarse en cualquier momento mientras NO esté pagada ni
+        // cancelada (permite agregar platillos si llega otro comensal o piden más).
+        if (order.getEstado() == OrderStatus.PAGADA || order.getEstado() == OrderStatus.CANCELADA) {
             throw new IllegalArgumentException(
                     "No se puede editar una comanda en estado " + order.getEstado()
-                            + ". Solo pueden editarse comandas pendientes o confirmadas");
+                            + ". Una comanda pagada o cancelada no puede editarse");
         }
 
         // Validar cliente (opcional) y que pertenezca al tenant
