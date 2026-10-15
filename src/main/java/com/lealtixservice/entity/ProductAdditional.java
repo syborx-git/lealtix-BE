@@ -38,4 +38,9 @@ public class ProductAdditional {
     /** Grupo o sección (ej. Proteína, Salsas, Guarnición) */
     @Column(length = 100)
     private String grupo;
+
+    /** true = es una variante del producto (se muestra en cards de subcomanda con su precio) */
+    @Builder.Default
+    @Column(name = "is_variant")
+    private Boolean isVariant = false;
 }

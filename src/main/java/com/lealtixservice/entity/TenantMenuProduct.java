@@ -71,6 +71,11 @@ public class TenantMenuProduct {
     @Builder.Default
     private Double tamanoLote = 1.0;
 
+    /** true = Es un artículo variable (actúa como variante para otros platillos o bebidas) */
+    @Builder.Default
+    @Column(name = "es_variable")
+    private Boolean esVariable = false;
+
     @Builder.Default
     private boolean isActive = true;
 

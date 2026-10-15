@@ -124,11 +124,14 @@ public interface InventoryService {
     GenericResponse getAdditionalsByDish(Long dishId);
 
     /**
-     * Adicionales: permitir insumo adicional con un precio extra y grupo opcional.
+     * Adicionales / Variantes: permitir insumo adicional o variante con precio extra y grupo opcional.
      */
-    GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo);
+    GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo, Boolean isVariant);
+    default GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo) {
+        return addAdditional(dishId, insumoId, cantidad, precio, grupo, false);
+    }
     default GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio) {
-        return addAdditional(dishId, insumoId, cantidad, precio, null);
+        return addAdditional(dishId, insumoId, cantidad, precio, null, false);
     }
 
     /**
@@ -196,6 +199,26 @@ public interface InventoryService {
      * Sub-recetas: quita una sub-receta de un platillo o bebida.
      */
     GenericResponse removeSubRecetaFromDish(Long dishId, Long subRecetaId);
+
+    /**
+     * Variantes: obtiene las variantes de platillos/bebidas asignadas a un platillo principal.
+     */
+    GenericResponse getVariantDishes(Long dishId);
+
+    /**
+     * Variantes: asigna un platillo o bebida existente (marcado como variable) como variante de otro platillo/bebida.
+     */
+    GenericResponse addVariantDish(Long dishId, Long variantDishId, Double precio, String grupo, Double cantidad, String unidad);
+
+    /**
+     * Variantes: actualiza una variante de platillo (precio, grupo, cantidad, unidad).
+     */
+    GenericResponse updateVariantDish(Long id, Double precio, String grupo, Double cantidad, String unidad);
+
+    /**
+     * Variantes: elimina la relación de variante entre platillos.
+     */
+    GenericResponse removeVariantDish(Long id);
 
     /**
      * Descuenta stock de los insumos al confirmar una comanda.

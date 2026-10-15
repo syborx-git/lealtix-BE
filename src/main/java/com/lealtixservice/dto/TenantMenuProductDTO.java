@@ -31,11 +31,17 @@ public class TenantMenuProductDTO {
     /** true = isActive gestionado automáticamente según stock de insumos */
     private Boolean autoAvailability;
 
+    /** true = artículo variable para asignarse como variante de recetas */
+    private Boolean esVariable;
+
     /** Ingredientes de la receta (base / modificables) para mostrar opciones */
     private List<Map<String, Object>> recipes;
 
     /** Adicionales disponibles (insumo + cantidad + precio extra) */
     private List<Map<String, Object>> additionals;
+
+    /** Variantes del producto (subcomandas seleccionables en cards con precio) */
+    private List<Map<String, Object>> variants;
 
     /** Stock disponible (dinámico para platillos con receta) */
     private Double stock;

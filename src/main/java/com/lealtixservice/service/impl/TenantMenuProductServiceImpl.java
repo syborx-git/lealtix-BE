@@ -6,6 +6,7 @@ import com.lealtixservice.dto.TenantMenuCategoryDTO;
 import com.lealtixservice.dto.TenantMenuProductDTO;
 import com.lealtixservice.entity.ProductAdditional;
 import com.lealtixservice.entity.ProductRecipe;
+import com.lealtixservice.entity.ProductVariantDish;
 import com.lealtixservice.entity.Tenant;
 import com.lealtixservice.entity.TenantMenuCategory;
 import com.lealtixservice.entity.TenantMenuProduct;
@@ -13,6 +14,7 @@ import com.lealtixservice.repository.ClientOrderItemRepository;
 import com.lealtixservice.repository.ProductAdditionalRepository;
 import com.lealtixservice.repository.ProductCrossSellingRepository;
 import com.lealtixservice.repository.ProductRecipeRepository;
+import com.lealtixservice.repository.ProductVariantDishRepository;
 import com.lealtixservice.repository.TenantMenuProductRepository;
 import com.lealtixservice.repository.TenantRepository;
 import com.lealtixservice.service.TenantMenuCategoryService;
@@ -47,6 +49,9 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
 
     @Autowired
     private ProductAdditionalRepository additionalRepository;
+
+    @Autowired
+    private ProductVariantDishRepository productVariantDishRepository;
 
     @Autowired
     private ProductCrossSellingRepository crossSellingRepository;
@@ -191,6 +196,10 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             productEntity.setAutoAvailability(dto.getAutoAvailability());
         }
 
+        if (dto.getEsVariable() != null) {
+            productEntity.setEsVariable(dto.getEsVariable());
+        }
+
         syncCategories(productEntity, dto);
 
         return productEntity;
@@ -244,6 +253,7 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
         // cada uno (evita el problema N+1 que hacía lentísima esta petición).
         Map<Long, List<ProductRecipe>> recipesByDish = new HashMap<>();
         Map<Long, List<ProductAdditional>> additionalsByDish = new HashMap<>();
+        Map<Long, List<ProductVariantDish>> variantDishesByDish = new HashMap<>();
         if (!productIds.isEmpty()) {
             for (ProductRecipe r : recipeRepository.findByDishIdInWithInsumo(productIds)) {
                 if (r.getDish() != null && r.getDish().getId() != null) {
@@ -253,6 +263,11 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             for (ProductAdditional a : additionalRepository.findByDishIdInWithInsumo(productIds)) {
                 if (a.getDish() != null && a.getDish().getId() != null) {
                     additionalsByDish.computeIfAbsent(a.getDish().getId(), k -> new ArrayList<>()).add(a);
+                }
+            }
+            for (ProductVariantDish v : productVariantDishRepository.findByDishIdInWithVariantDish(productIds)) {
+                if (v.getDish() != null && v.getDish().getId() != null) {
+                    variantDishesByDish.computeIfAbsent(v.getDish().getId(), k -> new ArrayList<>()).add(v);
                 }
             }
         }
@@ -278,6 +293,7 @@ List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of
             dto.setStockMinimo(entity.getStockMinimo() != null ? entity.getStockMinimo() : 0.0);
             dto.setUnidad(entity.getUnidad() != null ? entity.getUnidad() : "pieza");
             dto.setAutoAvailability(entity.getAutoAvailability());
+            dto.setEsVariable(Boolean.TRUE.equals(entity.getEsVariable()));
 
             // Todas las categorías del producto (principal + extras) para la UI
             List<Long> categoryIds = new ArrayList<>();
@@ -311,22 +327,60 @@ List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of
             }
             dto.setRecipes(recipeList);
 
-            // Adicionales mapeados en memoria (0 consultas SQL adicionales)
+            // Adicionales y variantes mapeados en memoria (0 consultas SQL adicionales)
             List<ProductAdditional> additionals = additionalsByDish.getOrDefault(entity.getId(), java.util.Collections.emptyList());
-            List<Map<String, Object>> additionalList = new ArrayList<>(additionals.size());
+            List<Map<String, Object>> additionalList = new ArrayList<>();
+            List<Map<String, Object>> variantList = new ArrayList<>();
             for (ProductAdditional a : additionals) {
                 if (a.getInsumo() == null) continue;
+                boolean isVar = Boolean.TRUE.equals(a.getIsVariant()) || "VARIANTE".equalsIgnoreCase(a.getGrupo());
                 Map<String, Object> item = new LinkedHashMap<>();
+                item.put("id", a.getId());
                 item.put("insumoId", a.getInsumo().getId());
                 item.put("insumoName", a.getInsumo().getNombre());
+                item.put("name", a.getInsumo().getNombre());
                 item.put("cantidad", a.getCantidad());
                 item.put("unidad", a.getInsumo().getUnidad() != null ? a.getInsumo().getUnidad() : "pieza");
                 item.put("precio", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
-                item.put("tipoIngrediente", "ADICIONAL");
+                item.put("price", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
+                item.put("stock", a.getInsumo().getStock() != null ? a.getInsumo().getStock() : 0.0);
+                item.put("tipoIngrediente", isVar ? "VARIANTE" : "ADICIONAL");
+                item.put("isVariant", isVar);
                 item.put("grupo", a.getGrupo());
-                additionalList.add(item);
+                if (isVar) {
+                    variantList.add(item);
+                } else {
+                    additionalList.add(item);
+                }
             }
+
+            // Variantes de platillo o bebida asignadas (ProductVariantDish)
+            List<ProductVariantDish> dishVariants = variantDishesByDish.getOrDefault(entity.getId(), java.util.Collections.emptyList());
+            for (ProductVariantDish pvd : dishVariants) {
+                if (pvd.getVariantDish() == null) continue;
+                TenantMenuProduct vDish = pvd.getVariantDish();
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("id", pvd.getId());
+                item.put("variantDishId", vDish.getId());
+                item.put("dishProductId", vDish.getId());
+                item.put("insumoId", vDish.getId());
+                item.put("insumoName", vDish.getNombre());
+                item.put("name", vDish.getNombre());
+                item.put("cantidad", pvd.getCantidad() != null ? pvd.getCantidad() : 1.0);
+                item.put("unidad", pvd.getUnidad() != null ? pvd.getUnidad() : (vDish.getUnidad() != null ? vDish.getUnidad() : "pieza"));
+                BigDecimal variantPrice = pvd.getPrecio() != null ? pvd.getPrecio() : (vDish.getPrecio() != null ? vDish.getPrecio() : BigDecimal.ZERO);
+                item.put("precio", variantPrice);
+                item.put("price", variantPrice);
+                item.put("stock", vDish.getStock() != null ? vDish.getStock() : 0.0);
+                item.put("tipoIngrediente", "VARIANTE");
+                item.put("isVariant", true);
+                item.put("grupo", pvd.getGrupo() != null ? pvd.getGrupo() : "VARIANTE");
+                item.put("isDishVariant", true);
+                variantList.add(item);
+            }
+
             dto.setAdditionals(additionalList);
+            dto.setVariants(variantList);
         }
 
         products.sort((p1, p2) -> {
