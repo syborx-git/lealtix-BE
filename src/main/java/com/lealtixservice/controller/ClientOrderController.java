@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -254,9 +255,6 @@ public class ClientOrderController {
                 }
             }
             String reason = request.getReason();
-            if ((reason == null || reason.isBlank()) && userEmail != null && !userEmail.contains("@") && "CANCELADA".equalsIgnoreCase(request.getEstado().name())) {
-                reason = userEmail;
-            }
             ClientOrderDTO order = clientOrderService.updateOrderStatus(
                     orderId, 
                     request.getEstado(),
@@ -265,6 +263,10 @@ public class ClientOrderController {
                     request.getArea()
             );
             return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
+        } catch (AccessDeniedException ex) {
+            log.warn("Cancelación no autorizada de la orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new GenericResponse(403, ex.getMessage(), null));
         } catch (ResourceNotFoundException ex) {
             log.warn("Orden no encontrada: {}", orderId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -297,6 +299,10 @@ public class ClientOrderController {
             log.info("Actualizando estado de orden {} a: {} (dedicado, área: {})", orderId, orderStatus, area);
             ClientOrderDTO order = clientOrderService.updateOrderStatus(orderId, orderStatus, null, null, area);
             return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
+        } catch (AccessDeniedException ex) {
+            log.warn("Cambio de estado no autorizado de la orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new GenericResponse(403, ex.getMessage(), null));
         } catch (ResourceNotFoundException ex) {
             log.warn("Orden no encontrada: {}", orderId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -385,6 +391,10 @@ public class ClientOrderController {
             log.info("Cancelando orden: {}", orderId);
             ClientOrderDTO order = clientOrderService.cancelOrder(orderId);
             return ResponseEntity.ok(new GenericResponse(200, "Orden cancelada exitosamente", order));
+        } catch (AccessDeniedException ex) {
+            log.warn("Cancelación no autorizada de la orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new GenericResponse(403, ex.getMessage(), null));
         } catch (ResourceNotFoundException ex) {
             log.warn("Orden no encontrada: {}", orderId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
