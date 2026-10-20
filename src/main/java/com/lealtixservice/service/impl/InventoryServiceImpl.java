@@ -405,6 +405,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .origen("bodega")
                 .destino(destino)
                 .cantidad(redondear(cantidad))
+                .stockBodegaRemanente(redondear(insumo.getStockBodega()))
                 .build());
 
         syncAvailability(insumo.getTenantId());
@@ -424,6 +425,7 @@ public class InventoryServiceImpl implements InventoryService {
             m.put("origen", t.getOrigen() != null ? t.getOrigen() : "bodega");
             m.put("destino", t.getDestino());
             m.put("cantidad", t.getCantidad() != null ? redondear(t.getCantidad()) : 0.0);
+            m.put("stockBodegaRemanente", t.getStockBodegaRemanente() != null ? redondear(t.getStockBodegaRemanente()) : 0.0);
             m.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt().toString() : null);
             items.add(m);
         }
@@ -953,6 +955,24 @@ public class InventoryServiceImpl implements InventoryService {
                 .build();
         productRepository.save(subReceta);
 
+        // Considerar la receta como insumo: crear el registro en tabla Insumo
+        Insumo insumoSubReceta = Insumo.builder()
+                .tenantId(productTenantId(subReceta))
+                .nombre(subReceta.getNombre())
+                .unidad(subReceta.getUnidad())
+                .productoId(subReceta.getId())
+                .esSubReceta(true)
+                .esBebida(false)
+                .stock(0.0)
+                .stockCocina(0.0)
+                .stockBodega(0.0)
+                .stockBarra(0.0)
+                .stockMinimo(0.0)
+                .isActive(true)
+                .categories(new ArrayList<>(cats))
+                .build();
+        insumoRepository.save(insumoSubReceta);
+
         int lineas = guardarReceta(subReceta, lines);
         syncAvailability(productTenantId(subReceta));
         return new GenericResponse(200, "Sub-receta creada con " + lineas + " insumo(s)", subReceta.getId());
@@ -971,14 +991,29 @@ public class InventoryServiceImpl implements InventoryService {
         if (nombre != null && !nombre.isBlank()) subReceta.setNombre(nombre.trim());
         if (tamanoLote != null && tamanoLote > 0) subReceta.setTamanoLote(tamanoLote);
         if (unidad != null && !unidad.isBlank()) subReceta.setUnidad(unidad.trim().toLowerCase());
+        List<TenantMenuCategory> resolvedCats = null;
         if (categoryIds != null) {
-            List<TenantMenuCategory> cats = resolveCategories(productTenantId(subReceta), categoryIds);
-            if (!cats.isEmpty()) {
-                subReceta.setCategory(cats.get(0));
+            resolvedCats = resolveCategories(productTenantId(subReceta), categoryIds);
+            if (!resolvedCats.isEmpty()) {
+                subReceta.setCategory(resolvedCats.get(0));
             }
-            subReceta.setCategories(new ArrayList<>(cats));
+            subReceta.setCategories(new ArrayList<>(resolvedCats));
         }
         productRepository.save(subReceta);
+
+        // Sincronizar Insumo correspondiente
+        List<Insumo> matchingInsumos = insumoRepository.findByTenantIdAndProductoId(productTenantId(subReceta), subReceta.getId());
+        for (Insumo ins : matchingInsumos) {
+            if (ins.isEsSubReceta()) {
+                ins.setNombre(subReceta.getNombre());
+                ins.setUnidad(subReceta.getUnidad());
+                if (resolvedCats != null) {
+                    ins.setCategories(new ArrayList<>(resolvedCats));
+                }
+                insumoRepository.save(ins);
+            }
+        }
+
         int lineas = guardarReceta(subReceta, lines);
         syncAvailability(productTenantId(subReceta));
         return new GenericResponse(200, "Sub-receta actualizada con " + lineas + " insumo(s)", subReceta.getId());
@@ -994,6 +1029,15 @@ public class InventoryServiceImpl implements InventoryService {
                 .collect(java.util.stream.Collectors.toList());
         subRecetaRepository.deleteAll(usos);
         recipeRepository.deleteByDishId(subRecetaId);
+
+        // Eliminar Insumo correspondiente
+        List<Insumo> matchingInsumos = insumoRepository.findByTenantIdAndProductoId(tenantId, subRecetaId);
+        for (Insumo ins : matchingInsumos) {
+            if (ins.isEsSubReceta()) {
+                insumoRepository.delete(ins);
+            }
+        }
+
         productRepository.delete(subReceta);
         syncAvailability(tenantId);
         return new GenericResponse(200, "Sub-receta eliminada", null);
@@ -1127,6 +1171,16 @@ public class InventoryServiceImpl implements InventoryService {
         double stockNuevo = Math.round((stockAntes + cantidadProducida) * 1000) / 1000.0;
         subReceta.setStock(stockNuevo);
         productRepository.save(subReceta);
+
+        // Considerar la subreceta como insumo: sincronizar el stock del insumo correspondiente
+        List<Insumo> matchingInsumos = insumoRepository.findByTenantIdAndProductoId(productTenantId(subReceta), subReceta.getId());
+        for (Insumo ins : matchingInsumos) {
+            if (ins.isEsSubReceta()) {
+                ins.setStock(stockNuevo);
+                ins.setStockCocina(stockNuevo);
+                insumoRepository.save(ins);
+            }
+        }
 
         // 4. Sincronizar disponibilidad general
         syncAvailability(productTenantId(subReceta));
@@ -1692,6 +1746,7 @@ public class InventoryServiceImpl implements InventoryService {
         m.put("stockBarra", i.getStockBarra() != null ? redondear(i.getStockBarra()) : 0.0);
         m.put("stockMinimo", i.getStockMinimo() != null ? i.getStockMinimo() : 0.0);
         m.put("esBebida", i.isEsBebida());
+        m.put("esSubReceta", i.isEsSubReceta());
         m.put("precioVenta", i.getPrecioVenta() != null ? i.getPrecioVenta() : java.math.BigDecimal.ZERO);
         m.put("productoId", i.getProductoId());
         m.put("categories", buildCategoryMaps(i.getCategories()));
@@ -1921,6 +1976,15 @@ public class InventoryServiceImpl implements InventoryService {
         insumo.setStock(despues);
         rebalancearDistribucion(insumo);
         insumoRepository.save(insumo);
+
+        // Si este insumo es una subreceta, sincronizar el producto correspondiente
+        if (insumo.getProductoId() != null && insumo.isEsSubReceta()) {
+            productRepository.findById(insumo.getProductoId()).ifPresent(p -> {
+                p.setStock(despues);
+                productRepository.save(p);
+            });
+        }
+
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", insumo.getNombre());
         d.put("unidad", insumo.getUnidad() != null ? insumo.getUnidad() : "pieza");
@@ -1935,6 +1999,19 @@ public class InventoryServiceImpl implements InventoryService {
         double despues = Math.max(0, Math.round((antes - qty) * 1000) / 1000.0);
         product.setStock(despues);
         productRepository.save(product);
+
+        // Si este producto es una subreceta, sincronizar el insumo correspondiente
+        if (Boolean.TRUE.equals(product.getEsSubReceta())) {
+            List<Insumo> matching = insumoRepository.findByTenantIdAndProductoId(productTenantId(product), product.getId());
+            for (Insumo ins : matching) {
+                if (ins.isEsSubReceta()) {
+                    ins.setStock(despues);
+                    ins.setStockCocina(despues);
+                    insumoRepository.save(ins);
+                }
+            }
+        }
+
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", product.getNombre());
         d.put("unidad", product.getUnidad() != null ? product.getUnidad() : "pieza");
@@ -1950,6 +2027,15 @@ public class InventoryServiceImpl implements InventoryService {
         insumo.setStock(despues);
         rebalancearDistribucion(insumo);
         insumoRepository.save(insumo);
+
+        // Si este insumo es una subreceta, sincronizar el producto correspondiente
+        if (insumo.getProductoId() != null && insumo.isEsSubReceta()) {
+            productRepository.findById(insumo.getProductoId()).ifPresent(p -> {
+                p.setStock(despues);
+                productRepository.save(p);
+            });
+        }
+
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", insumo.getNombre());
         d.put("unidad", insumo.getUnidad() != null ? insumo.getUnidad() : "pieza");
@@ -1963,6 +2049,19 @@ public class InventoryServiceImpl implements InventoryService {
         double despues = Math.round((antes + qty) * 1000) / 1000.0;
         product.setStock(despues);
         productRepository.save(product);
+
+        // Si este producto es una subreceta, sincronizar el insumo correspondiente
+        if (Boolean.TRUE.equals(product.getEsSubReceta())) {
+            List<Insumo> matching = insumoRepository.findByTenantIdAndProductoId(productTenantId(product), product.getId());
+            for (Insumo ins : matching) {
+                if (ins.isEsSubReceta()) {
+                    ins.setStock(despues);
+                    ins.setStockCocina(despues);
+                    insumoRepository.save(ins);
+                }
+            }
+        }
+
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", product.getNombre());
         d.put("unidad", product.getUnidad() != null ? product.getUnidad() : "pieza");

@@ -149,6 +149,8 @@ public class ClientOrderMapper {
                 .cancelledBy(order.getCancelledBy())
                 .cancelledAt(order.getCancelledAt())
                 .cancellationReason(order.getCancellationReason())
+                .cancellationCategory(order.getCancellationCategory())
+                .cancellationComment(order.getCancellationComment())
                 .build();
     }
 

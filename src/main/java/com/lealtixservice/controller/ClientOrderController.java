@@ -262,7 +262,9 @@ public class ClientOrderController {
                     request.getEstado(),
                     userEmail,
                     reason,
-                    request.getArea()
+                    request.getArea(),
+                    request.getCancellationCategory(),
+                    request.getCancellationComment()
             );
             return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
         } catch (ResourceNotFoundException ex) {

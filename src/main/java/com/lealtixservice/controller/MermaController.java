@@ -38,4 +38,9 @@ public class MermaController {
     public ResponseEntity<GenericResponse> resolverInsumosUsados(@PathVariable UUID orderId) {
         return ResponseEntity.ok(mermaService.resolverInsumosUsados(orderId));
     }
+
+    @GetMapping("/order/{orderId}/detalles-merma")
+    public ResponseEntity<GenericResponse> resolverDetalleComandaMerma(@PathVariable UUID orderId) {
+        return ResponseEntity.ok(mermaService.resolverDetalleComandaMerma(orderId));
+    }
 }

@@ -477,7 +477,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
     @Override
     public ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason, String area) {
-        log.info("Actualizando estado de orden {} a: {} (área: {})", orderId, newStatus, area);
+        return updateOrderStatus(orderId, newStatus, userEmail, reason, area, null, null);
+    }
+
+    @Override
+    public ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason, String area, String category, String comment) {
+        log.info("Actualizando estado de orden {} a: {} (área: {}, categoría: {})", orderId, newStatus, area, category);
 
         ClientOrder order = clientOrderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
@@ -581,7 +586,35 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             if (newStatus == OrderStatus.CANCELADA) {
                 order.setCancelledBy(userEmail);
                 order.setCancelledAt(LocalDateTime.now());
-                order.setCancellationReason(reason);
+
+                // Resolver categoría estandarizada y comentarios detallados
+                String resolvedCategory = category;
+                String resolvedComment = comment;
+
+                if (resolvedCategory == null || resolvedCategory.isBlank()) {
+                    if (reason != null && reason.startsWith("[") && reason.contains("]")) {
+                        int closeBracket = reason.indexOf("]");
+                        resolvedCategory = reason.substring(1, closeBracket).trim();
+                        resolvedComment = reason.substring(closeBracket + 1).trim();
+                    } else if (reason != null && !reason.isBlank()) {
+                        resolvedCategory = "Otro motivo";
+                        resolvedComment = reason.trim();
+                    } else {
+                        resolvedCategory = "Sin motivo registrado";
+                        resolvedComment = "";
+                    }
+                } else if ((resolvedComment == null || resolvedComment.isBlank()) && reason != null && !reason.isBlank() && !reason.equals(category)) {
+                    resolvedComment = reason.trim();
+                }
+
+                order.setCancellationCategory(resolvedCategory);
+                order.setCancellationComment(resolvedComment != null ? resolvedComment : "");
+
+                String formattedReason = resolvedCategory;
+                if (resolvedComment != null && !resolvedComment.isBlank()) {
+                    formattedReason = "[" + resolvedCategory + "] " + resolvedComment;
+                }
+                order.setCancellationReason(formattedReason);
                 if (order.getEstado() != OrderStatus.CANCELADA) {
                     restoreStockForOrder(order);
                 }

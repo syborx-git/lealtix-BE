@@ -79,6 +79,11 @@ public interface ClientOrderService {
     ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason, String area);
 
     /**
+     * Actualiza el estado de una orden permitiendo aislar el área y registrando categoría y comentarios de cancelación
+     */
+    ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason, String area, String category, String comment);
+
+    /**
      * Marcha los segundos tiempos de una comanda, actualizando sus ítems y pasando la orden a CONFIRMADA para cocina.
      */
     ClientOrderDTO marcharSegundoTiempo(UUID orderId);

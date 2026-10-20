@@ -158,7 +158,13 @@ public class ClientOrder {
     private LocalDateTime cancelledAt;  // Cuándo se canceló
 
     @Column(name = "cancellation_reason", length = 500)
-    private String cancellationReason;  // Razón de la cancelación
+    private String cancellationReason;  // Razón de la cancelación completa / legacy
+
+    @Column(name = "cancellation_category", length = 100)
+    private String cancellationCategory;  // Categoría estandarizada (Alto tiempo de espera, etc.)
+
+    @Column(name = "cancellation_comment", columnDefinition = "TEXT")
+    private String cancellationComment;  // Comentario o detalle específico
 
     @PrePersist
     protected void onCreate() {

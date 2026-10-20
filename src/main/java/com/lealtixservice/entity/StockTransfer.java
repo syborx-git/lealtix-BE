@@ -39,6 +39,10 @@ public class StockTransfer {
     @Builder.Default
     private Double cantidad = 0.0;
 
+    /** Stock remanente que quedó en bodega tras la transferencia. */
+    @Column(name = "stock_bodega_remanente")
+    private Double stockBodegaRemanente;
+
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 

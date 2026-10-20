@@ -45,6 +45,11 @@ public class Insumo {
     @Builder.Default
     private boolean esBebida = false;
 
+    /** true = es una sub-receta (preparación intermedia producida por lotes); false = insumo base */
+    @Builder.Default
+    @Column(name = "es_sub_receta", nullable = false)
+    private boolean esSubReceta = false;
+
     /** Precio de venta al público (solo para bebidas) */
     private BigDecimal precioVenta;
 

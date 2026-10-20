@@ -13,6 +13,7 @@ public record KardexReporteDTO(
         List<KpiDTO> kpis,
         TablaReporteDTO resumenInsumos,
         TablaReporteDTO movimientosDetalle,
+        TablaReporteDTO transferenciasAreas,
         List<ChartPuntoDTO> distribucionMovimientos,
         List<ChartPuntoDTO> topInsumosRotacion
 ) {

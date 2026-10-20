@@ -42,5 +42,6 @@ public class MermaRequest {
         private String productoNombre;
         private Double cantidad;
         private String unidad;
+        private Double costoUnitario;
     }
 }

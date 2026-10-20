@@ -67,5 +67,7 @@ public class ClientOrderDTO {
     // Campos de cancelación
     private String cancelledBy;  // Email del usuario que canceló
     private LocalDateTime cancelledAt;  // Timestamp de cancelación
-    private String cancellationReason;  // Razón de la cancelación
+    private String cancellationReason;  // Razón de la cancelación completa / legacy
+    private String cancellationCategory; // Categoría estandarizada
+    private String cancellationComment;  // Comentario u observación
 }

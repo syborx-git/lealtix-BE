@@ -49,19 +49,26 @@ public interface ReporteTicketsCanceladosRepository extends JpaRepository<Client
                                @Param("toExclusivo") LocalDateTime toExclusivo);
 
     /**
-     * Desglose de cancelaciones agrupadas por motivo registrado.
-     * Indices: 0 motivo, 1 operaciones, 2 total_monto.
+     * Desglose de cancelaciones agrupadas por categoría registrada (para la gráfica de dona y tabla).
+     * Indices: 0 motivo (categoría), 1 operaciones, 2 total_monto.
      */
     @Query(value = """
-            SELECT COALESCE(NULLIF(TRIM(co.cancellation_reason), ''), 'Sin motivo registrado') AS motivo,
-                   COUNT(*)                                                                     AS operaciones,
-                   COALESCE(SUM(co.total), 0)                                                  AS total_monto
+            SELECT COALESCE(
+                       NULLIF(TRIM(co.cancellation_category), ''),
+                       CASE 
+                           WHEN co.cancellation_reason LIKE '[%]' THEN TRIM(substring(co.cancellation_reason from '\\\\[(.*?)\\\\]'))
+                           WHEN co.cancellation_reason IS NOT NULL AND TRIM(co.cancellation_reason) != '' THEN 'Otro motivo'
+                           ELSE 'Sin motivo registrado'
+                       END
+                   )                                                             AS motivo,
+                   COUNT(*)                                                      AS operaciones,
+                   COALESCE(SUM(co.total), 0)                                   AS total_monto
             FROM client_order co
             WHERE co.tenant_id = :tenantId
               AND co.estado = 'CANCELADA'
               AND (   (co.cancelled_at >= :from AND co.cancelled_at < :toExclusivo)
                    OR (co.cancelled_at IS NULL AND co.fecha >= :from AND co.fecha < :toExclusivo) )
-            GROUP BY COALESCE(NULLIF(TRIM(co.cancellation_reason), ''), 'Sin motivo registrado')
+            GROUP BY 1
             ORDER BY total_monto DESC, operaciones DESC
             """, nativeQuery = true)
     List<Object[]> cancelacionesPorMotivo(@Param("tenantId") Long tenantId,
@@ -92,7 +99,8 @@ public interface ReporteTicketsCanceladosRepository extends JpaRepository<Client
      * Detalle cronológico de las comandas canceladas en el periodo.
      * Indices:
      * 0 id, 1 fecha_cancelacion, 2 fecha_creacion, 3 motivo, 4 responsable,
-     * 5 mesa, 6 mesero, 7 total, 8 items_count, 9 items_resumen
+     * 5 mesa, 6 mesero, 7 total, 8 items_count, 9 items_resumen,
+     * 10 categoria, 11 comentario
      */
     @Query(value = """
             SELECT CAST(co.id AS VARCHAR)                                                           AS id,
@@ -113,7 +121,23 @@ public interface ReporteTicketsCanceladosRepository extends JpaRepository<Client
                            WHERE coi2.order_id = co.id
                            LIMIT 3
                        ) sub
-                   ), 'Sin items') AS items_resumen
+                   ), 'Sin items')                                                                  AS items_resumen,
+                   COALESCE(
+                       NULLIF(TRIM(co.cancellation_category), ''),
+                       CASE 
+                           WHEN co.cancellation_reason LIKE '[%]' THEN TRIM(substring(co.cancellation_reason from '\\\\[(.*?)\\\\]'))
+                           WHEN co.cancellation_reason IS NOT NULL AND TRIM(co.cancellation_reason) != '' THEN 'Otro motivo'
+                           ELSE 'Sin motivo registrado'
+                       END
+                   )                                                                                AS categoria,
+                   COALESCE(
+                       NULLIF(TRIM(co.cancellation_comment), ''),
+                       CASE 
+                           WHEN co.cancellation_reason LIKE '[%]' THEN TRIM(substring(co.cancellation_reason from '\\\\](.*)'))
+                           ELSE co.cancellation_reason
+                       END,
+                       'Sin comentario'
+                   )                                                                                AS comentario
             FROM client_order co
             LEFT JOIN mesa m ON m.id = co.mesa
             LEFT JOIN app_user u ON u.id = co.mesero_id

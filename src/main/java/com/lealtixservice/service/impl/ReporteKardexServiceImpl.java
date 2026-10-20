@@ -4,10 +4,12 @@ import com.lealtixservice.dto.reportes.*;
 import com.lealtixservice.entity.Insumo;
 import com.lealtixservice.entity.Merma;
 import com.lealtixservice.entity.RestockHistory;
+import com.lealtixservice.entity.StockTransfer;
 import com.lealtixservice.repository.InsumoRepository;
 import com.lealtixservice.repository.MermaRepository;
 import com.lealtixservice.repository.ProductRecipeRepository;
 import com.lealtixservice.repository.RestockHistoryRepository;
+import com.lealtixservice.repository.StockTransferRepository;
 import com.lealtixservice.entity.ClientOrderItem;
 import com.lealtixservice.entity.ProductRecipe;
 import com.lealtixservice.entity.ProductSubReceta;
@@ -61,9 +63,20 @@ public class ReporteKardexServiceImpl implements ReporteKardexService {
             new ColumnaDTO("referencia", "Referencia / Motivo", TipoColumna.TEXTO, 220)
     );
 
+    private static final List<ColumnaDTO> COLUMNAS_TRANSFERENCIAS = List.of(
+            new ColumnaDTO("fecha", "Fecha / Hora", TipoColumna.FECHA, 150),
+            new ColumnaDTO("insumo", "Insumo Transferido", TipoColumna.TEXTO, 200),
+            new ColumnaDTO("cantidad", "Cantidad Movida", TipoColumna.NUMERO, 130),
+            new ColumnaDTO("unidad", "Unidad", TipoColumna.TEXTO, 90),
+            new ColumnaDTO("origen", "Origen", TipoColumna.TEXTO, 110),
+            new ColumnaDTO("destino", "Área Destino", TipoColumna.TEXTO, 130),
+            new ColumnaDTO("stockBodegaRemanente", "Stock en Bodega", TipoColumna.NUMERO, 140)
+    );
+
     private final InsumoRepository insumoRepository;
     private final RestockHistoryRepository restockHistoryRepository;
     private final MermaRepository mermaRepository;
+    private final StockTransferRepository stockTransferRepository;
     private final ProductRecipeRepository productRecipeRepository;
     private final ProductSubRecetaRepository productSubRecetaRepository;
     private final ClientOrderItemRepository clientOrderItemRepository;
@@ -143,6 +156,26 @@ public class ReporteKardexServiceImpl implements ReporteKardexService {
                         f.get("referencia")
                 )).toList()
         ));
+
+        // 4. Transferencias a Áreas (Cocina / Barra)
+        if (datos.transferenciasAreas() != null && !datos.transferenciasAreas().filas().isEmpty()) {
+            hojas.add(HojaExcelDTO.de(
+                    "Transferencias Áreas",
+                    NOMBRE + " - Transferencias a Cocina y Barra",
+                    subtitulo,
+                    COLUMNAS_TRANSFERENCIAS.stream().map(ColumnaDTO::label).toList(),
+                    COLUMNAS_TRANSFERENCIAS.stream().map(ColumnaDTO::tipo).toList(),
+                    datos.transferenciasAreas().filas().stream().map(f -> List.<Object>of(
+                            f.get("fecha"),
+                            f.get("insumo"),
+                            f.get("cantidad"),
+                            f.get("unidad"),
+                            f.get("origen"),
+                            f.get("destino"),
+                            f.get("stockBodegaRemanente")
+                    )).toList()
+            ));
+        }
 
         return excelService.generar("kardex_insumos", hojas);
     }
@@ -288,30 +321,42 @@ public class ReporteKardexServiceImpl implements ReporteKardexService {
             topRotacion = topRotacion.subList(0, 8);
         }
 
-        // Filas de detalle cronológico
-        List<Map<String, Object>> filasMov = new ArrayList<>();
+        // Filas de detalle cronológico (ordenadas cronológicamente de forma descendente)
+        record MovimientoEntrada(LocalDateTime fecha, Map<String, Object> fila) {}
+        List<MovimientoEntrada> listaMovimientos = new ArrayList<>();
+
         for (RestockHistory r : restocks) {
+            Insumo ins = r.getInsumoId() != null ? insumoMap.get(r.getInsumoId()) : null;
+            String unidad = ins != null && ins.getUnidad() != null ? ins.getUnidad() : "pieza";
+            LocalDateTime fecha = r.getCreatedAt() != null ? r.getCreatedAt() : fAct;
+
             Map<String, Object> f = new LinkedHashMap<>();
-            f.put("fecha", r.getCreatedAt() != null ? r.getCreatedAt().format(FORMATO_FECHA) : "-");
-            f.put("insumo", r.getInsumoNombre() != null ? r.getInsumoNombre() : "Insumo #" + r.getInsumoId());
+            f.put("fecha", fecha.format(FORMATO_FECHA));
+            f.put("insumo", r.getInsumoNombre() != null ? r.getInsumoNombre() : (ins != null ? ins.getNombre() : "Insumo #" + r.getInsumoId()));
             f.put("tipo", "ENTRADA (Restock)");
             f.put("cantidad", BigDecimal.valueOf(r.getCantidad() != null ? r.getCantidad() : 0.0).setScale(2, RoundingMode.HALF_UP));
-            f.put("unidad", "uds");
+            f.put("unidad", unidad);
             f.put("costoTotal", BigDecimal.valueOf(r.getCostoTotal() != null ? r.getCostoTotal() : 0.0).setScale(2, RoundingMode.HALF_UP));
-            f.put("referencia", "Reabastecimiento de almacén");
-            filasMov.add(f);
+            f.put("referencia", "Entrada por restock a bodega");
+            listaMovimientos.add(new MovimientoEntrada(fecha, f));
         }
+
         for (Merma m : mermas) {
+            Insumo ins = m.getInsumoId() != null ? insumoMap.get(m.getInsumoId()) : null;
+            String unidad = m.getUnidad() != null ? m.getUnidad() : (ins != null && ins.getUnidad() != null ? ins.getUnidad() : "pieza");
+            LocalDateTime fecha = m.getFecha() != null ? m.getFecha() : fAct;
+
             Map<String, Object> f = new LinkedHashMap<>();
-            f.put("fecha", m.getFecha() != null ? m.getFecha().format(FORMATO_FECHA) : "-");
-            f.put("insumo", m.getInsumoNombre() != null ? m.getInsumoNombre() : "Insumo #" + m.getInsumoId());
+            f.put("fecha", fecha.format(FORMATO_FECHA));
+            f.put("insumo", m.getInsumoNombre() != null ? m.getInsumoNombre() : (ins != null ? ins.getNombre() : "Insumo #" + m.getInsumoId()));
             f.put("tipo", "SALIDA (Merma)");
             f.put("cantidad", BigDecimal.valueOf(m.getCantidad() != null ? m.getCantidad() : 0.0).setScale(2, RoundingMode.HALF_UP));
-            f.put("unidad", m.getUnidad() != null ? m.getUnidad() : "uds");
+            f.put("unidad", unidad);
             f.put("costoTotal", BigDecimal.valueOf(m.getCostoTotal() != null ? m.getCostoTotal() : 0.0).setScale(2, RoundingMode.HALF_UP));
             f.put("referencia", m.getMotivo() != null ? m.getMotivo() : "Merma operativa");
-            filasMov.add(f);
+            listaMovimientos.add(new MovimientoEntrada(fecha, f));
         }
+
         for (Map.Entry<Long, Double> entry : consumoVentasMap.entrySet()) {
             if (entry.getValue() > 0) {
                 Insumo ins = insumoMap.get(entry.getKey());
@@ -322,11 +367,44 @@ public class ReporteKardexServiceImpl implements ReporteKardexService {
                 f.put("insumo", ins.getNombre());
                 f.put("tipo", "SALIDA (Venta)");
                 f.put("cantidad", BigDecimal.valueOf(entry.getValue()).setScale(2, RoundingMode.HALF_UP));
-                f.put("unidad", ins.getUnidad() != null ? ins.getUnidad() : "uds");
+                f.put("unidad", ins.getUnidad() != null ? ins.getUnidad() : "pieza");
                 f.put("costoTotal", BigDecimal.valueOf(costVenta).setScale(2, RoundingMode.HALF_UP));
                 f.put("referencia", "Consumo acumulado por comandas vendidas");
-                filasMov.add(f);
+                listaMovimientos.add(new MovimientoEntrada(tAct, f));
             }
+        }
+
+        // Ordenar cronológicamente descendente (más recientes primero)
+        listaMovimientos.sort((a, b) -> b.fecha().compareTo(a.fecha()));
+        List<Map<String, Object>> filasMov = listaMovimientos.stream()
+                .map(MovimientoEntrada::fila)
+                .collect(Collectors.toList());
+
+        // ============ TABLA NUEVA: TRANSFERENCIAS DE INSUMOS A ÁREAS ============
+        List<StockTransfer> transfers = stockTransferRepository
+                .findByTenantIdAndCreatedAtBetweenOrderByCreatedAtDesc(tenantId, fAct, tAct);
+        if (transfers.isEmpty()) {
+            transfers = stockTransferRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        }
+
+        List<Map<String, Object>> filasTransferencias = new ArrayList<>();
+        for (StockTransfer st : transfers) {
+            Insumo ins = st.getInsumoId() != null ? insumoMap.get(st.getInsumoId()) : null;
+            String nombreInsumo = st.getInsumoNombre() != null ? st.getInsumoNombre() : (ins != null ? ins.getNombre() : "Insumo #" + st.getInsumoId());
+            String unidad = ins != null && ins.getUnidad() != null ? ins.getUnidad() : "pieza";
+            double remanente = st.getStockBodegaRemanente() != null
+                    ? st.getStockBodegaRemanente()
+                    : (ins != null && ins.getStockBodega() != null ? ins.getStockBodega() : 0.0);
+
+            Map<String, Object> ft = new LinkedHashMap<>();
+            ft.put("fecha", st.getCreatedAt() != null ? st.getCreatedAt().format(FORMATO_FECHA) : "-");
+            ft.put("insumo", nombreInsumo);
+            ft.put("cantidad", BigDecimal.valueOf(st.getCantidad() != null ? st.getCantidad() : 0.0).setScale(2, RoundingMode.HALF_UP));
+            ft.put("unidad", unidad);
+            ft.put("origen", st.getOrigen() != null ? st.getOrigen().toUpperCase() : "BODEGA");
+            ft.put("destino", st.getDestino() != null ? st.getDestino().toUpperCase() : "-");
+            ft.put("stockBodegaRemanente", BigDecimal.valueOf(remanente).setScale(2, RoundingMode.HALF_UP));
+            filasTransferencias.add(ft);
         }
 
         // KPIs
@@ -356,6 +434,7 @@ public class ReporteKardexServiceImpl implements ReporteKardexService {
                 kpis,
                 new TablaReporteDTO(COLUMNAS_RESUMEN, filasResumen),
                 new TablaReporteDTO(COLUMNAS_MOVIMIENTOS, filasMov),
+                new TablaReporteDTO(COLUMNAS_TRANSFERENCIAS, filasTransferencias),
                 distMovimientos,
                 topRotacion
         );
