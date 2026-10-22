@@ -29,4 +29,8 @@ public class TicketPrecuentaDTO {
     private BigDecimal propinaSugerida15;
     private BigDecimal propinaSugerida20;
     private List<ItemPrecuentaDTO> items;
+    private Boolean impresoEnHardware;
+    private String nombreImpresora;
+    private String estado;
+    private String metodoPago;
 }
