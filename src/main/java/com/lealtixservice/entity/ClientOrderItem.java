@@ -56,6 +56,10 @@ public class ClientOrderItem {
     @Column(name = "additional_ingredient_ids", columnDefinition = "TEXT")
     private List<Long> additionalIngredientIds;
 
+    @Builder.Default
+    @Column(name = "ronda", nullable = false)
+    private Integer ronda = 1;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

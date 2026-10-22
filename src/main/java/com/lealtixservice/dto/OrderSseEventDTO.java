@@ -99,6 +99,21 @@ public class OrderSseEventDTO {
         @JsonProperty("fecha")
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
         private Instant fecha;
+
+        @JsonProperty("mesaId")
+        private Long mesaId;
+
+        @JsonProperty("mesaNombre")
+        private String mesaNombre;
+
+        @JsonProperty("mesaNumero")
+        private Integer mesaNumero;
+
+        @JsonProperty("barraEstado")
+        private String barraEstado;
+
+        @JsonProperty("cocinaEstado")
+        private String cocinaEstado;
     }
 
     /**
@@ -123,5 +138,11 @@ public class OrderSseEventDTO {
 
         @JsonProperty("comentarios")
         private String comentarios; // null si no hay comentarios
+
+        @JsonProperty("ronda")
+        private Integer ronda;
+
+        @JsonProperty("esBebida")
+        private Boolean esBebida;
     }
 }

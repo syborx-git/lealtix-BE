@@ -84,5 +84,6 @@ public class CreateClientOrderRequest {
         private String asientoAlias;
         private Integer tiempo;
         private Boolean tiempoMarchado;
+        private Integer ronda;
     }
 }

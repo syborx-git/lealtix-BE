@@ -34,6 +34,17 @@ public interface ClientOrderService {
     ClientOrderDTO updateOrder(UUID orderId, CreateClientOrderRequest request);
 
     /**
+     * Agrega nuevos productos a una comanda abierta (Ronda adicional).
+     * Los nuevos items pertenecen a la misma comanda (misma cuenta para el cobro)
+     * pero se despachan como una nueva ronda a cocina y barra.
+     *
+     * @param orderId ID de la comanda existente
+     * @param request Datos con los nuevos items a agregar
+     * @return DTO de la orden actualizada con todos los items acumulados
+     */
+    ClientOrderDTO addItemsToOrder(UUID orderId, CreateClientOrderRequest request);
+
+    /**
      * Obtiene una orden por su ID
      */
     Optional<ClientOrderDTO> getOrderById(UUID orderId);

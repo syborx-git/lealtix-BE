@@ -26,6 +26,8 @@ public class ClientOrderItemMapper {
         BigDecimal precioUnitario = request.getPrecioUnitario() != null ? request.getPrecioUnitario() : 
                                     (product != null ? product.getPrecio() : BigDecimal.ZERO);
         
+        Integer ronda = (request.getRonda() != null && request.getRonda() > 0) ? request.getRonda() : 1;
+        
         return ClientOrderItem.builder()
                 .order(order)
                 .product(product)
@@ -34,6 +36,7 @@ public class ClientOrderItemMapper {
                 .comentarios(request.getComentarios())
                 .excludedIngredientIds(request.getExcludedIngredientIds())
                 .additionalIngredientIds(request.getAdditionalIngredientIds())
+                .ronda(ronda)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -72,6 +75,7 @@ public class ClientOrderItemMapper {
                 .excludedIngredientIds(item.getExcludedIngredientIds())
                 .additionalIngredientIds(item.getAdditionalIngredientIds())
                 .esBebida(esBebida)
+                .ronda(item.getRonda() != null ? item.getRonda() : 1)
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
                 .build();

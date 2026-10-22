@@ -404,6 +404,148 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     }
 
     @Override
+    @Transactional
+    public ClientOrderDTO addItemsToOrder(UUID orderId, CreateClientOrderRequest request) {
+        log.info("Agregando nuevos productos a la orden {} en tenant {}", orderId, request.getTenantId());
+
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
+
+        if (request.getTenantId() == null) {
+            throw new IllegalArgumentException("tenantId es requerido");
+        }
+        if (!order.getTenant().getId().equals(request.getTenantId())) {
+            throw new IllegalArgumentException("La orden no pertenece al tenant especificado");
+        }
+
+        // Validar que la comanda no esté cerrada (pagada o cancelada)
+        if (order.getEstado() == OrderStatus.PAGADA || order.getEstado() == OrderStatus.CANCELADA) {
+            throw new IllegalArgumentException(
+                    "No se pueden agregar productos a una comanda en estado " + order.getEstado()
+                            + ". La cuenta ya está cerrada.");
+        }
+
+        // Validar items
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Debe incluir al menos un producto para agregar a la orden");
+        }
+
+        // Pre-cargar productos en lote para validar disponibilidad y stock
+        Set<Long> productIds = request.getItems().stream()
+                .map(CreateClientOrderRequest.OrderItemRequest::getProductId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, TenantMenuProduct> productMap = tenantMenuProductRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(TenantMenuProduct::getId, p -> p));
+
+        // Validar stock y disponibilidad antes de persistir
+        for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+            TenantMenuProduct prod = productMap.get(itemRequest.getProductId());
+            if (prod == null) {
+                throw new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId());
+            }
+            if (!prod.isActive()) {
+                throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' no está disponible actualmente");
+            }
+            double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
+            if (!inventoryService.hasStock(itemRequest.getProductId(), qty)) {
+                throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' está agotado o no hay stock suficiente");
+            }
+        }
+
+        // Determinar número de ronda (1 = comanda inicial, 2+ = siguientes rondas)
+        int nextRonda = 1;
+        if (order.getItems() != null && !order.getItems().isEmpty()) {
+            int maxRonda = order.getItems().stream()
+                    .mapToInt(i -> i.getRonda() != null ? i.getRonda() : 1)
+                    .max().orElse(1);
+            nextRonda = maxRonda + 1;
+        }
+
+        final ClientOrder finalOrder = order;
+        final int currentRonda = nextRonda;
+
+        // Crear nuevas entidades de items
+        List<ClientOrderItem> newItems = request.getItems().stream()
+                .map(itemRequest -> {
+                    TenantMenuProduct product = productMap.get(itemRequest.getProductId());
+                    ClientOrderItem itemEntity = ClientOrderItemMapper.toEntity(itemRequest, finalOrder, product);
+                    itemEntity.setRonda(currentRonda);
+                    return itemEntity;
+                })
+                .collect(Collectors.toList());
+
+        newItems = clientOrderItemRepository.saveAll(newItems);
+
+        if (order.getItems() == null) {
+            order.setItems(new ArrayList<>());
+        }
+        order.getItems().addAll(newItems);
+
+        // Descontar inventario solo para los NUEVOS items
+        try {
+            for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+                Double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
+                inventoryService.deductForOrder(
+                        itemRequest.getProductId(),
+                        qty,
+                        itemRequest.getExcludedIngredientIds(),
+                        itemRequest.getAdditionalIngredientIds(),
+                        false);
+            }
+            inventoryService.syncProductAvailabilityByTenant(order.getTenant().getId());
+        } catch (Exception e) {
+            log.error("Error descontando inventario al agregar items a orden {}: {}", order.getId(), e.getMessage(), e);
+        }
+
+        // Recalcular montos de toda la comanda acumulada
+        BigDecimal subtotal = ClientOrderMapper.calculateSubtotal(order.getItems());
+        BigDecimal descuento = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
+        BigDecimal total = ClientOrderMapper.calculateTotal(subtotal, descuento);
+
+        order.setSubtotal(subtotal);
+        order.setDescuento(descuento);
+        order.setTotal(total);
+        order.setUpdatedAt(LocalDateTime.now());
+
+        // Actualizar estados de cocina y barra si los nuevos items corresponden a esas áreas
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+        boolean hasNewBarra = newItems.stream().anyMatch(i -> i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId()));
+        boolean hasNewCocina = newItems.stream().anyMatch(i -> i.getProduct() != null && !beverageProductIds.contains(i.getProduct().getId()));
+
+        if (hasNewCocina) {
+            if (order.getCocinaEstado() == null || order.getCocinaEstado() == OrderStatus.LISTO) {
+                order.setCocinaEstado(OrderStatus.CONFIRMADA);
+            }
+        }
+        if (hasNewBarra) {
+            if (order.getBarraEstado() == null || order.getBarraEstado() == OrderStatus.LISTO) {
+                order.setBarraEstado(OrderStatus.CONFIRMADA);
+            }
+        }
+        if (order.getEstado() == OrderStatus.LISTO) {
+            order.setEstado(OrderStatus.CONFIRMADA);
+        }
+
+        order = clientOrderRepository.save(order);
+        log.info("Orden {} ampliada con ronda {} ({} nuevos artículos). Nuevo total: {}",
+                orderId, currentRonda, newItems.size(), total);
+
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, null, descuento, beverageProductIds);
+
+        // Notificar en tiempo real a cocina y barra vía SSE
+        try {
+            orderSseService.publishOrderStatusChanged(orderDTO);
+            log.info("Evento SSE publicado al agregar ronda {} a la orden {} del tenant {}",
+                    currentRonda, order.getId(), order.getTenant().getId());
+        } catch (Exception e) {
+            log.error("Error al publicar evento SSE al agregar ronda a la orden {}: {}", order.getId(), e.getMessage(), e);
+        }
+
+        return orderDTO;
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<ClientOrderDTO> getOrderById(UUID orderId) {
         return clientOrderRepository.findById(orderId)
