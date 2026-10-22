@@ -15,6 +15,7 @@ public class MesaDTO {
     private Long id;
     private Long tenantId;
     private String nombre;
+    private String area;
     private String identificador;
     private Integer numero;
     private Integer capacidad;
@@ -41,6 +42,7 @@ public class MesaDTO {
                 .id(mesa.getId())
                 .tenantId(mesa.getTenantId())
                 .nombre(mesa.getNombre())
+                .area(mesa.getArea() != null && !mesa.getArea().isBlank() ? mesa.getArea() : "Principal")
                 .identificador(iden)
                 .numero(mesa.getNumero())
                 .capacidad(mesa.getCapacidad())

@@ -10,6 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 public class MesaRequest {
     private String nombre;
+    private String area;
     private String identificador;
     private Integer numero;
     private Integer capacidad;

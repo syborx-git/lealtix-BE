@@ -31,9 +31,13 @@ public class MesaController {
 
     @Operation(summary = "Listar mesas de un tenant")
     @GetMapping
-    public ResponseEntity<GenericResponse> listByTenant(@RequestParam Long tenantId) {
+    public ResponseEntity<GenericResponse> listByTenant(
+            @RequestParam Long tenantId,
+            @RequestParam(required = false) String area) {
         try {
-            List<MesaDTO> mesas = mesaService.listByTenant(tenantId);
+            List<MesaDTO> mesas = (area != null && !area.isBlank())
+                    ? mesaService.listByTenantAndArea(tenantId, area.trim())
+                    : mesaService.listByTenant(tenantId);
             return ResponseEntity.ok(new GenericResponse(200, "SUCCESS", mesas));
         } catch (Exception e) {
             log.error("Error listando mesas para tenant {}: {}", tenantId, e.getMessage(), e);

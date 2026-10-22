@@ -41,6 +41,15 @@ public class MesaServiceImpl implements MesaService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<MesaDTO> listByTenantAndArea(Long tenantId, String area) {
+        String targetArea = (area != null && !area.isBlank()) ? area.trim() : "Principal";
+        return mesaRepository.findByTenantIdAndAreaOrderByNumeroAscNombreAsc(tenantId, targetArea).stream()
+                .map(m -> MesaDTO.fromEntity(m, resolveMeseroName(m)))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<MesaDTO> listByTenantAndEstado(Long tenantId, MesaEstado estado) {
         return mesaRepository.findByTenantIdAndEstadoOrderByNumeroAsc(tenantId, estado).stream()
                 .map(m -> MesaDTO.fromEntity(m, resolveMeseroName(m)))
@@ -61,8 +70,12 @@ public class MesaServiceImpl implements MesaService {
             throw new IllegalArgumentException("El nombre de la mesa es requerido");
         }
         String nombre = request.getNombre().trim();
-        if (mesaRepository.existsByTenantIdAndNombre(tenantId, nombre)) {
-            throw new IllegalArgumentException("Ya existe una mesa con ese nombre en este local");
+        String area = request.getArea() != null && !request.getArea().isBlank()
+                ? request.getArea().trim()
+                : "Principal";
+
+        if (mesaRepository.existsByTenantIdAndAreaAndNombre(tenantId, area, nombre)) {
+            throw new IllegalArgumentException("Ya existe una mesa con ese nombre en el área '" + area + "'");
         }
 
         String identificador = request.getIdentificador() != null && !request.getIdentificador().isBlank()
@@ -73,12 +86,12 @@ public class MesaServiceImpl implements MesaService {
             throw new IllegalArgumentException("El identificador único de la mesa es requerido");
         }
 
-        if (mesaRepository.existsByTenantIdAndIdentificador(tenantId, identificador)) {
-            throw new IllegalArgumentException("Ya existe una mesa con el identificador '" + identificador + "' en este local");
+        if (mesaRepository.existsByTenantIdAndAreaAndIdentificador(tenantId, area, identificador)) {
+            throw new IllegalArgumentException("Ya existe una mesa con el identificador '" + identificador + "' en el área '" + area + "'");
         }
 
-        if (request.getNumero() != null && mesaRepository.existsByTenantIdAndNumero(tenantId, request.getNumero())) {
-            throw new IllegalArgumentException("Ya existe una mesa con el número " + request.getNumero() + " en este local");
+        if (request.getNumero() != null && mesaRepository.existsByTenantIdAndAreaAndNumero(tenantId, area, request.getNumero())) {
+            throw new IllegalArgumentException("Ya existe una mesa con el número " + request.getNumero() + " en el área '" + area + "'");
         }
         validateMeseroIfPresent(tenantId, request.getMeseroUserId());
 
@@ -92,6 +105,7 @@ public class MesaServiceImpl implements MesaService {
         Mesa mesa = Mesa.builder()
                 .tenantId(tenantId)
                 .nombre(nombre)
+                .area(area)
                 .identificador(identificador)
                 .numero(request.getNumero())
                 .capacidad(request.getCapacidad() != null && request.getCapacidad() > 0 ? request.getCapacidad() : 4)
@@ -112,25 +126,31 @@ public class MesaServiceImpl implements MesaService {
     @Transactional
     public MesaDTO update(Long id, Long tenantId, MesaRequest request) {
         Mesa mesa = getMesa(id, tenantId);
+        String currentArea = mesa.getArea() != null && !mesa.getArea().isBlank() ? mesa.getArea() : "Principal";
+        String targetArea = request.getArea() != null && !request.getArea().isBlank() ? request.getArea().trim() : currentArea;
+
         if (request.getNombre() != null && !request.getNombre().isBlank()) {
             String nombre = request.getNombre().trim();
-            if (mesaRepository.existsByTenantIdAndNombreAndIdNot(tenantId, nombre, id)) {
-                throw new IllegalArgumentException("Ya existe una mesa con ese nombre en este local");
+            if (mesaRepository.existsByTenantIdAndAreaAndNombreAndIdNot(tenantId, targetArea, nombre, id)) {
+                throw new IllegalArgumentException("Ya existe una mesa con ese nombre en el área '" + targetArea + "'");
             }
             mesa.setNombre(nombre);
         }
         if (request.getIdentificador() != null && !request.getIdentificador().isBlank()) {
             String iden = request.getIdentificador().trim();
-            if (mesaRepository.existsByTenantIdAndIdentificadorAndIdNot(tenantId, iden, id)) {
-                throw new IllegalArgumentException("Ya existe una mesa con el identificador '" + iden + "' en este local");
+            if (mesaRepository.existsByTenantIdAndAreaAndIdentificadorAndIdNot(tenantId, targetArea, iden, id)) {
+                throw new IllegalArgumentException("Ya existe una mesa con el identificador '" + iden + "' en el área '" + targetArea + "'");
             }
             mesa.setIdentificador(iden);
         }
         if (request.getNumero() != null) {
-            if (mesaRepository.existsByTenantIdAndNumeroAndIdNot(tenantId, request.getNumero(), id)) {
-                throw new IllegalArgumentException("Ya existe una mesa con el número " + request.getNumero() + " en este local");
+            if (mesaRepository.existsByTenantIdAndAreaAndNumeroAndIdNot(tenantId, targetArea, request.getNumero(), id)) {
+                throw new IllegalArgumentException("Ya existe una mesa con el número " + request.getNumero() + " en el área '" + targetArea + "'");
             }
             mesa.setNumero(request.getNumero());
+        }
+        if (request.getArea() != null && !request.getArea().isBlank()) {
+            mesa.setArea(targetArea);
         }
         if (request.getCapacidad() != null && request.getCapacidad() > 0) {
             mesa.setCapacidad(request.getCapacidad());

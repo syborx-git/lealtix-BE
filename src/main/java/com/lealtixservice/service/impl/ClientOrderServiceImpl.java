@@ -71,9 +71,8 @@ import java.util.Set;
 @Transactional
 public class ClientOrderServiceImpl implements ClientOrderService {
 
-    /** Prórroga de edición de comandas enviadas (en minutos) */
-    public static final int EDIT_WINDOW_MINUTES = 3;
-    private static final long EDIT_WINDOW_SECONDS = EDIT_WINDOW_MINUTES * 60L;
+    /** Prórroga de edición de comandas enviadas (30 segundos tras el envío) */
+    public static final long EDIT_WINDOW_SECONDS = 30L;
 
     private final ClientOrderRepository clientOrderRepository;
     private final ClientOrderItemRepository clientOrderItemRepository;
@@ -287,13 +286,13 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("La orden no pertenece al tenant especificado");
         }
 
-        // Validar la prórroga de edición (3 minutos desde el envío)
+        // Validar la prórroga de edición (30 segundos desde el envío)
         LocalDateTime sentAt = order.getFecha() != null ? order.getFecha() : order.getCreatedAt();
         if (sentAt != null) {
             long elapsedSeconds = Duration.between(sentAt, LocalDateTime.now()).getSeconds();
             if (elapsedSeconds > EDIT_WINDOW_SECONDS) {
                 throw new IllegalArgumentException(
-                        "El tiempo de prórroga de " + EDIT_WINDOW_MINUTES + " minutos para editar la comanda ha expirado");
+                        "El tiempo de prórroga de 30 segundos para editar la comanda ha expirado");
             }
         }
 
