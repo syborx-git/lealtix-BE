@@ -61,6 +61,10 @@ public class ClientOrderItemMapper {
             subtotal = item.getPrecioUnitario().multiply(new BigDecimal(item.getCantidad()));
         }
         
+        // Determinar si es bebida: respetar el flag si ya viene true, o inferir con BeverageClassificationUtil
+        boolean isBeverage = Boolean.TRUE.equals(esBebida) ||
+                (item.getProduct() != null && com.lealtixservice.util.BeverageClassificationUtil.isBeverageProduct(item.getProduct()));
+
         return ClientOrderItemDTO.builder()
                 .id(item.getId())
                 .orderId(item.getOrder() != null ? item.getOrder().getId() : null)
@@ -74,7 +78,7 @@ public class ClientOrderItemMapper {
                 .comentarios(item.getComentarios())
                 .excludedIngredientIds(item.getExcludedIngredientIds())
                 .additionalIngredientIds(item.getAdditionalIngredientIds())
-                .esBebida(esBebida)
+                .esBebida(isBeverage)
                 .ronda(item.getRonda() != null ? item.getRonda() : 1)
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())

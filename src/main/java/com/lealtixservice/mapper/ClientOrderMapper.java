@@ -106,6 +106,12 @@ public class ClientOrderMapper {
                     .collect(Collectors.toList());
         }
         
+        boolean hasBarraItems = itemsDTO != null && itemsDTO.stream().anyMatch(i -> Boolean.TRUE.equals(i.getEsBebida()));
+        boolean hasCocinaItems = itemsDTO != null && itemsDTO.stream().anyMatch(i -> !Boolean.TRUE.equals(i.getEsBebida()));
+
+        OrderStatus resolvedBarraEstado = order.getBarraEstado() != null ? order.getBarraEstado() : (hasBarraItems ? order.getEstado() : null);
+        OrderStatus resolvedCocinaEstado = order.getCocinaEstado() != null ? order.getCocinaEstado() : (hasCocinaItems ? order.getEstado() : null);
+
         return ClientOrderDTO.builder()
                 .id(order.getId())
                 .customerId(order.getCustomer() != null ? order.getCustomer().getId() : null)
@@ -114,8 +120,8 @@ public class ClientOrderMapper {
                 .tenantId(order.getTenant() != null ? order.getTenant().getId() : null)
                 .fecha(order.getFecha())
                 .estado(order.getEstado())
-                .barraEstado(order.getBarraEstado())
-                .cocinaEstado(order.getCocinaEstado())
+                .barraEstado(resolvedBarraEstado)
+                .cocinaEstado(resolvedCocinaEstado)
                 .barraReadyAt(order.getBarraReadyAt())
                 .cocinaReadyAt(order.getCocinaReadyAt())
                 .subtotal(order.getSubtotal())

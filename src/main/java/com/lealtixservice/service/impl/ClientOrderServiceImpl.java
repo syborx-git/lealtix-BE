@@ -92,17 +92,8 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     private final InsumoRepository insumoRepository;
 
     private Set<Long> getBeverageProductIds(Long tenantId) {
-        if (tenantId == null) return java.util.Collections.emptySet();
-        try {
-            return insumoRepository.findByTenantIdAndIsActiveTrueOrderByNombreAsc(tenantId).stream()
-                    .filter(Insumo::isEsBebida)
-                    .map(Insumo::getProductoId)
-                    .filter(java.util.Objects::nonNull)
-                    .collect(Collectors.toSet());
-        } catch (Exception e) {
-            log.warn("Error resolviendo catálogo de bebidas para tenant {}: {}", tenantId, e.getMessage());
-            return java.util.Collections.emptySet();
-        }
+        return com.lealtixservice.util.BeverageClassificationUtil.getBeverageProductIds(
+                tenantId, tenantMenuProductRepository, insumoRepository);
     }
 
     @Override
@@ -631,12 +622,16 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
         Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
 
-        // Asegurar que barraEstado y cocinaEstado estén inicializados si la orden tiene items
-        if (order.getBarraEstado() == null && order.getCocinaEstado() == null && order.getItems() != null && !order.getItems().isEmpty()) {
+        // Asegurar que barraEstado y cocinaEstado estén correctamente inicializados para las áreas de la comanda
+        if (order.getItems() != null && !order.getItems().isEmpty()) {
             boolean hasBarra = order.getItems().stream().anyMatch(i -> i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId()));
             boolean hasCocina = order.getItems().stream().anyMatch(i -> i.getProduct() != null && !beverageProductIds.contains(i.getProduct().getId()));
-            order.setBarraEstado(hasBarra ? order.getEstado() : null);
-            order.setCocinaEstado(hasCocina ? order.getEstado() : null);
+            if (hasBarra && order.getBarraEstado() == null) {
+                order.setBarraEstado(order.getEstado());
+            }
+            if (hasCocina && order.getCocinaEstado() == null) {
+                order.setCocinaEstado(order.getEstado());
+            }
         }
 
         if (area != null && !area.isBlank()) {
