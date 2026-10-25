@@ -25,7 +25,7 @@ public final class BeverageClassificationUtil {
             "cerveza", "cervezas", "beer", "beers",
             "bebida", "bebidas", "beverage", "beverages", "drink", "drinks",
             "barra", "bar",
-            "coctel", "cocteles", "cocteleria", "cocteleria", "cocktail", "cocktails", "mixologia",
+            "coctel", "cocteles", "cocteleria", "cocktail", "cocktails", "mixologia",
             "destilado", "destilados", "botella", "botellas",
             "licor", "licores", "liquor",
             "vino", "vinos", "wine", "wines",
