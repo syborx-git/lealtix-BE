@@ -126,6 +126,7 @@ public class CajaController {
             String bAddress = "";
             String bPhone = "";
             String bLogoUrl = null;
+            String bLogoMode = "HEADER";
             var tenantOpt = tenantRepository.findById(tenantId);
             if (tenantOpt.isPresent()) {
                 var t = tenantOpt.get();
@@ -133,6 +134,7 @@ public class CajaController {
                 if (t.getDireccion() != null) bAddress = t.getDireccion();
                 if (t.getTelefono() != null) bPhone = t.getTelefono();
                 if (t.getLogoUrl() != null && !t.getLogoUrl().isBlank()) bLogoUrl = t.getLogoUrl();
+                if (t.getTicketLogoMode() != null && !t.getTicketLogoMode().isBlank()) bLogoMode = t.getTicketLogoMode();
             }
 
             String facturaUrl = (qrFacturaUrl != null && !qrFacturaUrl.isBlank())
@@ -141,6 +143,7 @@ public class CajaController {
 
             ticket.setLogoUrl(bLogoUrl);
             ticket.setQrFacturacionUrl(facturaUrl);
+            ticket.setTicketLogoMode(bLogoMode);
 
             if (imprimirSilencioso) {
                 boolean impreso = thermalPrinterService.printTicket(ticket, bName, bAddress, bPhone, bLogoUrl, facturaUrl, null);
@@ -180,6 +183,7 @@ public class CajaController {
             String bAddress = "";
             String bPhone = "";
             String bLogoUrl = null;
+            String bLogoMode = "HEADER";
             var tenantOpt = tenantRepository.findById(tenantId);
             if (tenantOpt.isPresent()) {
                 var t = tenantOpt.get();
@@ -187,6 +191,7 @@ public class CajaController {
                 if (t.getDireccion() != null) bAddress = t.getDireccion();
                 if (t.getTelefono() != null) bPhone = t.getTelefono();
                 if (t.getLogoUrl() != null && !t.getLogoUrl().isBlank()) bLogoUrl = t.getLogoUrl();
+                if (t.getTicketLogoMode() != null && !t.getTicketLogoMode().isBlank()) bLogoMode = t.getTicketLogoMode();
             }
 
             String facturaUrl = (qrFacturaUrl != null && !qrFacturaUrl.isBlank())
@@ -195,6 +200,7 @@ public class CajaController {
 
             ticket.setLogoUrl(bLogoUrl);
             ticket.setQrFacturacionUrl(facturaUrl);
+            ticket.setTicketLogoMode(bLogoMode);
 
             boolean impreso = thermalPrinterService.printTicket(ticket, bName, bAddress, bPhone, bLogoUrl, facturaUrl, printerName);
             ticket.setImpresoEnHardware(impreso);

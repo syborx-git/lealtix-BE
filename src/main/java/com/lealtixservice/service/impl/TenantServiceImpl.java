@@ -103,6 +103,11 @@ public class TenantServiceImpl implements TenantService {
                         existingTenant.setKitchenEnabledAt(LocalDateTime.now());
                     }
                 }
+                if (dto.getTicketLogoMode() != null && !dto.getTicketLogoMode().isBlank()) {
+                    existingTenant.setTicketLogoMode(dto.getTicketLogoMode());
+                } else if (existingTenant.getTicketLogoMode() == null) {
+                    existingTenant.setTicketLogoMode("HEADER");
+                }
                 existingTenant.setUpdatedAt(LocalDateTime.now());
                 existingTenant.setActive(true);
                 return tenantRepository.save(existingTenant);

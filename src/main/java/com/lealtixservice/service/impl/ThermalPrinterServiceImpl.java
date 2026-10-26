@@ -75,6 +75,9 @@ public class ThermalPrinterServiceImpl implements ThermalPrinterService {
 
         try {
             String finalLogo = (logoUrl != null && !logoUrl.trim().isEmpty()) ? logoUrl : ticket.getLogoUrl();
+            if (ticket.getTicketLogoMode() != null && "WATERMARK".equalsIgnoreCase(ticket.getTicketLogoMode())) {
+                finalLogo = null;
+            }
             String finalQr = (qrFacturacionUrl != null && !qrFacturacionUrl.trim().isEmpty()) ? qrFacturacionUrl : ticket.getQrFacturacionUrl();
             byte[] escposBytes = buildEscPosTicket(ticket, businessName, businessAddress, businessPhone, finalLogo, finalQr);
             DocFlavor flavor = DocFlavor.BYTE_ARRAY.AUTOSENSE;

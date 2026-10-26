@@ -35,4 +35,5 @@ public class TicketPrecuentaDTO {
     private String metodoPago;
     private String logoUrl;
     private String qrFacturacionUrl;
+    private String ticketLogoMode;
 }
