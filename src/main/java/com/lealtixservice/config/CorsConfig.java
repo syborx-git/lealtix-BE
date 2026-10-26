@@ -56,11 +56,20 @@ public class CorsConfig {
         if (!origins.contains("http://192.168.*:*")) {
             origins.add("http://192.168.*:*");
         }
+        if (!origins.contains("http://192.168.*")) {
+            origins.add("http://192.168.*");
+        }
         if (!origins.contains("http://10.*:*")) {
             origins.add("http://10.*:*");
         }
+        if (!origins.contains("http://10.*")) {
+            origins.add("http://10.*");
+        }
         if (!origins.contains("http://172.16.*:*")) {
             origins.add("http://172.16.*:*");
+        }
+        if (!origins.contains("http://172.16.*")) {
+            origins.add("http://172.16.*");
         }
         // Permite los túneles públicos de cloudflared (pruebas/uso remoto)
         if (!origins.contains("https://*.trycloudflare.com")) {
