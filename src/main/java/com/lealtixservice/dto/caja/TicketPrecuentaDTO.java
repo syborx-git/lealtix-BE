@@ -33,4 +33,6 @@ public class TicketPrecuentaDTO {
     private String nombreImpresora;
     private String estado;
     private String metodoPago;
+    private String logoUrl;
+    private String qrFacturacionUrl;
 }

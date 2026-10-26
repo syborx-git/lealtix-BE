@@ -117,23 +117,33 @@ public class CajaController {
     public ResponseEntity<GenericResponse> imprimirTicket(
             @PathVariable UUID orderId,
             @RequestParam Long tenantId,
-            @RequestParam(required = false, defaultValue = "true") boolean imprimirSilencioso) {
+            @RequestParam(required = false, defaultValue = "true") boolean imprimirSilencioso,
+            @RequestParam(required = false) String qrFacturaUrl) {
         try {
             TicketPrecuentaDTO ticket = cajaTurnoService.imprimirTicketPrecuenta(tenantId, orderId);
 
-            if (imprimirSilencioso) {
-                String bName = "Restaurante";
-                String bAddress = "";
-                String bPhone = "";
-                var tenantOpt = tenantRepository.findById(tenantId);
-                if (tenantOpt.isPresent()) {
-                    var t = tenantOpt.get();
-                    if (t.getNombreNegocio() != null) bName = t.getNombreNegocio();
-                    if (t.getDireccion() != null) bAddress = t.getDireccion();
-                    if (t.getTelefono() != null) bPhone = t.getTelefono();
-                }
+            String bName = "Restaurante";
+            String bAddress = "";
+            String bPhone = "";
+            String bLogoUrl = null;
+            var tenantOpt = tenantRepository.findById(tenantId);
+            if (tenantOpt.isPresent()) {
+                var t = tenantOpt.get();
+                if (t.getNombreNegocio() != null) bName = t.getNombreNegocio();
+                if (t.getDireccion() != null) bAddress = t.getDireccion();
+                if (t.getTelefono() != null) bPhone = t.getTelefono();
+                if (t.getLogoUrl() != null && !t.getLogoUrl().isBlank()) bLogoUrl = t.getLogoUrl();
+            }
 
-                boolean impreso = thermalPrinterService.printTicket(ticket, bName, bAddress, bPhone, null);
+            String facturaUrl = (qrFacturaUrl != null && !qrFacturaUrl.isBlank())
+                    ? qrFacturaUrl
+                    : "http://localhost:4200/facturar/" + orderId;
+
+            ticket.setLogoUrl(bLogoUrl);
+            ticket.setQrFacturacionUrl(facturaUrl);
+
+            if (imprimirSilencioso) {
+                boolean impreso = thermalPrinterService.printTicket(ticket, bName, bAddress, bPhone, bLogoUrl, facturaUrl, null);
                 ticket.setImpresoEnHardware(impreso);
                 if (impreso) {
                     ticket.setNombreImpresora(thermalPrinterService.getActivePrinterName(null));
@@ -161,22 +171,32 @@ public class CajaController {
     public ResponseEntity<GenericResponse> imprimirDirecto(
             @PathVariable UUID orderId,
             @RequestParam Long tenantId,
-            @RequestParam(required = false) String printerName) {
+            @RequestParam(required = false) String printerName,
+            @RequestParam(required = false) String qrFacturaUrl) {
         try {
             TicketPrecuentaDTO ticket = cajaTurnoService.imprimirTicketPrecuenta(tenantId, orderId);
 
             String bName = "Restaurante";
             String bAddress = "";
             String bPhone = "";
+            String bLogoUrl = null;
             var tenantOpt = tenantRepository.findById(tenantId);
             if (tenantOpt.isPresent()) {
                 var t = tenantOpt.get();
                 if (t.getNombreNegocio() != null) bName = t.getNombreNegocio();
                 if (t.getDireccion() != null) bAddress = t.getDireccion();
                 if (t.getTelefono() != null) bPhone = t.getTelefono();
+                if (t.getLogoUrl() != null && !t.getLogoUrl().isBlank()) bLogoUrl = t.getLogoUrl();
             }
 
-            boolean impreso = thermalPrinterService.printTicket(ticket, bName, bAddress, bPhone, printerName);
+            String facturaUrl = (qrFacturaUrl != null && !qrFacturaUrl.isBlank())
+                    ? qrFacturaUrl
+                    : "http://localhost:4200/facturar/" + orderId;
+
+            ticket.setLogoUrl(bLogoUrl);
+            ticket.setQrFacturacionUrl(facturaUrl);
+
+            boolean impreso = thermalPrinterService.printTicket(ticket, bName, bAddress, bPhone, bLogoUrl, facturaUrl, printerName);
             ticket.setImpresoEnHardware(impreso);
             ticket.setNombreImpresora(thermalPrinterService.getActivePrinterName(printerName));
 

@@ -3,19 +3,35 @@ package com.lealtixservice.service.impl;
 import com.lealtixservice.dto.caja.ItemPrecuentaDTO;
 import com.lealtixservice.dto.caja.TicketPrecuentaDTO;
 import com.lealtixservice.service.ThermalPrinterService;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import com.google.zxing.qrcode.QRCodeWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
 import javax.print.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -35,8 +51,17 @@ public class ThermalPrinterServiceImpl implements ThermalPrinterService {
     private static final byte[] GS_NORMAL = new byte[]{0x1D, 0x21, 0x00};        // GS ! 0 (Normal)
     private static final byte[] FEED_AND_CUT = new byte[]{0x0A, 0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x41, 0x10}; // Avance y corte parcial
 
+    private final Map<String, BufferedImage> logoCache = new ConcurrentHashMap<>();
+
     @Override
     public boolean printTicket(TicketPrecuentaDTO ticket, String businessName, String businessAddress, String businessPhone, String printerNameOverride) {
+        String logo = ticket != null ? ticket.getLogoUrl() : null;
+        String qr = ticket != null ? ticket.getQrFacturacionUrl() : null;
+        return printTicket(ticket, businessName, businessAddress, businessPhone, logo, qr, printerNameOverride);
+    }
+
+    @Override
+    public boolean printTicket(TicketPrecuentaDTO ticket, String businessName, String businessAddress, String businessPhone, String logoUrl, String qrFacturacionUrl, String printerNameOverride) {
         if (ticket == null) {
             log.warn("No se puede imprimir ticket nulo");
             return false;
@@ -49,12 +74,15 @@ public class ThermalPrinterServiceImpl implements ThermalPrinterService {
         }
 
         try {
-            byte[] escposBytes = buildEscPosTicket(ticket, businessName, businessAddress, businessPhone);
+            String finalLogo = (logoUrl != null && !logoUrl.trim().isEmpty()) ? logoUrl : ticket.getLogoUrl();
+            String finalQr = (qrFacturacionUrl != null && !qrFacturacionUrl.trim().isEmpty()) ? qrFacturacionUrl : ticket.getQrFacturacionUrl();
+            byte[] escposBytes = buildEscPosTicket(ticket, businessName, businessAddress, businessPhone, finalLogo, finalQr);
             DocFlavor flavor = DocFlavor.BYTE_ARRAY.AUTOSENSE;
             Doc doc = new SimpleDoc(escposBytes, flavor, null);
             DocPrintJob printJob = printService.createPrintJob();
 
-            log.info("Enviando ticket comanda {} silenciosamente a impresora [{}]", ticket.getFolioComanda(), printService.getName());
+            log.info("Enviando ticket comanda {} silenciosamente a impresora [{}] con logo: {} y QR: {}",
+                    ticket.getFolioComanda(), printService.getName(), finalLogo != null, finalQr != null);
             printJob.print(doc, null);
             return true;
         } catch (Exception e) {
@@ -130,7 +158,7 @@ public class ThermalPrinterServiceImpl implements ThermalPrinterService {
                 upper.contains("THERMAL") || upper.contains("RECEIPT") || upper.contains("TICKET");
     }
 
-    private byte[] buildEscPosTicket(TicketPrecuentaDTO t, String businessName, String address, String phone) throws IOException {
+    private byte[] buildEscPosTicket(TicketPrecuentaDTO t, String businessName, String address, String phone, String logoUrl, String qrFacturacionUrl) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         // 1. Inicializar impresora
@@ -138,8 +166,20 @@ public class ThermalPrinterServiceImpl implements ThermalPrinterService {
 
         // 2. Encabezado Centrado
         out.write(ESC_ALIGN_CENTER);
-        out.write(ESC_BOLD_ON);
 
+        // Logotipo del negocio (si existe) en monocromo raster centrado
+        String finalLogo = (logoUrl != null && !logoUrl.trim().isEmpty()) ? logoUrl : t.getLogoUrl();
+        if (finalLogo != null && !finalLogo.trim().isEmpty()) {
+            BufferedImage logoImg = loadLogoImage(finalLogo);
+            if (logoImg != null) {
+                byte[] logoRaster = buildEscPosRasterImage(logoImg, 260, 95);
+                if (logoRaster.length > 0) {
+                    out.write(logoRaster);
+                }
+            }
+        }
+
+        out.write(ESC_BOLD_ON);
         String bName = clean(businessName != null && !businessName.trim().isEmpty() ? businessName : "RESTAURANTE").toUpperCase();
         out.write((bName + "\n").getBytes(StandardCharsets.US_ASCII));
         out.write(ESC_BOLD_OFF);
@@ -221,17 +261,161 @@ public class ThermalPrinterServiceImpl implements ThermalPrinterService {
             out.write((padRow("20%:", "$" + p20.setScale(2)) + "\n").getBytes(StandardCharsets.US_ASCII));
         }
 
+        // 6. Código QR de Facturación
+        String finalQr = (qrFacturacionUrl != null && !qrFacturacionUrl.trim().isEmpty()) ? qrFacturacionUrl : t.getQrFacturacionUrl();
+        if (finalQr != null && !finalQr.trim().isEmpty()) {
+            out.write((repeat('-', LINE_WIDTH) + "\n").getBytes(StandardCharsets.US_ASCII));
+            out.write(ESC_ALIGN_CENTER);
+            out.write(ESC_BOLD_ON);
+            out.write("¿NECESITAS FACTURA?\n".getBytes(StandardCharsets.US_ASCII));
+            out.write(ESC_BOLD_OFF);
+
+            byte[] qrRaster = generateEscPosQrCode(finalQr);
+            if (qrRaster.length > 0) {
+                out.write(qrRaster);
+            }
+            out.write("Escanea para facturar\n".getBytes(StandardCharsets.US_ASCII));
+        }
+
         out.write((repeat('=', LINE_WIDTH) + "\n").getBytes(StandardCharsets.US_ASCII));
 
-        // 6. Pie de Página Centrado
+        // 7. Pie de Página Centrado
         out.write(ESC_ALIGN_CENTER);
         out.write("!GRACIAS POR SU PREFERENCIA!\n".getBytes(StandardCharsets.US_ASCII));
         out.write((esPagada ? "Comprobante de Pago\n" : "Este ticket no es comprobante fiscal\n").getBytes(StandardCharsets.US_ASCII));
 
-        // 7. Avance y corte
+        // 8. Avance y corte
         out.write(FEED_AND_CUT);
 
         return out.toByteArray();
+    }
+
+    /**
+     * Convierte una imagen a formato ESC/POS raster bit image (GS v 0).
+     * Compatible universalmente con impresoras térmicas de 58mm (ancho de impresión: 384 puntos = 48 bytes por línea).
+     */
+    private byte[] buildEscPosRasterImage(BufferedImage src, int maxWidth, int maxHeight) {
+        if (src == null) return new byte[0];
+        try {
+            int origW = src.getWidth();
+            int origH = src.getHeight();
+            if (origW <= 0 || origH <= 0) return new byte[0];
+
+            double scale = Math.min((double) maxWidth / origW, (double) maxHeight / origH);
+            if (scale > 1.0) scale = 1.0;
+            int targetW = Math.max(1, (int) Math.round(origW * scale));
+            int targetH = Math.max(1, (int) Math.round(origH * scale));
+
+            Image scaled = src.getScaledInstance(targetW, targetH, Image.SCALE_SMOOTH);
+            BufferedImage bScaled = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = bScaled.createGraphics();
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2.drawImage(scaled, 0, 0, null);
+            g2.dispose();
+
+            // Ancho estándar de línea en impresoras térmicas de 58mm: 384 puntos (48 bytes)
+            int canvasW = 384;
+            int canvasH = targetH;
+            int xOffset = Math.max(0, (canvasW - targetW) / 2);
+
+            BufferedImage canvas = new BufferedImage(canvasW, canvasH, BufferedImage.TYPE_INT_RGB);
+            Graphics2D gc = canvas.createGraphics();
+            gc.setColor(Color.WHITE);
+            gc.fillRect(0, 0, canvasW, canvasH);
+            gc.drawImage(bScaled, xOffset, 0, null);
+            gc.dispose();
+
+            int bytesPerRow = canvasW / 8; // 48 bytes
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+            // Comando GS v 0 0 xL xH yL yH
+            out.write(new byte[]{
+                    0x1D, 0x76, 0x30, 0x00,
+                    (byte) (bytesPerRow & 0xFF),
+                    (byte) ((bytesPerRow >> 8) & 0xFF),
+                    (byte) (canvasH & 0xFF),
+                    (byte) ((canvasH >> 8) & 0xFF)
+            });
+
+            for (int y = 0; y < canvasH; y++) {
+                for (int xByte = 0; xByte < bytesPerRow; xByte++) {
+                    byte b = 0;
+                    for (int bit = 0; bit < 8; bit++) {
+                        int px = xByte * 8 + bit;
+                        int rgb = canvas.getRGB(px, y);
+                        int r = (rgb >> 16) & 0xFF;
+                        int g = (rgb >> 8) & 0xFF;
+                        int bl = rgb & 0xFF;
+                        int lum = (int) (0.299 * r + 0.587 * g + 0.114 * bl);
+                        if (lum < 165) {
+                            b |= (byte) (1 << (7 - bit));
+                        }
+                    }
+                    out.write(b);
+                }
+            }
+            out.write(0x0A);
+            return out.toByteArray();
+        } catch (Exception e) {
+            log.warn("Error convirtiendo imagen a ESC/POS raster: {}", e.getMessage());
+            return new byte[0];
+        }
+    }
+
+    /**
+     * Genera un código QR nítido usando ZXing y lo convierte a ESC/POS raster.
+     */
+    private byte[] generateEscPosQrCode(String qrData) {
+        if (qrData == null || qrData.trim().isEmpty()) return new byte[0];
+        try {
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+            hints.put(EncodeHintType.MARGIN, 1);
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
+
+            BitMatrix bitMatrix = new QRCodeWriter().encode(qrData, BarcodeFormat.QR_CODE, 192, 192, hints);
+            BufferedImage qrImage = MatrixToImageWriter.toBufferedImage(bitMatrix);
+            return buildEscPosRasterImage(qrImage, 192, 192);
+        } catch (Exception e) {
+            log.warn("Error generando código QR para ticket ESC/POS: {}", e.getMessage());
+            return new byte[0];
+        }
+    }
+
+    /**
+     * Carga y almacena en caché la imagen del logotipo (desde URL http/https o base64).
+     */
+    private BufferedImage loadLogoImage(String logoUrl) {
+        if (logoUrl == null || logoUrl.trim().isEmpty()) return null;
+        if (logoCache.containsKey(logoUrl)) {
+            return logoCache.get(logoUrl);
+        }
+        try {
+            BufferedImage img = null;
+            if (logoUrl.startsWith("data:image")) {
+                int comma = logoUrl.indexOf(",");
+                if (comma > 0) {
+                    byte[] bytes = Base64.getDecoder().decode(logoUrl.substring(comma + 1));
+                    img = ImageIO.read(new ByteArrayInputStream(bytes));
+                }
+            } else if (logoUrl.startsWith("http://") || logoUrl.startsWith("https://")) {
+                URI uri = URI.create(logoUrl);
+                HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+                conn.setConnectTimeout(2500);
+                conn.setReadTimeout(2500);
+                conn.setRequestProperty("User-Agent", "Lealtix-POS/1.0");
+                try (var is = conn.getInputStream()) {
+                    img = ImageIO.read(is);
+                }
+            }
+            if (img != null) {
+                logoCache.put(logoUrl, img);
+            }
+            return img;
+        } catch (Exception e) {
+            log.warn("No se pudo cargar imagen de logo para ticket desde [{}]: {}", logoUrl, e.getMessage());
+            return null;
+        }
     }
 
     private String clean(String s) {
