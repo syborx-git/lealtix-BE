@@ -34,6 +34,9 @@ public class TenantMenuProductDTO {
     /** true = artículo variable para asignarse como variante de recetas */
     private Boolean esVariable;
 
+    /** true = producto que contiene variantes (no tiene precio base directo; el precio lo tienen sus variantes) */
+    private Boolean tieneVariantes;
+
     /** Ingredientes de la receta (base / modificables) para mostrar opciones */
     private List<Map<String, Object>> recipes;
 

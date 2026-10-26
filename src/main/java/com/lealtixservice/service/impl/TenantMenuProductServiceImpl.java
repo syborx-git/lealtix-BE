@@ -27,9 +27,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Optional;
 
 @Service
@@ -200,6 +202,13 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             productEntity.setEsVariable(dto.getEsVariable());
         }
 
+        if (dto.getTieneVariantes() != null) {
+            productEntity.setTieneVariantes(dto.getTieneVariantes());
+            if (Boolean.TRUE.equals(dto.getTieneVariantes()) && (productEntity.getPrecio() == null || dto.getPrice() == null)) {
+                productEntity.setPrecio(BigDecimal.ZERO);
+            }
+        }
+
         syncCategories(productEntity, dto);
 
         return productEntity;
@@ -272,6 +281,25 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             }
         }
 
+        Map<Long, List<TenantMenuProduct>> variableProductsByCategory = new HashMap<>();
+        for (TenantMenuProduct e : entities.values()) {
+            if (Boolean.TRUE.equals(e.getEsVariable())) {
+                if (e.getCategory() != null && e.getCategory().getId() != null) {
+                    variableProductsByCategory.computeIfAbsent(e.getCategory().getId(), k -> new ArrayList<>()).add(e);
+                }
+                if (e.getCategories() != null) {
+                    for (TenantMenuCategory c : e.getCategories()) {
+                        if (c != null && c.getId() != null) {
+                            List<TenantMenuProduct> vlist = variableProductsByCategory.computeIfAbsent(c.getId(), k -> new ArrayList<>());
+                            if (!vlist.contains(e)) {
+                                vlist.add(e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         for (TenantMenuProductDTO dto : products) {
             TenantMenuProduct entity = entities.get(dto.getId());
             if (entity == null) continue;
@@ -294,6 +322,7 @@ List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of
             dto.setUnidad(entity.getUnidad() != null ? entity.getUnidad() : "pieza");
             dto.setAutoAvailability(entity.getAutoAvailability());
             dto.setEsVariable(Boolean.TRUE.equals(entity.getEsVariable()));
+            dto.setTieneVariantes(Boolean.TRUE.equals(entity.getTieneVariantes()));
 
             // Todas las categorías del producto (principal + extras) para la UI
             List<Long> categoryIds = new ArrayList<>();
@@ -377,6 +406,47 @@ List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of
                 item.put("grupo", pvd.getGrupo() != null ? pvd.getGrupo() : "VARIANTE");
                 item.put("isDishVariant", true);
                 variantList.add(item);
+            }
+
+            // Si el producto está marcado con tieneVariantes = true (o no tiene variantes explícitas asignadas)
+            // pero en su(s) categoría(s) se han dado de alta artículos variables (esVariable = true):
+            if (variantList.isEmpty() && (Boolean.TRUE.equals(entity.getTieneVariantes()) || Boolean.TRUE.equals(dto.getTieneVariantes()))) {
+                Set<Long> addedVarIds = new HashSet<>();
+                List<TenantMenuCategory> pCats = new ArrayList<>();
+                if (entity.getCategory() != null) pCats.add(entity.getCategory());
+                if (entity.getCategories() != null) {
+                    for (TenantMenuCategory c : entity.getCategories()) {
+                        if (c != null && !pCats.contains(c)) pCats.add(c);
+                    }
+                }
+                for (TenantMenuCategory cat : pCats) {
+                    if (cat == null || cat.getId() == null) continue;
+                    List<TenantMenuProduct> catVars = variableProductsByCategory.get(cat.getId());
+                    if (catVars != null) {
+                        for (TenantMenuProduct vDish : catVars) {
+                            if (vDish.getId().equals(entity.getId()) || addedVarIds.contains(vDish.getId())) continue;
+                            addedVarIds.add(vDish.getId());
+                            Map<String, Object> item = new LinkedHashMap<>();
+                            item.put("id", vDish.getId());
+                            item.put("variantDishId", vDish.getId());
+                            item.put("dishProductId", vDish.getId());
+                            item.put("insumoId", vDish.getId());
+                            item.put("insumoName", vDish.getNombre());
+                            item.put("name", vDish.getNombre());
+                            item.put("cantidad", 1.0);
+                            item.put("unidad", vDish.getUnidad() != null ? vDish.getUnidad() : "pieza");
+                            BigDecimal variantPrice = vDish.getPrecio() != null ? vDish.getPrecio() : BigDecimal.ZERO;
+                            item.put("precio", variantPrice);
+                            item.put("price", variantPrice);
+                            item.put("stock", vDish.getStock() != null ? vDish.getStock() : 0.0);
+                            item.put("tipoIngrediente", "VARIANTE");
+                            item.put("isVariant", true);
+                            item.put("grupo", "VARIANTE");
+                            item.put("isDishVariant", true);
+                            variantList.add(item);
+                        }
+                    }
+                }
             }
 
             dto.setAdditionals(additionalList);

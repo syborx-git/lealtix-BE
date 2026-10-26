@@ -140,7 +140,9 @@ public class InventoryController {
         Double stockMinimo = toDouble(body.get("stockMinimo"));
         Double precioVenta = toDouble(body.get("precioVenta"));
         List<Long> categoryIds = toLongList(body.get("categoryIds"));
-        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds));
+        Boolean esVariable = body.get("esVariable") != null ? Boolean.valueOf(body.get("esVariable").toString()) : null;
+        Boolean tieneVariantes = body.get("tieneVariantes") != null ? Boolean.valueOf(body.get("tieneVariantes").toString()) : null;
+        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes));
     }
 
     @Operation(summary = "Actualizar bebida")
@@ -154,7 +156,9 @@ public class InventoryController {
         Double stockMinimo = toDouble(body.get("stockMinimo"));
         Double precioVenta = toDouble(body.get("precioVenta"));
         List<Long> categoryIds = toLongList(body.get("categoryIds"));
-        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds));
+        Boolean esVariable = body.get("esVariable") != null ? Boolean.valueOf(body.get("esVariable").toString()) : null;
+        Boolean tieneVariantes = body.get("tieneVariantes") != null ? Boolean.valueOf(body.get("tieneVariantes").toString()) : null;
+        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes));
     }
 
     @Operation(summary = "Eliminar bebida")

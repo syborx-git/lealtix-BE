@@ -76,6 +76,11 @@ public class TenantMenuProduct {
     @Column(name = "es_variable")
     private Boolean esVariable = false;
 
+    /** true = El producto contiene variantes (no requiere precio base directo; el precio lo tienen las variantes) */
+    @Builder.Default
+    @Column(name = "tiene_variantes")
+    private Boolean tieneVariantes = false;
+
     @Builder.Default
     private boolean isActive = true;
 

@@ -128,6 +128,7 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("esPlatillo", dish);
             item.put("esSubReceta", p.getEsSubReceta() != null && p.getEsSubReceta());
             item.put("esVariable", p.getEsVariable() != null && p.getEsVariable());
+            item.put("tieneVariantes", p.getTieneVariantes() != null && p.getTieneVariantes());
             item.put("insumos", buildInsumosListFrom(ownRecipes));
             item.put("adicionales", buildAdicionalesListFrom(additionalsByDish.getOrDefault(p.getId(), List.of())));
             item.put("subRecetas", buildSubRecetasListFrom(subs));
@@ -468,10 +469,14 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
+    public GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes) {
         if (tenantId == null || nombre == null || nombre.isBlank()) {
             return new GenericResponse(400, "Tenant y nombre son requeridos", null);
         }
+        boolean hasVars = Boolean.TRUE.equals(tieneVariantes);
+        boolean isVar = Boolean.TRUE.equals(esVariable);
+        BigDecimal pVenta = (hasVars || precioVenta == null) ? BigDecimal.ZERO : BigDecimal.valueOf(Math.max(0, precioVenta));
+
         Insumo insumo = Insumo.builder()
                 .tenantId(tenantId)
                 .nombre(nombre.trim())
@@ -482,7 +487,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .stockBarra(stock != null ? stock : 0.0)
                 .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
                 .esBebida(true)
-                .precioVenta(precioVenta != null ? BigDecimal.valueOf(precioVenta) : BigDecimal.ZERO)
+                .precioVenta(pVenta)
                 .isActive(true)
                 .build();
 
@@ -509,6 +514,8 @@ public class InventoryServiceImpl implements InventoryService {
                 .unidad(insumo.getUnidad())
                 .ventaIndividual(false)
                 .isActive(true)
+                .esVariable(isVar)
+                .tieneVariantes(hasVars)
                 .build();
         productRepository.save(product);
 
@@ -529,7 +536,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
+    public GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes) {
         Insumo insumo = findInsumo(insumoId);
         if (!insumo.isEsBebida()) {
             return new GenericResponse(400, "El insumo no es una bebida", null);
@@ -540,7 +547,11 @@ public class InventoryServiceImpl implements InventoryService {
             aplicarStockDistribuido(insumo, Math.max(0, stock), true);
         }
         if (stockMinimo != null) insumo.setStockMinimo(Math.max(0, stockMinimo));
-        if (precioVenta != null) insumo.setPrecioVenta(BigDecimal.valueOf(Math.max(0, precioVenta)));
+        if (precioVenta != null) {
+            insumo.setPrecioVenta(BigDecimal.valueOf(Math.max(0, precioVenta)));
+        } else if (Boolean.TRUE.equals(tieneVariantes)) {
+            insumo.setPrecioVenta(BigDecimal.ZERO);
+        }
         insumoRepository.save(insumo);
 
         // Actualizar el producto de menú enlazado (nombre, precio, unidad) manteniendo el stock en el insumo.
@@ -549,6 +560,15 @@ public class InventoryServiceImpl implements InventoryService {
             product.setNombre(insumo.getNombre());
             product.setPrecio(insumo.getPrecioVenta());
             product.setUnidad(insumo.getUnidad());
+            if (esVariable != null) {
+                product.setEsVariable(esVariable);
+            }
+            if (tieneVariantes != null) {
+                product.setTieneVariantes(tieneVariantes);
+                if (tieneVariantes) {
+                    product.setPrecio(BigDecimal.ZERO);
+                }
+            }
             if (categoryIds != null) {
                 List<TenantMenuCategory> cats = resolveCategories(insumo.getTenantId(), categoryIds);
                 if (cats.isEmpty() && product.getCategory() != null) {
@@ -1749,6 +1769,12 @@ public class InventoryServiceImpl implements InventoryService {
         m.put("esSubReceta", i.isEsSubReceta());
         m.put("precioVenta", i.getPrecioVenta() != null ? i.getPrecioVenta() : java.math.BigDecimal.ZERO);
         m.put("productoId", i.getProductoId());
+        if (i.getProductoId() != null) {
+            productRepository.findById(i.getProductoId()).ifPresent(p -> {
+                m.put("esVariable", Boolean.TRUE.equals(p.getEsVariable()));
+                m.put("tieneVariantes", Boolean.TRUE.equals(p.getTieneVariantes()));
+            });
+        }
         m.put("categories", buildCategoryMaps(i.getCategories()));
         m.put("categoryIds", buildCategoryIds(i.getCategories()));
         return m;
