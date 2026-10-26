@@ -140,10 +140,7 @@ public class TenantController {
         if (existing.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        Tenant toUpdate = TenantUserMapper.toTenant(dto);
-        toUpdate.setId(id);
-        Tenant updated = tenantService.save(toUpdate);
-        return ResponseEntity.ok(TenantUserMapper.toTenantDTO(updated));
+        return ResponseEntity.ok(TenantUserMapper.toTenantDTO(existing.get()));
     }
 
     /**

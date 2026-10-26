@@ -72,11 +72,19 @@ public class TenantServiceImpl implements TenantService {
                 } else if (existingTenant.getSlogan() == null) {
                     existingTenant.setSlogan(""); // Valor por defecto
                 }
-                if (dto.getLogoUrl() != null && !dto.getLogoUrl().isBlank()) {
-                    String logoUrlDecoded = StringUtils.decryptBase64(dto.getLogoUrl());
-                    existingTenant.setLogoUrl(logoUrlDecoded);
+                if (dto.getLogoUrl() != null) {
+                    if (dto.getLogoUrl().isBlank()) {
+                        existingTenant.setLogoUrl("");
+                    } else {
+                        String logoVal = dto.getLogoUrl();
+                        if (logoVal.startsWith("http://") || logoVal.startsWith("https://") || logoVal.startsWith("/")) {
+                            existingTenant.setLogoUrl(logoVal);
+                        } else {
+                            existingTenant.setLogoUrl(StringUtils.decryptBase64(logoVal));
+                        }
+                    }
                 } else if (existingTenant.getLogoUrl() == null) {
-                    existingTenant.setLogoUrl(""); // Valor por defecto
+                    existingTenant.setLogoUrl("");
                 }
                 if (existingTenant.getSlug() == null || existingTenant.getSlug().isBlank()) {
                     existingTenant.setSlug(StringUtils.createSlug(dto.getNombreNegocio() != null ? dto.getNombreNegocio() : existingTenant.getNombreNegocio(), id));

@@ -36,6 +36,8 @@ public class TenantUserMapper {
                 .tipoNegocio(dto.getTipoNegocio())
                 .slug(dto.getSlug())
                 .UIDTenant(dto.getUIDTenant())
+                .slogan(dto.getSlogan())
+                .logoUrl(dto.getLogoUrl())
                 .isActive(true)
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
