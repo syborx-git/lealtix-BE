@@ -10,6 +10,7 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import com.google.zxing.qrcode.QRCodeWriter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
@@ -23,6 +24,9 @@ import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -36,6 +40,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 public class ThermalPrinterServiceImpl implements ThermalPrinterService {
+
+    @Value("${lealtix.upload-dir:/app/uploads}")
+    private String uploadDir;
 
     private static final int LINE_WIDTH = 32; // Estándar 58mm (fuente A: 32 columnas)
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a", Locale.ENGLISH);
@@ -400,6 +407,22 @@ public class ThermalPrinterServiceImpl implements ThermalPrinterService {
                 if (comma > 0) {
                     byte[] bytes = Base64.getDecoder().decode(logoUrl.substring(comma + 1));
                     img = ImageIO.read(new ByteArrayInputStream(bytes));
+                }
+            } else if (logoUrl.contains("/api/images/file/")) {
+                // Lectura directa desde disco local (máxima rapidez y evita problemas de red localhost)
+                String filename = logoUrl.substring(logoUrl.lastIndexOf('/') + 1);
+                Path localPath = Paths.get(uploadDir).resolve(filename).normalize();
+                if (Files.exists(localPath)) {
+                    img = ImageIO.read(localPath.toFile());
+                } else if (logoUrl.startsWith("http://") || logoUrl.startsWith("https://")) {
+                    URI uri = URI.create(logoUrl);
+                    HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+                    conn.setConnectTimeout(2500);
+                    conn.setReadTimeout(2500);
+                    conn.setRequestProperty("User-Agent", "Lealtix-POS/1.0");
+                    try (var is = conn.getInputStream()) {
+                        img = ImageIO.read(is);
+                    }
                 }
             } else if (logoUrl.startsWith("http://") || logoUrl.startsWith("https://")) {
                 URI uri = URI.create(logoUrl);
