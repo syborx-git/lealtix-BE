@@ -30,7 +30,7 @@ public class ReporteTicketsCanceladosServiceImpl implements ReporteTicketsCancel
     private static final DateTimeFormatter FORMATO_FECHA_TABLA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private static final List<ColumnaDTO> COLUMNAS_MOTIVO = List.of(
-            new ColumnaDTO("motivo", "Motivo de cancelación", TipoColumna.TEXTO, 280),
+            new ColumnaDTO("motivo", "Categoría de cancelación", TipoColumna.TEXTO, 280),
             new ColumnaDTO("operaciones", "Tickets cancelados", TipoColumna.NUMERO, 140),
             new ColumnaDTO("total", "Monto cancelado", TipoColumna.MONEDA, 160),
             new ColumnaDTO("pct", "% del total", TipoColumna.PORCENTAJE, 120)
@@ -50,7 +50,9 @@ public class ReporteTicketsCanceladosServiceImpl implements ReporteTicketsCancel
             new ColumnaDTO("mesa", "Mesa", TipoColumna.TEXTO, 130),
             new ColumnaDTO("mesero", "Mesero", TipoColumna.TEXTO, 160),
             new ColumnaDTO("responsable", "Cancelado por", TipoColumna.TEXTO, 180),
-            new ColumnaDTO("motivo", "Motivo de Cancelación", TipoColumna.TEXTO, 280),
+            new ColumnaDTO("categoria", "Categoría", TipoColumna.TEXTO, 200),
+            new ColumnaDTO("comentario", "Comentarios / Detalle", TipoColumna.TEXTO, 280),
+            new ColumnaDTO("motivo", "Motivo Completo", TipoColumna.TEXTO, 280),
             new ColumnaDTO("total", "Total", TipoColumna.MONEDA, 120),
             new ColumnaDTO("itemsCount", "Items", TipoColumna.NUMERO, 90),
             new ColumnaDTO("itemsResumen", "Productos", TipoColumna.TEXTO, 260)
@@ -220,6 +222,8 @@ public class ReporteTicketsCanceladosServiceImpl implements ReporteTicketsCancel
             double total = ((Number) (fila[7] != null ? fila[7] : 0)).doubleValue();
             long itemsCount = ((Number) (fila[8] != null ? fila[8] : 0)).longValue();
             String itemsResumen = fila[9] != null ? fila[9].toString() : "Sin items";
+            String categoria = (fila.length > 10 && fila[10] != null) ? fila[10].toString() : "Otro motivo";
+            String comentario = (fila.length > 11 && fila[11] != null) ? fila[11].toString() : "Sin comentario";
 
             Map<String, Object> mapa = new LinkedHashMap<>();
             mapa.put("id", idStr);
@@ -228,6 +232,8 @@ public class ReporteTicketsCanceladosServiceImpl implements ReporteTicketsCancel
             mapa.put("mesa", mesa);
             mapa.put("mesero", mesero);
             mapa.put("responsable", responsable);
+            mapa.put("categoria", categoria);
+            mapa.put("comentario", comentario);
             mapa.put("motivo", motivo);
             mapa.put("total", total);
             mapa.put("itemsCount", itemsCount);

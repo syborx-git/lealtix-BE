@@ -32,13 +32,26 @@ public class ImageController {
     @Value("${lealtix.upload-dir:/app/uploads}")
     private String uploadDir;
 
+    @Value("${lealtix.backend.url:}")
+    private String backendUrl;
+
     private String toAbsoluteUrl(HttpServletRequest request, String url) {
         if (url != null && url.startsWith("/api/")) {
-            String proto = request.getHeader("X-Forwarded-Proto");
-            String scheme = (proto != null && !proto.isBlank()) ? proto : "https";
-            String host = request.getHeader("X-Forwarded-Host");
-            String hostname = (host != null && !host.isBlank()) ? host : request.getServerName();
-            return scheme + "://" + hostname + url;
+            String forwardedHost = request.getHeader("X-Forwarded-Host");
+            if (forwardedHost != null && !forwardedHost.isBlank()) {
+                String forwardedProto = request.getHeader("X-Forwarded-Proto");
+                String scheme = (forwardedProto != null && !forwardedProto.isBlank()) ? forwardedProto : "https";
+                return scheme + "://" + forwardedHost + url;
+            }
+            if (backendUrl != null && !backendUrl.isBlank()) {
+                return backendUrl.replaceAll("/+$", "") + url;
+            }
+            String scheme = request.getScheme();
+            String serverName = request.getServerName();
+            int serverPort = request.getServerPort();
+            boolean isDefaultPort = ("http".equalsIgnoreCase(scheme) && serverPort == 80)
+                    || ("https".equalsIgnoreCase(scheme) && serverPort == 443);
+            return scheme + "://" + serverName + (isDefaultPort ? "" : ":" + serverPort) + url;
         }
         return url;
     }

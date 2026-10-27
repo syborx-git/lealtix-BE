@@ -5,6 +5,7 @@ import com.lealtixservice.entity.Insumo;
 import com.lealtixservice.entity.ProductAdditional;
 import com.lealtixservice.entity.ProductRecipe;
 import com.lealtixservice.entity.ProductSubReceta;
+import com.lealtixservice.entity.ProductVariantDish;
 import com.lealtixservice.entity.RestockHistory;
 import com.lealtixservice.entity.StockTransfer;
 import com.lealtixservice.entity.Tenant;
@@ -15,6 +16,7 @@ import com.lealtixservice.repository.InsumoRepository;
 import com.lealtixservice.repository.ProductAdditionalRepository;
 import com.lealtixservice.repository.ProductRecipeRepository;
 import com.lealtixservice.repository.ProductSubRecetaRepository;
+import com.lealtixservice.repository.ProductVariantDishRepository;
 import com.lealtixservice.repository.RestockHistoryRepository;
 import com.lealtixservice.repository.StockTransferRepository;
 import com.lealtixservice.repository.TenantMenuCategoryRepository;
@@ -42,6 +44,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final ProductRecipeRepository recipeRepository;
     private final ProductAdditionalRepository additionalRepository;
     private final ProductSubRecetaRepository subRecetaRepository;
+    private final ProductVariantDishRepository productVariantDishRepository;
     private final InsumoRepository insumoRepository;
     private final RestockHistoryRepository restockHistoryRepository;
     private final StockTransferRepository stockTransferRepository;
@@ -124,6 +127,8 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("tamanoLote", p.getTamanoLote() != null ? p.getTamanoLote() : 1.0);
             item.put("esPlatillo", dish);
             item.put("esSubReceta", p.getEsSubReceta() != null && p.getEsSubReceta());
+            item.put("esVariable", p.getEsVariable() != null && p.getEsVariable());
+            item.put("tieneVariantes", p.getTieneVariantes() != null && p.getTieneVariantes());
             item.put("insumos", buildInsumosListFrom(ownRecipes));
             item.put("adicionales", buildAdicionalesListFrom(additionalsByDish.getOrDefault(p.getId(), List.of())));
             item.put("subRecetas", buildSubRecetasListFrom(subs));
@@ -401,6 +406,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .origen("bodega")
                 .destino(destino)
                 .cantidad(redondear(cantidad))
+                .stockBodegaRemanente(redondear(insumo.getStockBodega()))
                 .build());
 
         syncAvailability(insumo.getTenantId());
@@ -420,6 +426,7 @@ public class InventoryServiceImpl implements InventoryService {
             m.put("origen", t.getOrigen() != null ? t.getOrigen() : "bodega");
             m.put("destino", t.getDestino());
             m.put("cantidad", t.getCantidad() != null ? redondear(t.getCantidad()) : 0.0);
+            m.put("stockBodegaRemanente", t.getStockBodegaRemanente() != null ? redondear(t.getStockBodegaRemanente()) : 0.0);
             m.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt().toString() : null);
             items.add(m);
         }
@@ -462,10 +469,14 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
+    public GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes) {
         if (tenantId == null || nombre == null || nombre.isBlank()) {
             return new GenericResponse(400, "Tenant y nombre son requeridos", null);
         }
+        boolean hasVars = Boolean.TRUE.equals(tieneVariantes);
+        boolean isVar = Boolean.TRUE.equals(esVariable);
+        BigDecimal pVenta = (hasVars || precioVenta == null) ? BigDecimal.ZERO : BigDecimal.valueOf(Math.max(0, precioVenta));
+
         Insumo insumo = Insumo.builder()
                 .tenantId(tenantId)
                 .nombre(nombre.trim())
@@ -476,7 +487,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .stockBarra(stock != null ? stock : 0.0)
                 .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
                 .esBebida(true)
-                .precioVenta(precioVenta != null ? BigDecimal.valueOf(precioVenta) : BigDecimal.ZERO)
+                .precioVenta(pVenta)
                 .isActive(true)
                 .build();
 
@@ -503,6 +514,8 @@ public class InventoryServiceImpl implements InventoryService {
                 .unidad(insumo.getUnidad())
                 .ventaIndividual(false)
                 .isActive(true)
+                .esVariable(isVar)
+                .tieneVariantes(hasVars)
                 .build();
         productRepository.save(product);
 
@@ -523,7 +536,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
+    public GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes) {
         Insumo insumo = findInsumo(insumoId);
         if (!insumo.isEsBebida()) {
             return new GenericResponse(400, "El insumo no es una bebida", null);
@@ -534,7 +547,11 @@ public class InventoryServiceImpl implements InventoryService {
             aplicarStockDistribuido(insumo, Math.max(0, stock), true);
         }
         if (stockMinimo != null) insumo.setStockMinimo(Math.max(0, stockMinimo));
-        if (precioVenta != null) insumo.setPrecioVenta(BigDecimal.valueOf(Math.max(0, precioVenta)));
+        if (precioVenta != null) {
+            insumo.setPrecioVenta(BigDecimal.valueOf(Math.max(0, precioVenta)));
+        } else if (Boolean.TRUE.equals(tieneVariantes)) {
+            insumo.setPrecioVenta(BigDecimal.ZERO);
+        }
         insumoRepository.save(insumo);
 
         // Actualizar el producto de menú enlazado (nombre, precio, unidad) manteniendo el stock en el insumo.
@@ -543,6 +560,15 @@ public class InventoryServiceImpl implements InventoryService {
             product.setNombre(insumo.getNombre());
             product.setPrecio(insumo.getPrecioVenta());
             product.setUnidad(insumo.getUnidad());
+            if (esVariable != null) {
+                product.setEsVariable(esVariable);
+            }
+            if (tieneVariantes != null) {
+                product.setTieneVariantes(tieneVariantes);
+                if (tieneVariantes) {
+                    product.setPrecio(BigDecimal.ZERO);
+                }
+            }
             if (categoryIds != null) {
                 List<TenantMenuCategory> cats = resolveCategories(insumo.getTenantId(), categoryIds);
                 if (cats.isEmpty() && product.getCategory() != null) {
@@ -716,11 +742,12 @@ public class InventoryServiceImpl implements InventoryService {
             return new GenericResponse(400, "La cantidad debe ser mayor a 0", null);
         }
         String resolvedGrupo = grupo != null ? (grupo.isBlank() ? null : grupo.trim()) : recipe.getGrupo();
-        // Importancia → ADICIONAL: la línea pasa a la tabla de adicionales (con precio extra)
-        if (importancia != null && "ADICIONAL".equalsIgnoreCase(importancia)) {
+        // Importancia → ADICIONAL o VARIANTE: la línea pasa a la tabla de adicionales (con precio extra/variante)
+        if (importancia != null && ("ADICIONAL".equalsIgnoreCase(importancia) || "VARIANTE".equalsIgnoreCase(importancia))) {
             TenantMenuProduct dish = recipe.getDish();
             Insumo insumo = recipe.getInsumo();
             BigDecimal p = precio != null ? BigDecimal.valueOf(precio) : BigDecimal.ZERO;
+            boolean isVar = "VARIANTE".equalsIgnoreCase(importancia);
             recipeRepository.delete(recipe);
             additionalRepository.save(ProductAdditional.builder()
                     .dish(dish)
@@ -728,9 +755,10 @@ public class InventoryServiceImpl implements InventoryService {
                     .cantidad(BigDecimal.valueOf(cant))
                     .precio(p)
                     .grupo(resolvedGrupo)
+                    .isVariant(isVar)
                     .build());
             syncAvailability(productTenantId(dish));
-            return new GenericResponse(200, "Insumo convertido a adicional (costo extra)", null);
+            return new GenericResponse(200, isVar ? "Insumo convertido a variante (subcomanda en cards)" : "Insumo convertido a adicional (costo extra)", null);
         }
         if (importancia != null) {
             recipe.setModificable("MODIFICABLE".equalsIgnoreCase(importancia));
@@ -756,15 +784,21 @@ public class InventoryServiceImpl implements InventoryService {
         List<ProductAdditional> additionals = additionalRepository.findByDishId(dishId);
         List<Map<String, Object>> items = new ArrayList<>();
         for (ProductAdditional a : additionals) {
+            boolean isVar = Boolean.TRUE.equals(a.getIsVariant()) || "VARIANTE".equalsIgnoreCase(a.getGrupo());
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", a.getId());
             item.put("dishId", dishId);
             item.put("insumoId", a.getInsumo().getId());
             item.put("insumoName", a.getInsumo().getNombre());
+            item.put("name", a.getInsumo().getNombre());
             item.put("cantidad", a.getCantidad());
             item.put("unidad", a.getInsumo().getUnidad() != null ? a.getInsumo().getUnidad() : "pieza");
             item.put("precio", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
+            item.put("price", a.getPrecio() != null ? a.getPrecio() : BigDecimal.ZERO);
+            item.put("stock", a.getInsumo().getStock() != null ? a.getInsumo().getStock() : 0.0);
             item.put("grupo", a.getGrupo());
+            item.put("isVariant", isVar);
+            item.put("tipoIngrediente", isVar ? "VARIANTE" : "ADICIONAL");
             items.add(item);
         }
         return new GenericResponse(200, "Adicionales obtenidos", items);
@@ -772,7 +806,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo) {
+    public GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo, Boolean isVariant) {
         if (insumoId == null || cantidad == null || cantidad <= 0) {
             return new GenericResponse(400, "Insumo y cantidad (mayor a 0) son requeridos", null);
         }
@@ -781,8 +815,9 @@ public class InventoryServiceImpl implements InventoryService {
         boolean exists = additionalRepository.findByDishId(dishId).stream()
                 .anyMatch(a -> a.getInsumo().getId().equals(insumoId));
         if (exists) {
-            return new GenericResponse(400, "El adicional ya está permitido", null);
+            return new GenericResponse(400, "El insumo ya está configurado para este platillo", null);
         }
+        boolean isVar = Boolean.TRUE.equals(isVariant) || "VARIANTE".equalsIgnoreCase(grupo);
         BigDecimal precioValue = precio != null ? BigDecimal.valueOf(precio) : BigDecimal.ZERO;
         ProductAdditional additional = ProductAdditional.builder()
                 .dish(dish)
@@ -790,9 +825,16 @@ public class InventoryServiceImpl implements InventoryService {
                 .cantidad(BigDecimal.valueOf(cantidad))
                 .precio(precioValue)
                 .grupo(grupo != null && !grupo.isBlank() ? grupo.trim() : null)
+                .isVariant(isVar)
                 .build();
         additionalRepository.save(additional);
-        return new GenericResponse(200, "Adicional permitido agregado", additional.getId());
+        return new GenericResponse(200, isVar ? "Variante agregada exitosamente" : "Adicional permitido agregado", additional.getId());
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo) {
+        return addAdditional(dishId, insumoId, cantidad, precio, grupo, false);
     }
 
     @Override
@@ -808,8 +850,8 @@ public class InventoryServiceImpl implements InventoryService {
             return new GenericResponse(400, "La cantidad debe ser mayor a 0", null);
         }
         String resolvedGrupo = grupo != null ? (grupo.isBlank() ? null : grupo.trim()) : additional.getGrupo();
-        // Importancia deja de ser ADICIONAL → la línea vuelve a la receta base
-        if (importancia != null && !"ADICIONAL".equalsIgnoreCase(importancia)) {
+        // Importancia deja de ser ADICIONAL / VARIANTE → la línea vuelve a la receta base
+        if (importancia != null && !"ADICIONAL".equalsIgnoreCase(importancia) && !"VARIANTE".equalsIgnoreCase(importancia)) {
             TenantMenuProduct dish = additional.getDish();
             Insumo insumo = additional.getInsumo();
             boolean mod = "MODIFICABLE".equalsIgnoreCase(importancia);
@@ -822,7 +864,10 @@ public class InventoryServiceImpl implements InventoryService {
                     .grupo(resolvedGrupo)
                     .build());
             syncAvailability(productTenantId(dish));
-            return new GenericResponse(200, "Adicional convertido a ingrediente base", null);
+            return new GenericResponse(200, "Adicional/variante convertido a ingrediente base", null);
+        }
+        if (importancia != null) {
+            additional.setIsVariant("VARIANTE".equalsIgnoreCase(importancia));
         }
         if (cantidad != null && cantidad > 0) {
             additional.setCantidad(BigDecimal.valueOf(cantidad));
@@ -835,8 +880,9 @@ public class InventoryServiceImpl implements InventoryService {
         }
         additionalRepository.save(additional);
         syncAvailability(additional.getDish() != null ? productTenantId(additional.getDish()) : null);
-        return new GenericResponse(200, "Adicional actualizado", additional.getId());
+        return new GenericResponse(200, Boolean.TRUE.equals(additional.getIsVariant()) ? "Variante actualizada" : "Adicional actualizado", additional.getId());
     }
+
 
     @Override
     @Transactional
@@ -929,6 +975,24 @@ public class InventoryServiceImpl implements InventoryService {
                 .build();
         productRepository.save(subReceta);
 
+        // Considerar la receta como insumo: crear el registro en tabla Insumo
+        Insumo insumoSubReceta = Insumo.builder()
+                .tenantId(productTenantId(subReceta))
+                .nombre(subReceta.getNombre())
+                .unidad(subReceta.getUnidad())
+                .productoId(subReceta.getId())
+                .esSubReceta(true)
+                .esBebida(false)
+                .stock(0.0)
+                .stockCocina(0.0)
+                .stockBodega(0.0)
+                .stockBarra(0.0)
+                .stockMinimo(0.0)
+                .isActive(true)
+                .categories(new ArrayList<>(cats))
+                .build();
+        insumoRepository.save(insumoSubReceta);
+
         int lineas = guardarReceta(subReceta, lines);
         syncAvailability(productTenantId(subReceta));
         return new GenericResponse(200, "Sub-receta creada con " + lineas + " insumo(s)", subReceta.getId());
@@ -947,14 +1011,29 @@ public class InventoryServiceImpl implements InventoryService {
         if (nombre != null && !nombre.isBlank()) subReceta.setNombre(nombre.trim());
         if (tamanoLote != null && tamanoLote > 0) subReceta.setTamanoLote(tamanoLote);
         if (unidad != null && !unidad.isBlank()) subReceta.setUnidad(unidad.trim().toLowerCase());
+        List<TenantMenuCategory> resolvedCats = null;
         if (categoryIds != null) {
-            List<TenantMenuCategory> cats = resolveCategories(productTenantId(subReceta), categoryIds);
-            if (!cats.isEmpty()) {
-                subReceta.setCategory(cats.get(0));
+            resolvedCats = resolveCategories(productTenantId(subReceta), categoryIds);
+            if (!resolvedCats.isEmpty()) {
+                subReceta.setCategory(resolvedCats.get(0));
             }
-            subReceta.setCategories(new ArrayList<>(cats));
+            subReceta.setCategories(new ArrayList<>(resolvedCats));
         }
         productRepository.save(subReceta);
+
+        // Sincronizar Insumo correspondiente
+        List<Insumo> matchingInsumos = insumoRepository.findByTenantIdAndProductoId(productTenantId(subReceta), subReceta.getId());
+        for (Insumo ins : matchingInsumos) {
+            if (ins.isEsSubReceta()) {
+                ins.setNombre(subReceta.getNombre());
+                ins.setUnidad(subReceta.getUnidad());
+                if (resolvedCats != null) {
+                    ins.setCategories(new ArrayList<>(resolvedCats));
+                }
+                insumoRepository.save(ins);
+            }
+        }
+
         int lineas = guardarReceta(subReceta, lines);
         syncAvailability(productTenantId(subReceta));
         return new GenericResponse(200, "Sub-receta actualizada con " + lineas + " insumo(s)", subReceta.getId());
@@ -970,6 +1049,15 @@ public class InventoryServiceImpl implements InventoryService {
                 .collect(java.util.stream.Collectors.toList());
         subRecetaRepository.deleteAll(usos);
         recipeRepository.deleteByDishId(subRecetaId);
+
+        // Eliminar Insumo correspondiente
+        List<Insumo> matchingInsumos = insumoRepository.findByTenantIdAndProductoId(tenantId, subRecetaId);
+        for (Insumo ins : matchingInsumos) {
+            if (ins.isEsSubReceta()) {
+                insumoRepository.delete(ins);
+            }
+        }
+
         productRepository.delete(subReceta);
         syncAvailability(tenantId);
         return new GenericResponse(200, "Sub-receta eliminada", null);
@@ -1104,6 +1192,16 @@ public class InventoryServiceImpl implements InventoryService {
         subReceta.setStock(stockNuevo);
         productRepository.save(subReceta);
 
+        // Considerar la subreceta como insumo: sincronizar el stock del insumo correspondiente
+        List<Insumo> matchingInsumos = insumoRepository.findByTenantIdAndProductoId(productTenantId(subReceta), subReceta.getId());
+        for (Insumo ins : matchingInsumos) {
+            if (ins.isEsSubReceta()) {
+                ins.setStock(stockNuevo);
+                ins.setStockCocina(stockNuevo);
+                insumoRepository.save(ins);
+            }
+        }
+
         // 4. Sincronizar disponibilidad general
         syncAvailability(productTenantId(subReceta));
 
@@ -1153,6 +1251,97 @@ public class InventoryServiceImpl implements InventoryService {
         subRecetaRepository.deleteAll(usos);
         syncAvailability(productTenantId(dish));
         return new GenericResponse(200, "Sub-receta removida del producto", null);
+    }
+
+    /* ============ Variantes de Platillos / Bebidas ============ */
+
+    @Override
+    @Transactional(readOnly = true)
+    public GenericResponse getVariantDishes(Long dishId) {
+        List<ProductVariantDish> variants = productVariantDishRepository.findByDishIdWithVariantDish(dishId);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (ProductVariantDish v : variants) {
+            if (v.getVariantDish() == null) continue;
+            TenantMenuProduct vDish = v.getVariantDish();
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", v.getId());
+            map.put("dishId", v.getDish().getId());
+            map.put("variantDishId", vDish.getId());
+            map.put("name", vDish.getNombre());
+            map.put("nombre", vDish.getNombre());
+            map.put("categoryName", vDish.getCategory() != null ? vDish.getCategory().getNombre() : "");
+            map.put("precio", v.getPrecio() != null ? v.getPrecio() : vDish.getPrecio());
+            map.put("basePrecio", vDish.getPrecio());
+            map.put("cantidad", v.getCantidad() != null ? v.getCantidad() : 1.0);
+            map.put("unidad", v.getUnidad() != null ? v.getUnidad() : (vDish.getUnidad() != null ? vDish.getUnidad() : "pieza"));
+            map.put("grupo", v.getGrupo());
+            map.put("stock", vDish.getStock() != null ? vDish.getStock() : 0.0);
+            result.add(map);
+        }
+        return new GenericResponse(200, "Variantes obtenidas correctamente", result);
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse addVariantDish(Long dishId, Long variantDishId, Double precio, String grupo, Double cantidad, String unidad) {
+        if (dishId.equals(variantDishId)) {
+            return new GenericResponse(400, "Un platillo no puede ser variante de sí mismo", null);
+        }
+        TenantMenuProduct dish = findProduct(dishId);
+        TenantMenuProduct variantDish = productRepository.findById(variantDishId)
+                .orElseThrow(() -> new IllegalArgumentException("Platillo o bebida variante no encontrado: " + variantDishId));
+
+        if (productVariantDishRepository.existsByDishIdAndVariantDishId(dishId, variantDishId)) {
+            return new GenericResponse(400, "Este artículo ya está asignado como variante", null);
+        }
+
+        BigDecimal p = precio != null ? BigDecimal.valueOf(precio) : variantDish.getPrecio();
+        double cant = (cantidad != null && cantidad > 0) ? cantidad : 1.0;
+        String uni = (unidad != null && !unidad.isBlank()) ? unidad.trim().toLowerCase() : (variantDish.getUnidad() != null ? variantDish.getUnidad() : "pieza");
+
+        ProductVariantDish entity = ProductVariantDish.builder()
+                .dish(dish)
+                .variantDish(variantDish)
+                .precio(p)
+                .grupo(grupo != null ? grupo.trim() : null)
+                .cantidad(cant)
+                .unidad(uni)
+                .build();
+
+        productVariantDishRepository.save(entity);
+        return new GenericResponse(200, "Variante '" + variantDish.getNombre() + "' asignada exitosamente", entity.getId());
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse updateVariantDish(Long id, Double precio, String grupo, Double cantidad, String unidad) {
+        ProductVariantDish entity = productVariantDishRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Variante no encontrada: " + id));
+
+        if (precio != null) {
+            entity.setPrecio(BigDecimal.valueOf(precio));
+        }
+        if (grupo != null) {
+            entity.setGrupo(grupo.trim());
+        }
+        if (cantidad != null && cantidad > 0) {
+            entity.setCantidad(cantidad);
+        }
+        if (unidad != null && !unidad.isBlank()) {
+            entity.setUnidad(unidad.trim().toLowerCase());
+        }
+        productVariantDishRepository.save(entity);
+        return new GenericResponse(200, "Variante actualizada exitosamente", entity.getId());
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse removeVariantDish(Long id) {
+        if (!productVariantDishRepository.existsById(id)) {
+            return new GenericResponse(404, "Variante no encontrada", null);
+        }
+        productVariantDishRepository.deleteById(id);
+        return new GenericResponse(200, "Variante eliminada exitosamente", id);
     }
 
     /* ============ Descuento al confirmar comanda ============ */
@@ -1214,6 +1403,15 @@ public class InventoryServiceImpl implements InventoryService {
                     deductInsumo(a.getInsumo(), qty * units, deducted);
                 }
             }
+
+            // 4. Variantes de platillo (descontar la receta o stock del platillo variante)
+            List<ProductVariantDish> vDishes = productVariantDishRepository.findByDishIdWithVariantDish(productId);
+            for (ProductVariantDish vd : vDishes) {
+                if (vd.getVariantDish() != null && additionalInsumoIds.contains(vd.getVariantDish().getId())) {
+                    double vQty = (vd.getCantidad() != null && vd.getCantidad() > 0 ? vd.getCantidad() : 1.0) * units;
+                    deductForOrder(vd.getVariantDish().getId(), vQty, null, null, false);
+                }
+            }
         }
 
         if (triggerSyncAvailability) {
@@ -1273,6 +1471,15 @@ public class InventoryServiceImpl implements InventoryService {
                 if (additionalInsumoIds.contains(a.getInsumo().getId())) {
                     double qty = a.getCantidad() != null ? a.getCantidad().doubleValue() : 1.0;
                     restoreInsumo(a.getInsumo(), qty * units, restored);
+                }
+            }
+
+            // 4. Variantes de platillo (restaurar receta o stock del platillo variante)
+            List<ProductVariantDish> vDishes = productVariantDishRepository.findByDishIdWithVariantDish(productId);
+            for (ProductVariantDish vd : vDishes) {
+                if (vd.getVariantDish() != null && additionalInsumoIds.contains(vd.getVariantDish().getId())) {
+                    double vQty = (vd.getCantidad() != null && vd.getCantidad() > 0 ? vd.getCantidad() : 1.0) * units;
+                    restoreForOrder(vd.getVariantDish().getId(), vQty, null, null);
                 }
             }
         }
@@ -1559,8 +1766,15 @@ public class InventoryServiceImpl implements InventoryService {
         m.put("stockBarra", i.getStockBarra() != null ? redondear(i.getStockBarra()) : 0.0);
         m.put("stockMinimo", i.getStockMinimo() != null ? i.getStockMinimo() : 0.0);
         m.put("esBebida", i.isEsBebida());
+        m.put("esSubReceta", i.isEsSubReceta());
         m.put("precioVenta", i.getPrecioVenta() != null ? i.getPrecioVenta() : java.math.BigDecimal.ZERO);
         m.put("productoId", i.getProductoId());
+        if (i.getProductoId() != null) {
+            productRepository.findById(i.getProductoId()).ifPresent(p -> {
+                m.put("esVariable", Boolean.TRUE.equals(p.getEsVariable()));
+                m.put("tieneVariantes", Boolean.TRUE.equals(p.getTieneVariantes()));
+            });
+        }
         m.put("categories", buildCategoryMaps(i.getCategories()));
         m.put("categoryIds", buildCategoryIds(i.getCategories()));
         return m;
@@ -1788,6 +2002,15 @@ public class InventoryServiceImpl implements InventoryService {
         insumo.setStock(despues);
         rebalancearDistribucion(insumo);
         insumoRepository.save(insumo);
+
+        // Si este insumo es una subreceta, sincronizar el producto correspondiente
+        if (insumo.getProductoId() != null && insumo.isEsSubReceta()) {
+            productRepository.findById(insumo.getProductoId()).ifPresent(p -> {
+                p.setStock(despues);
+                productRepository.save(p);
+            });
+        }
+
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", insumo.getNombre());
         d.put("unidad", insumo.getUnidad() != null ? insumo.getUnidad() : "pieza");
@@ -1802,6 +2025,19 @@ public class InventoryServiceImpl implements InventoryService {
         double despues = Math.max(0, Math.round((antes - qty) * 1000) / 1000.0);
         product.setStock(despues);
         productRepository.save(product);
+
+        // Si este producto es una subreceta, sincronizar el insumo correspondiente
+        if (Boolean.TRUE.equals(product.getEsSubReceta())) {
+            List<Insumo> matching = insumoRepository.findByTenantIdAndProductoId(productTenantId(product), product.getId());
+            for (Insumo ins : matching) {
+                if (ins.isEsSubReceta()) {
+                    ins.setStock(despues);
+                    ins.setStockCocina(despues);
+                    insumoRepository.save(ins);
+                }
+            }
+        }
+
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", product.getNombre());
         d.put("unidad", product.getUnidad() != null ? product.getUnidad() : "pieza");
@@ -1817,6 +2053,15 @@ public class InventoryServiceImpl implements InventoryService {
         insumo.setStock(despues);
         rebalancearDistribucion(insumo);
         insumoRepository.save(insumo);
+
+        // Si este insumo es una subreceta, sincronizar el producto correspondiente
+        if (insumo.getProductoId() != null && insumo.isEsSubReceta()) {
+            productRepository.findById(insumo.getProductoId()).ifPresent(p -> {
+                p.setStock(despues);
+                productRepository.save(p);
+            });
+        }
+
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", insumo.getNombre());
         d.put("unidad", insumo.getUnidad() != null ? insumo.getUnidad() : "pieza");
@@ -1830,6 +2075,19 @@ public class InventoryServiceImpl implements InventoryService {
         double despues = Math.round((antes + qty) * 1000) / 1000.0;
         product.setStock(despues);
         productRepository.save(product);
+
+        // Si este producto es una subreceta, sincronizar el insumo correspondiente
+        if (Boolean.TRUE.equals(product.getEsSubReceta())) {
+            List<Insumo> matching = insumoRepository.findByTenantIdAndProductoId(productTenantId(product), product.getId());
+            for (Insumo ins : matching) {
+                if (ins.isEsSubReceta()) {
+                    ins.setStock(despues);
+                    ins.setStockCocina(despues);
+                    insumoRepository.save(ins);
+                }
+            }
+        }
+
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("nombre", product.getNombre());
         d.put("unidad", product.getUnidad() != null ? product.getUnidad() : "pieza");

@@ -88,30 +88,39 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     public String uploadImageBase64(ImageDTO imageDTO) throws IOException {
-            validateImageDTO(imageDTO);
+        validateImageDTO(imageDTO);
 
+        Tenant tenantEntity = null;
+        if (imageDTO.getTenantId() != null) {
+            tenantEntity = tenantRepository.findById(imageDTO.getTenantId()).orElse(null);
+        }
+
+        if (tenantEntity == null && imageDTO.getEmail() != null && !imageDTO.getEmail().isBlank()) {
             AppUser user = appUserRepository.findByEmail(imageDTO.getEmail());
-            Tenant tenantEntity = null;
             if (user != null) {
                 tenantEntity = tenantRepository.findByAppUserId(user.getId()).orElse(null);
                 if (tenantEntity == null) {
                     tenantEntity = createAndSaveTenant(imageDTO, user);
                 }
             }
-            String logoName = "logo_" + (tenantEntity != null ? tenantEntity.getSlug() : "default");
-            String folder = getFolderByType(imageDTO.getType());
-
-            byte[] imageBytes = Base64.getDecoder().decode(imageDTO.getBase64File());
-            String url = resolveImageUrl(logoName, folder, imageBytes);
-
-            if (tenantEntity != null) {
-                tenantEntity.setLogoUrl(url);
-                tenantEntity.setUIDTenant("UID-" + tenantEntity.getId());
-                tenantRepository.save(tenantEntity);
-            }
-
-            return url;
         }
+
+        String logoName = "logo_" + (tenantEntity != null ? (tenantEntity.getSlug() != null ? tenantEntity.getSlug() : tenantEntity.getId()) : "default");
+        String folder = getFolderByType(imageDTO.getType());
+
+        byte[] imageBytes = decodeBase64(imageDTO.getBase64File());
+        String url = resolveImageUrl(logoName, folder, imageBytes);
+
+        if (tenantEntity != null) {
+            tenantEntity.setLogoUrl(url);
+            if (tenantEntity.getUIDTenant() == null || tenantEntity.getUIDTenant().isBlank()) {
+                tenantEntity.setUIDTenant("UID-" + tenantEntity.getId());
+            }
+            tenantRepository.save(tenantEntity);
+        }
+
+        return url;
+    }
 
     @Override
     public String uploadProdImageBase64(ImageDTO imageDTO) throws IOException {
@@ -128,7 +137,7 @@ public class ImageServiceImpl implements ImageService {
         String imgName = "img_" + StringUtils.createSlug(imageDTO.getProductName(), tenant.getId());
         String folder = getFolderByType(imageDTO.getType());
 
-        byte[] imageBytes = Base64.getDecoder().decode(imageDTO.getBase64File());
+        byte[] imageBytes = decodeBase64(imageDTO.getBase64File());
         return resolveImageUrl(imgName, folder, imageBytes);
     }
 
@@ -147,7 +156,7 @@ public class ImageServiceImpl implements ImageService {
         String imgName = "promo_" + StringUtils.createSlug(imageDTO.getPromoName(), tenant.getId());
         String folder = getFolderByType(imageDTO.getType());
 
-        byte[] imageBytes = Base64.getDecoder().decode(imageDTO.getBase64File());
+        byte[] imageBytes = decodeBase64(imageDTO.getBase64File());
         return resolveImageUrl(imgName, folder, imageBytes);
     }
 
@@ -226,5 +235,18 @@ public class ImageServiceImpl implements ImageService {
             Files.write(file, imageBytes);
             log.info("Imagen guardada localmente: {}", file.toAbsolutePath());
             return "/api/images/file/" + safeName;
+        }
+
+        private byte[] decodeBase64(String base64) {
+            if (base64 == null || base64.isBlank()) {
+                return new byte[0];
+            }
+            String clean = base64.trim();
+            int commaIndex = clean.indexOf(",");
+            if (commaIndex != -1 && clean.substring(0, commaIndex).contains(";base64")) {
+                clean = clean.substring(commaIndex + 1);
+            }
+            clean = clean.replaceAll("\\s+", "");
+            return Base64.getDecoder().decode(clean);
         }
 }

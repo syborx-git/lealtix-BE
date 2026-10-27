@@ -24,5 +24,9 @@ public class UpdateOrderStatusRequest {
     
     private String reason;     // Razón del cambio de estado (ej: "Cliente canceló", "Error en preparación")
 
+    private String cancellationCategory; // Categoría estandarizada para tickets cancelados
+
+    private String cancellationComment;  // Comentarios / observaciones detalladas
+
     private String area;       // "BARRA" | "COCINA" (opcional, para transiciones independientes por área)
 }

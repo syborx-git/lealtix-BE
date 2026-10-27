@@ -26,6 +26,9 @@ public enum RoleEnum {
     )),
     HOSTESS(Arrays.asList(
             "view_mesas", "manage_mesas", "view_reservaciones", "manage_reservaciones"
+    )),
+    BARRA(Arrays.asList(
+            "view_kitchen_orders", "update_order_status", "view_pending_orders"
     ));
 
     private final List<String> permissions;

@@ -38,6 +38,7 @@ public class ReporteIngenieriaMenuServiceImpl implements ReporteIngenieriaMenuSe
     private final RestockHistoryRepository restockHistoryRepository;
     private final DateRangeResolver dateRangeResolver;
     private final ReporteExcelService excelService;
+    private final TenantMenuProductRepository tenantMenuProductRepository;
 
     @Override
     public IngenieriaMenuDTO obtener(Long tenantId, PresetReporte preset, LocalDateTime from, LocalDateTime to, String area) {
@@ -102,11 +103,7 @@ public class ReporteIngenieriaMenuServiceImpl implements ReporteIngenieriaMenuSe
         List<Insumo> insumosTenant = insumoRepository.findByTenantIdAndIsActiveTrueOrderByNombreAsc(tenantId);
         Map<Long, Double> costosPromedio = obtenerCostosPromedio(tenantId);
 
-        Set<Long> barraProductIds = insumosTenant.stream()
-                .filter(Insumo::isEsBebida)
-                .map(Insumo::getProductoId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        Set<Long> barraProductIds = com.lealtixservice.util.BeverageClassificationUtil.getBeverageProductIds(tenantId, tenantMenuProductRepository, insumoRepository);
 
         // Procesar periodo actual y anterior
         MatrizCalculada actual = calcularMatriz(itemsActual, barraProductIds, costosPromedio, areaFiltro);

@@ -100,12 +100,28 @@ public class ClientOrderMapper {
                         Boolean esBebida = null;
                         if (beverageProductIds != null && item.getProduct() != null && item.getProduct().getId() != null) {
                             esBebida = beverageProductIds.contains(item.getProduct().getId());
+                        } else if (item.getProduct() != null) {
+                            esBebida = com.lealtixservice.util.BeverageClassificationUtil.isBeverageProduct(item.getProduct());
                         }
                         return ClientOrderItemMapper.toDTO(item, esBebida);
                     })
                     .collect(Collectors.toList());
         }
         
+        boolean hasBarraItems = itemsDTO != null && itemsDTO.stream().anyMatch(i -> Boolean.TRUE.equals(i.getEsBebida()));
+        boolean hasCocinaItems = itemsDTO != null && itemsDTO.stream().anyMatch(i -> !Boolean.TRUE.equals(i.getEsBebida()));
+
+        OrderStatus resolvedBarraEstado = order.getBarraEstado() != null ? order.getBarraEstado() : (hasBarraItems ? order.getEstado() : null);
+        OrderStatus resolvedCocinaEstado = order.getCocinaEstado() != null ? order.getCocinaEstado() : (hasCocinaItems ? order.getEstado() : null);
+
+        // Si la orden no tiene artículos de cocina o barra, su estado correspondiente debe ser null
+        if (!hasCocinaItems) {
+            resolvedCocinaEstado = null;
+        }
+        if (!hasBarraItems) {
+            resolvedBarraEstado = null;
+        }
+
         return ClientOrderDTO.builder()
                 .id(order.getId())
                 .customerId(order.getCustomer() != null ? order.getCustomer().getId() : null)
@@ -114,8 +130,8 @@ public class ClientOrderMapper {
                 .tenantId(order.getTenant() != null ? order.getTenant().getId() : null)
                 .fecha(order.getFecha())
                 .estado(order.getEstado())
-                .barraEstado(order.getBarraEstado())
-                .cocinaEstado(order.getCocinaEstado())
+                .barraEstado(resolvedBarraEstado)
+                .cocinaEstado(resolvedCocinaEstado)
                 .barraReadyAt(order.getBarraReadyAt())
                 .cocinaReadyAt(order.getCocinaReadyAt())
                 .subtotal(order.getSubtotal())
@@ -149,6 +165,8 @@ public class ClientOrderMapper {
                 .cancelledBy(order.getCancelledBy())
                 .cancelledAt(order.getCancelledAt())
                 .cancellationReason(order.getCancellationReason())
+                .cancellationCategory(order.getCancellationCategory())
+                .cancellationComment(order.getCancellationComment())
                 .build();
     }
 

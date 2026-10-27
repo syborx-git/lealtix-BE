@@ -31,6 +31,7 @@ public class ClientOrderItemDTO {
     private List<Long> excludedIngredientIds;   // Ingredientes modificables que el cliente pidió quitar
     private List<Long> additionalIngredientIds; // Insumos adicionales seleccionados por el cliente
     private Boolean esBebida;                   // true si el item es bebida (Barra), false/null si es platillo (Cocina)
+    private Integer ronda;                      // Número de ronda en que se ordenó el ítem
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

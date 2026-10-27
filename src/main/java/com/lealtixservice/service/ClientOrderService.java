@@ -34,6 +34,17 @@ public interface ClientOrderService {
     ClientOrderDTO updateOrder(UUID orderId, CreateClientOrderRequest request);
 
     /**
+     * Agrega nuevos productos a una comanda abierta (Ronda adicional).
+     * Los nuevos items pertenecen a la misma comanda (misma cuenta para el cobro)
+     * pero se despachan como una nueva ronda a cocina y barra.
+     *
+     * @param orderId ID de la comanda existente
+     * @param request Datos con los nuevos items a agregar
+     * @return DTO de la orden actualizada con todos los items acumulados
+     */
+    ClientOrderDTO addItemsToOrder(UUID orderId, CreateClientOrderRequest request);
+
+    /**
      * Obtiene una orden por su ID
      */
     Optional<ClientOrderDTO> getOrderById(UUID orderId);
@@ -77,6 +88,11 @@ public interface ClientOrderService {
      * Actualiza el estado de una orden permitiendo aislar el área (BARRA o COCINA)
      */
     ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason, String area);
+
+    /**
+     * Actualiza el estado de una orden permitiendo aislar el área y registrando categoría y comentarios de cancelación
+     */
+    ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason, String area, String category, String comment);
 
     /**
      * Marcha los segundos tiempos de una comanda, actualizando sus ítems y pasando la orden a CONFIRMADA para cocina.

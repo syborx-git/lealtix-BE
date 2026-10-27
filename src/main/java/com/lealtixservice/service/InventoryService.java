@@ -64,12 +64,20 @@ public interface InventoryService {
      * Crea una bebida: registra el insumo marcado como bebida (pieza o mililitros) con su stock
      * y crea el producto de menú enlazado (con receta de 1 unidad) para que se venda en Comandix.
      */
-    GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds);
+    GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes);
+
+    default GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
+        return createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, false, false);
+    }
 
     /**
      * Actualiza los datos de una bebida (insumo + producto de menú enlazado).
      */
-    GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds);
+    GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes);
+
+    default GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
+        return updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, null, null);
+    }
 
     /**
      * Elimina una bebida (insumo y su producto de menú enlazado).
@@ -124,11 +132,14 @@ public interface InventoryService {
     GenericResponse getAdditionalsByDish(Long dishId);
 
     /**
-     * Adicionales: permitir insumo adicional con un precio extra y grupo opcional.
+     * Adicionales / Variantes: permitir insumo adicional o variante con precio extra y grupo opcional.
      */
-    GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo);
+    GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo, Boolean isVariant);
+    default GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio, String grupo) {
+        return addAdditional(dishId, insumoId, cantidad, precio, grupo, false);
+    }
     default GenericResponse addAdditional(Long dishId, Long insumoId, Double cantidad, Double precio) {
-        return addAdditional(dishId, insumoId, cantidad, precio, null);
+        return addAdditional(dishId, insumoId, cantidad, precio, null, false);
     }
 
     /**
@@ -196,6 +207,26 @@ public interface InventoryService {
      * Sub-recetas: quita una sub-receta de un platillo o bebida.
      */
     GenericResponse removeSubRecetaFromDish(Long dishId, Long subRecetaId);
+
+    /**
+     * Variantes: obtiene las variantes de platillos/bebidas asignadas a un platillo principal.
+     */
+    GenericResponse getVariantDishes(Long dishId);
+
+    /**
+     * Variantes: asigna un platillo o bebida existente (marcado como variable) como variante de otro platillo/bebida.
+     */
+    GenericResponse addVariantDish(Long dishId, Long variantDishId, Double precio, String grupo, Double cantidad, String unidad);
+
+    /**
+     * Variantes: actualiza una variante de platillo (precio, grupo, cantidad, unidad).
+     */
+    GenericResponse updateVariantDish(Long id, Double precio, String grupo, Double cantidad, String unidad);
+
+    /**
+     * Variantes: elimina la relación de variante entre platillos.
+     */
+    GenericResponse removeVariantDish(Long id);
 
     /**
      * Descuenta stock de los insumos al confirmar una comanda.

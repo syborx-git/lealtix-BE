@@ -170,6 +170,11 @@ public class OrderSseService {
                 .couponId(order.getCouponId() != null ? order.getCouponId().toString() : null)
                 .couponDiscount(order.getCouponDiscount() != null ? order.getCouponDiscount() : BigDecimal.ZERO)
                 .fecha(order.getFecha() != null ? order.getFecha().toInstant(ZoneOffset.UTC) : timestamp)
+                .mesaId(order.getMesaId())
+                .mesaNombre(order.getMesaNombre())
+                .mesaNumero(order.getMesaNumero())
+                .barraEstado(order.getBarraEstado() != null ? mapEstadoToEnglish(order.getBarraEstado()) : null)
+                .cocinaEstado(order.getCocinaEstado() != null ? mapEstadoToEnglish(order.getCocinaEstado()) : null)
                 .build();
 
         // Construir metadata
@@ -200,6 +205,8 @@ public class OrderSseService {
                 .cantidad(item.getCantidad())
                 .precioUnitario(item.getPrecioUnitario() != null ? item.getPrecioUnitario() : BigDecimal.ZERO)
                 .comentarios(item.getComentarios())
+                .ronda(item.getRonda())
+                .esBebida(item.getEsBebida())
                 .build();
     }
 

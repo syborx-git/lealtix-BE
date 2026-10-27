@@ -89,6 +89,30 @@ public class ClientOrderController {
         }
     }
 
+    @Operation(summary = "Agregar platillos o bebidas a una comanda abierta (Nueva ronda)")
+    @PostMapping("/{orderId}/items")
+    public ResponseEntity<GenericResponse> addItemsToOrder(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody CreateClientOrderRequest request) {
+        try {
+            log.info("Agregando items a comanda {} en tenant {}", orderId, request.getTenantId());
+            ClientOrderDTO order = clientOrderService.addItemsToOrder(orderId, request);
+            return ResponseEntity.ok(new GenericResponse(200, "Artículos agregados exitosamente a la comanda", order));
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Recurso no encontrado al agregar items a orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Error de validación al agregar items a orden {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error agregando items a orden {}", orderId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
     @Operation(summary = "Obtener una orden por su ID")
     @GetMapping("/{orderId}")
     public ResponseEntity<GenericResponse> getOrderById(@PathVariable UUID orderId) {
@@ -260,7 +284,9 @@ public class ClientOrderController {
                     request.getEstado(),
                     userEmail,
                     reason,
-                    request.getArea()
+                    request.getArea(),
+                    request.getCancellationCategory(),
+                    request.getCancellationComment()
             );
             return ResponseEntity.ok(new GenericResponse(200, "Estado de orden actualizado", order));
         } catch (AccessDeniedException ex) {

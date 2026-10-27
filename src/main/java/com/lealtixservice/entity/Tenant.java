@@ -47,6 +47,11 @@ public class Tenant {
     @Column(name = "custom_site_html", columnDefinition = "TEXT")
     private String customSiteHtml;
 
+    /** Modo de visualización del logo en ticket: HEADER, WATERMARK, BOTH */
+    @Column(name = "ticket_logo_mode")
+    @Builder.Default
+    private String ticketLogoMode = "HEADER";
+
     @Builder.Default
     private boolean isActive = true;
     @Builder.Default

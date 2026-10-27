@@ -14,4 +14,6 @@ public interface MermaService {
     GenericResponse listarPorTenant(Long tenantId);
 
     GenericResponse resolverInsumosUsados(UUID orderId);
+
+    GenericResponse resolverDetalleComandaMerma(UUID orderId);
 }

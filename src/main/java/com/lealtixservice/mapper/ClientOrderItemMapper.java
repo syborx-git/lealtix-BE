@@ -26,6 +26,8 @@ public class ClientOrderItemMapper {
         BigDecimal precioUnitario = request.getPrecioUnitario() != null ? request.getPrecioUnitario() : 
                                     (product != null ? product.getPrecio() : BigDecimal.ZERO);
         
+        Integer ronda = (request.getRonda() != null && request.getRonda() > 0) ? request.getRonda() : 1;
+        
         return ClientOrderItem.builder()
                 .order(order)
                 .product(product)
@@ -34,6 +36,7 @@ public class ClientOrderItemMapper {
                 .comentarios(request.getComentarios())
                 .excludedIngredientIds(request.getExcludedIngredientIds())
                 .additionalIngredientIds(request.getAdditionalIngredientIds())
+                .ronda(ronda)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -58,6 +61,10 @@ public class ClientOrderItemMapper {
             subtotal = item.getPrecioUnitario().multiply(new BigDecimal(item.getCantidad()));
         }
         
+        // Determinar si es bebida: respetar el flag si ya viene true, o inferir con BeverageClassificationUtil
+        boolean isBeverage = Boolean.TRUE.equals(esBebida) ||
+                (item.getProduct() != null && com.lealtixservice.util.BeverageClassificationUtil.isBeverageProduct(item.getProduct()));
+
         return ClientOrderItemDTO.builder()
                 .id(item.getId())
                 .orderId(item.getOrder() != null ? item.getOrder().getId() : null)
@@ -71,7 +78,8 @@ public class ClientOrderItemMapper {
                 .comentarios(item.getComentarios())
                 .excludedIngredientIds(item.getExcludedIngredientIds())
                 .additionalIngredientIds(item.getAdditionalIngredientIds())
-                .esBebida(esBebida)
+                .esBebida(isBeverage)
+                .ronda(item.getRonda() != null ? item.getRonda() : 1)
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
                 .build();

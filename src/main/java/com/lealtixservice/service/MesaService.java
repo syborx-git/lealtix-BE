@@ -11,6 +11,8 @@ import java.util.List;
 public interface MesaService {
     List<MesaDTO> listByTenant(Long tenantId);
 
+    List<MesaDTO> listByTenantAndArea(Long tenantId, String area);
+
     List<MesaDTO> listByTenantAndEstado(Long tenantId, MesaEstado estado);
 
     MesaDTO getById(Long id, Long tenantId);

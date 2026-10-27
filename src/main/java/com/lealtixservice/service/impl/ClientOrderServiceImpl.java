@@ -61,6 +61,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -74,6 +75,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 @Transactional
 public class ClientOrderServiceImpl implements ClientOrderService {
+
+    /** Prórroga de edición de comandas enviadas (30 segundos tras el envío) */
+    public static final long EDIT_WINDOW_SECONDS = 30L;
 
     private final ClientOrderRepository clientOrderRepository;
     private final ClientOrderItemRepository clientOrderItemRepository;
@@ -92,17 +96,8 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     private final InsumoRepository insumoRepository;
 
     private Set<Long> getBeverageProductIds(Long tenantId) {
-        if (tenantId == null) return java.util.Collections.emptySet();
-        try {
-            return insumoRepository.findByTenantIdAndIsActiveTrueOrderByNombreAsc(tenantId).stream()
-                    .filter(Insumo::isEsBebida)
-                    .map(Insumo::getProductoId)
-                    .filter(java.util.Objects::nonNull)
-                    .collect(Collectors.toSet());
-        } catch (Exception e) {
-            log.warn("Error resolviendo catálogo de bebidas para tenant {}: {}", tenantId, e.getMessage());
-            return java.util.Collections.emptySet();
-        }
+        return com.lealtixservice.util.BeverageClassificationUtil.getBeverageProductIds(
+                tenantId, tenantMenuProductRepository, insumoRepository);
     }
 
     @Override
@@ -287,9 +282,18 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("La orden no pertenece al tenant especificado");
         }
 
-        // La comanda puede editarse en cualquier momento mientras NO esté pagada ni
-        // cancelada (permite agregar platillos si llega otro comensal o piden más).
-        if (order.getEstado() == OrderStatus.PAGADA || order.getEstado() == OrderStatus.CANCELADA) {
+        // Validar la prórroga de edición (30 segundos desde el envío)
+        LocalDateTime sentAt = order.getFecha() != null ? order.getFecha() : order.getCreatedAt();
+        if (sentAt != null) {
+            long elapsedSeconds = Duration.between(sentAt, LocalDateTime.now()).getSeconds();
+            if (elapsedSeconds > EDIT_WINDOW_SECONDS) {
+                throw new IllegalArgumentException(
+                        "El tiempo de prórroga de 30 segundos para editar la comanda ha expirado");
+            }
+        }
+
+        // Validar que el estado permite edición (aún no tomada por cocina / pagada / cancelada)
+        if (order.getEstado() != OrderStatus.PENDIENTE && order.getEstado() != OrderStatus.CONFIRMADA) {
             throw new IllegalArgumentException(
                     "No se puede editar una comanda en estado " + order.getEstado()
                             + ". Una comanda pagada o cancelada no puede editarse");
@@ -382,16 +386,176 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         order.setSubtotal(subtotal);
         order.setDescuento(descuento);
         order.setTotal(total);
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+        boolean hasBarra = items.stream().anyMatch(i -> i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId()));
+        boolean hasCocina = items.stream().anyMatch(i -> i.getProduct() != null && !beverageProductIds.contains(i.getProduct().getId()));
+        order.setBarraEstado(hasBarra ? (order.getBarraEstado() != null ? order.getBarraEstado() : order.getEstado()) : null);
+        order.setCocinaEstado(hasCocina ? (order.getCocinaEstado() != null ? order.getCocinaEstado() : order.getEstado()) : null);
         order = clientOrderRepository.save(order);
 
         log.info("Orden {} actualizada exitosamente. Nuevo total: {}", orderId, total);
-        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, request.getCouponCode(), descuento);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, request.getCouponCode(), descuento, beverageProductIds);
         try {
             orderSseService.publishOrderStatusChanged(orderDTO);
             log.info("Evento SSE (cocina) publicado al actualizar orden {} del tenant {}", order.getId(), order.getTenant().getId());
         } catch (Exception e) {
             log.error("Error al publicar evento SSE de cocina al actualizar orden {}: {}", order.getId(), e.getMessage(), e);
         }
+        return orderDTO;
+    }
+
+    @Override
+    @Transactional
+    public ClientOrderDTO addItemsToOrder(UUID orderId, CreateClientOrderRequest request) {
+        log.info("Agregando nuevos productos a la orden {} en tenant {}", orderId, request.getTenantId());
+
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
+
+        if (request.getTenantId() == null) {
+            throw new IllegalArgumentException("tenantId es requerido");
+        }
+        if (!order.getTenant().getId().equals(request.getTenantId())) {
+            throw new IllegalArgumentException("La orden no pertenece al tenant especificado");
+        }
+
+        // Validar que la comanda no esté cerrada (pagada o cancelada)
+        if (order.getEstado() == OrderStatus.PAGADA || order.getEstado() == OrderStatus.CANCELADA) {
+            throw new IllegalArgumentException(
+                    "No se pueden agregar productos a una comanda en estado " + order.getEstado()
+                            + ". La cuenta ya está cerrada.");
+        }
+
+        // Validar items
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Debe incluir al menos un producto para agregar a la orden");
+        }
+
+        // Pre-cargar productos en lote para validar disponibilidad y stock
+        Set<Long> productIds = request.getItems().stream()
+                .map(CreateClientOrderRequest.OrderItemRequest::getProductId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, TenantMenuProduct> productMap = tenantMenuProductRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(TenantMenuProduct::getId, p -> p));
+
+        // Validar stock y disponibilidad antes de persistir
+        for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+            TenantMenuProduct prod = productMap.get(itemRequest.getProductId());
+            if (prod == null) {
+                throw new ResourceNotFoundException("Producto no encontrado con ID: " + itemRequest.getProductId());
+            }
+            if (!prod.isActive()) {
+                throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' no está disponible actualmente");
+            }
+            double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
+            if (!inventoryService.hasStock(itemRequest.getProductId(), qty)) {
+                throw new IllegalArgumentException("El producto '" + prod.getNombre() + "' está agotado o no hay stock suficiente");
+            }
+        }
+
+        // Determinar número de ronda (1 = comanda inicial, 2+ = siguientes rondas)
+        int nextRonda = 1;
+        if (order.getItems() != null && !order.getItems().isEmpty()) {
+            int maxRonda = order.getItems().stream()
+                    .mapToInt(i -> i.getRonda() != null ? i.getRonda() : 1)
+                    .max().orElse(1);
+            nextRonda = maxRonda + 1;
+        }
+
+        final ClientOrder finalOrder = order;
+        final int currentRonda = nextRonda;
+
+        // Crear nuevas entidades de items
+        List<ClientOrderItem> newItems = request.getItems().stream()
+                .map(itemRequest -> {
+                    TenantMenuProduct product = productMap.get(itemRequest.getProductId());
+                    ClientOrderItem itemEntity = ClientOrderItemMapper.toEntity(itemRequest, finalOrder, product);
+                    itemEntity.setRonda(currentRonda);
+                    return itemEntity;
+                })
+                .collect(Collectors.toList());
+
+        newItems = clientOrderItemRepository.saveAll(newItems);
+
+        if (order.getItems() == null) {
+            order.setItems(new ArrayList<>());
+        }
+        order.getItems().addAll(newItems);
+
+        // Descontar inventario solo para los NUEVOS items
+        try {
+            for (CreateClientOrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+                Double qty = itemRequest.getCantidad() != null ? itemRequest.getCantidad().doubleValue() : 1.0;
+                inventoryService.deductForOrder(
+                        itemRequest.getProductId(),
+                        qty,
+                        itemRequest.getExcludedIngredientIds(),
+                        itemRequest.getAdditionalIngredientIds(),
+                        false);
+            }
+            inventoryService.syncProductAvailabilityByTenant(order.getTenant().getId());
+        } catch (Exception e) {
+            log.error("Error descontando inventario al agregar items a orden {}: {}", order.getId(), e.getMessage(), e);
+        }
+
+        // Recalcular montos de toda la comanda acumulada
+        BigDecimal subtotal = ClientOrderMapper.calculateSubtotal(order.getItems());
+        BigDecimal descuento = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
+        BigDecimal total = ClientOrderMapper.calculateTotal(subtotal, descuento);
+
+        order.setSubtotal(subtotal);
+        order.setDescuento(descuento);
+        order.setTotal(total);
+        order.setUpdatedAt(LocalDateTime.now());
+
+        // Actualizar estados de cocina y barra si los nuevos items corresponden a esas áreas
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+        boolean hasNewBarra = newItems.stream().anyMatch(i -> i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId()));
+        boolean hasNewCocina = newItems.stream().anyMatch(i -> i.getProduct() != null && !beverageProductIds.contains(i.getProduct().getId()));
+
+        if (hasNewCocina) {
+            if (order.getCocinaEstado() == null || order.getCocinaEstado() == OrderStatus.LISTO) {
+                order.setCocinaEstado(OrderStatus.CONFIRMADA);
+                order.setCocinaReadyAt(null);
+            }
+        }
+        if (hasNewBarra) {
+            if (order.getBarraEstado() == null || order.getBarraEstado() == OrderStatus.LISTO) {
+                order.setBarraEstado(OrderStatus.CONFIRMADA);
+                order.setBarraReadyAt(null);
+            }
+        }
+
+        // Evaluar estado general manteniendo el aislamiento de áreas:
+        if (hasNewCocina && hasNewBarra) {
+            order.setEstado(OrderStatus.CONFIRMADA);
+        } else if (hasNewCocina) {
+            // Solo nuevos platillos: si barra ya estaba lista, la orden general sigue activa
+            order.setEstado(order.getBarraEstado() == OrderStatus.LISTO ? OrderStatus.EN_PREPARACION : OrderStatus.CONFIRMADA);
+        } else if (hasNewBarra) {
+            // Solo nuevas bebidas: SI COCINA YA ESTABA LISTA, NO REGRESAR LA ORDEN COMPLETA A CONFIRMADA
+            // para evitar que cocina reciba alertas o tickets duplicados de platillos ya preparados.
+            order.setEstado(order.getCocinaEstado() == OrderStatus.LISTO ? OrderStatus.EN_PREPARACION : OrderStatus.CONFIRMADA);
+        } else if (order.getEstado() == OrderStatus.LISTO) {
+            order.setEstado(OrderStatus.CONFIRMADA);
+        }
+
+        order = clientOrderRepository.save(order);
+        log.info("Orden {} ampliada con ronda {} ({} nuevos artículos). Nuevo total: {}",
+                orderId, currentRonda, newItems.size(), total);
+
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, null, descuento, beverageProductIds);
+
+        // Notificar en tiempo real a cocina y barra vía SSE
+        try {
+            orderSseService.publishOrderStatusChanged(orderDTO);
+            log.info("Evento SSE publicado al agregar ronda {} a la orden {} del tenant {}",
+                    currentRonda, order.getId(), order.getTenant().getId());
+        } catch (Exception e) {
+            log.error("Error al publicar evento SSE al agregar ronda a la orden {}: {}", order.getId(), e.getMessage(), e);
+        }
+
         return orderDTO;
     }
 
@@ -468,19 +632,28 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
     @Override
     public ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason, String area) {
-        log.info("Actualizando estado de orden {} a: {} (área: {})", orderId, newStatus, area);
+        return updateOrderStatus(orderId, newStatus, userEmail, reason, area, null, null);
+    }
+
+    @Override
+    public ClientOrderDTO updateOrderStatus(UUID orderId, OrderStatus newStatus, String userEmail, String reason, String area, String category, String comment) {
+        log.info("Actualizando estado de orden {} a: {} (área: {}, categoría: {})", orderId, newStatus, area, category);
 
         ClientOrder order = clientOrderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + orderId));
 
         Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
 
-        // Asegurar que barraEstado y cocinaEstado estén inicializados si la orden tiene items
-        if (order.getBarraEstado() == null && order.getCocinaEstado() == null && order.getItems() != null && !order.getItems().isEmpty()) {
+        // Asegurar que barraEstado y cocinaEstado estén correctamente inicializados para las áreas de la comanda
+        if (order.getItems() != null && !order.getItems().isEmpty()) {
             boolean hasBarra = order.getItems().stream().anyMatch(i -> i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId()));
             boolean hasCocina = order.getItems().stream().anyMatch(i -> i.getProduct() != null && !beverageProductIds.contains(i.getProduct().getId()));
-            order.setBarraEstado(hasBarra ? order.getEstado() : null);
-            order.setCocinaEstado(hasCocina ? order.getEstado() : null);
+            if (hasBarra && order.getBarraEstado() == null) {
+                order.setBarraEstado(order.getEstado());
+            }
+            if (hasCocina && order.getCocinaEstado() == null) {
+                order.setCocinaEstado(order.getEstado());
+            }
         }
 
         if (area != null && !area.isBlank()) {
@@ -587,11 +760,36 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 String actor = currentActorEmail();
                 order.setCancelledBy(actor != null ? actor : userEmail);
                 order.setCancelledAt(LocalDateTime.now());
-                order.setCancellationReason(reason.trim());
 
-                // Si no estaba pagada, devolver el inventario. Si ya se cobró, el
-                // platillo se consumió: no se reintegra stock (evita manipulación).
-                if (!isPaid && order.getEstado() != OrderStatus.CANCELADA) {
+                // Resolver categoría estandarizada y comentarios detallados
+                String resolvedCategory = category;
+                String resolvedComment = comment;
+
+                if (resolvedCategory == null || resolvedCategory.isBlank()) {
+                    if (reason != null && reason.startsWith("[") && reason.contains("]")) {
+                        int closeBracket = reason.indexOf("]");
+                        resolvedCategory = reason.substring(1, closeBracket).trim();
+                        resolvedComment = reason.substring(closeBracket + 1).trim();
+                    } else if (reason != null && !reason.isBlank()) {
+                        resolvedCategory = "Otro motivo";
+                        resolvedComment = reason.trim();
+                    } else {
+                        resolvedCategory = "Sin motivo registrado";
+                        resolvedComment = "";
+                    }
+                } else if ((resolvedComment == null || resolvedComment.isBlank()) && reason != null && !reason.isBlank() && !reason.equals(category)) {
+                    resolvedComment = reason.trim();
+                }
+
+                order.setCancellationCategory(resolvedCategory);
+                order.setCancellationComment(resolvedComment != null ? resolvedComment : "");
+
+                String formattedReason = resolvedCategory;
+                if (resolvedComment != null && !resolvedComment.isBlank()) {
+                    formattedReason = "[" + resolvedCategory + "] " + resolvedComment;
+                }
+                order.setCancellationReason(formattedReason);
+                if (order.getEstado() != OrderStatus.CANCELADA) {
                     restoreStockForOrder(order);
                 }
 
@@ -673,8 +871,13 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("No se puede marchar el segundo tiempo de una orden PAGADA");
         }
 
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+
         // Actualizar comentarios de los ítems de 2do tiempo para indicar que están marchados
-        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        List<ClientOrderItem> items = order.getItems() != null && !order.getItems().isEmpty()
+                ? order.getItems()
+                : clientOrderItemRepository.findByOrderId(orderId);
+        LocalDateTime now = LocalDateTime.now();
         for (ClientOrderItem item : items) {
             String comment = item.getComentarios();
             if (comment != null && (comment.contains("2DO TIEMPO") || comment.contains("SEGUNDO TIEMPO"))) {
@@ -687,15 +890,45 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     updatedComment = "[2DO TIEMPO - MARCHADO] " + updatedComment;
                 }
                 item.setComentarios(updatedComment);
+                item.setUpdatedAt(now);
                 clientOrderItemRepository.save(item);
             }
         }
 
-        // Pasar orden a CONFIRMADA para que reingrese al riel de Confirmada de Cocina
-        order.setEstado(OrderStatus.CONFIRMADA);
-        order = clientOrderRepository.save(order);
+        boolean hasCocinaT2 = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isT2 = c != null && (c.contains("2DO TIEMPO") || c.contains("SEGUNDO TIEMPO"));
+            return isT2 && (i.getProduct() == null || !beverageProductIds.contains(i.getProduct().getId()));
+        });
+        boolean hasBarraT2 = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isT2 = c != null && (c.contains("2DO TIEMPO") || c.contains("SEGUNDO TIEMPO"));
+            return isT2 && i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId());
+        });
 
-        log.info("Orden {} pasada a CONFIRMADA para preparación de 2do tiempo", orderId);
+        if (!hasCocinaT2 && !hasBarraT2) {
+            log.info("Orden {} no tiene artículos marcados para 2do tiempo; se preservan estados actuales.", orderId);
+        } else {
+            if (hasCocinaT2) {
+                order.setCocinaEstado(OrderStatus.CONFIRMADA);
+                order.setCocinaReadyAt(null);
+            }
+            if (hasBarraT2) {
+                order.setBarraEstado(OrderStatus.CONFIRMADA);
+                order.setBarraReadyAt(null);
+            }
+
+            if (hasCocinaT2) {
+                order.setEstado(OrderStatus.CONFIRMADA);
+            } else if (hasBarraT2) {
+                order.setEstado(order.getCocinaEstado() == OrderStatus.LISTO ? OrderStatus.EN_PREPARACION : OrderStatus.CONFIRMADA);
+            }
+            order.setReadyAt(null);
+            order = clientOrderRepository.save(order);
+        }
+
+        log.info("Orden {} pasada a CONFIRMADA para preparación de 2do tiempo (cocina: {}, barra: {})",
+                orderId, order.getCocinaEstado(), order.getBarraEstado());
 
         String couponCode = null;
         BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
@@ -706,12 +939,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
 
-        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount, beverageProductIds);
 
-        // Notificar en tiempo real a Cocina vía SSE
+        // Notificar en tiempo real a Cocina y Barra vía SSE
         try {
             orderSseService.publishOrderStatusChanged(orderDTO);
-            log.info("Evento SSE de orden {} (2do tiempo marchado) publicado para cocina", orderId);
+            log.info("Evento SSE de orden {} (2do tiempo marchado) publicado para cocina/barra", orderId);
         } catch (Exception e) {
             log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
         }
@@ -734,8 +967,13 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("No se puede marchar el tercer tiempo de una orden PAGADA");
         }
 
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+
         // Actualizar comentarios de los ítems de 3er tiempo para indicar que están marchados
-        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        List<ClientOrderItem> items = order.getItems() != null && !order.getItems().isEmpty()
+                ? order.getItems()
+                : clientOrderItemRepository.findByOrderId(orderId);
+        LocalDateTime now = LocalDateTime.now();
         for (ClientOrderItem item : items) {
             String comment = item.getComentarios();
             if (comment != null && (comment.contains("3ER TIEMPO") || comment.contains("TERCER TIEMPO"))) {
@@ -748,15 +986,45 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     updatedComment = "[3ER TIEMPO - MARCHADO] " + updatedComment;
                 }
                 item.setComentarios(updatedComment);
+                item.setUpdatedAt(now);
                 clientOrderItemRepository.save(item);
             }
         }
 
-        // Pasar orden a CONFIRMADA para que reingrese al riel de Confirmada de Cocina
-        order.setEstado(OrderStatus.CONFIRMADA);
-        order = clientOrderRepository.save(order);
+        boolean hasCocinaT3 = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isT3 = c != null && (c.contains("3ER TIEMPO") || c.contains("TERCER TIEMPO"));
+            return isT3 && (i.getProduct() == null || !beverageProductIds.contains(i.getProduct().getId()));
+        });
+        boolean hasBarraT3 = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isT3 = c != null && (c.contains("3ER TIEMPO") || c.contains("TERCER TIEMPO"));
+            return isT3 && i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId());
+        });
 
-        log.info("Orden {} pasada a CONFIRMADA para preparación de 3er tiempo", orderId);
+        if (!hasCocinaT3 && !hasBarraT3) {
+            log.info("Orden {} no tiene artículos marcados para 3er tiempo; se preservan estados actuales.", orderId);
+        } else {
+            if (hasCocinaT3) {
+                order.setCocinaEstado(OrderStatus.CONFIRMADA);
+                order.setCocinaReadyAt(null);
+            }
+            if (hasBarraT3) {
+                order.setBarraEstado(OrderStatus.CONFIRMADA);
+                order.setBarraReadyAt(null);
+            }
+
+            if (hasCocinaT3) {
+                order.setEstado(OrderStatus.CONFIRMADA);
+            } else if (hasBarraT3) {
+                order.setEstado(order.getCocinaEstado() == OrderStatus.LISTO ? OrderStatus.EN_PREPARACION : OrderStatus.CONFIRMADA);
+            }
+            order.setReadyAt(null);
+            order = clientOrderRepository.save(order);
+        }
+
+        log.info("Orden {} pasada a CONFIRMADA para preparación de 3er tiempo (cocina: {}, barra: {})",
+                orderId, order.getCocinaEstado(), order.getBarraEstado());
 
         String couponCode = null;
         BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
@@ -767,12 +1035,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
 
-        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount, beverageProductIds);
 
-        // Notificar en tiempo real a Cocina vía SSE
+        // Notificar en tiempo real a Cocina y Barra vía SSE
         try {
             orderSseService.publishOrderStatusChanged(orderDTO);
-            log.info("Evento SSE de orden {} (3er tiempo marchado) publicado para cocina", orderId);
+            log.info("Evento SSE de orden {} (3er tiempo marchado) publicado para cocina/barra", orderId);
         } catch (Exception e) {
             log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
         }
@@ -795,7 +1063,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             throw new IllegalArgumentException("No se pueden marchar tiempos de una orden PAGADA");
         }
 
-        List<ClientOrderItem> items = clientOrderItemRepository.findByOrderId(orderId);
+        Set<Long> beverageProductIds = getBeverageProductIds(order.getTenant().getId());
+
+        List<ClientOrderItem> items = order.getItems() != null && !order.getItems().isEmpty()
+                ? order.getItems()
+                : clientOrderItemRepository.findByOrderId(orderId);
+        LocalDateTime now = LocalDateTime.now();
         for (ClientOrderItem item : items) {
             String comment = item.getComentarios();
             if (comment != null) {
@@ -826,15 +1099,42 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 }
                 if (changed) {
                     item.setComentarios(comment);
+                    item.setUpdatedAt(now);
                     clientOrderItemRepository.save(item);
                 }
             }
         }
 
-        order.setEstado(OrderStatus.CONFIRMADA);
+        boolean hasCocinaTiempos = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isTiempo = c != null && (c.contains("2DO TIEMPO") || c.contains("SEGUNDO TIEMPO") || c.contains("3ER TIEMPO") || c.contains("TERCER TIEMPO"));
+            return isTiempo && (i.getProduct() == null || !beverageProductIds.contains(i.getProduct().getId()));
+        });
+        boolean hasBarraTiempos = items.stream().anyMatch(i -> {
+            String c = i.getComentarios();
+            boolean isTiempo = c != null && (c.contains("2DO TIEMPO") || c.contains("SEGUNDO TIEMPO") || c.contains("3ER TIEMPO") || c.contains("TERCER TIEMPO"));
+            return isTiempo && i.getProduct() != null && beverageProductIds.contains(i.getProduct().getId());
+        });
+
+        if (hasCocinaTiempos) {
+            order.setCocinaEstado(OrderStatus.CONFIRMADA);
+            order.setCocinaReadyAt(null);
+        }
+        if (hasBarraTiempos) {
+            order.setBarraEstado(OrderStatus.CONFIRMADA);
+            order.setBarraReadyAt(null);
+        }
+
+        if (hasCocinaTiempos) {
+            order.setEstado(OrderStatus.CONFIRMADA);
+        } else if (hasBarraTiempos) {
+            order.setEstado(order.getCocinaEstado() == OrderStatus.LISTO ? OrderStatus.EN_PREPARACION : OrderStatus.CONFIRMADA);
+        }
+        order.setReadyAt(null);
         order = clientOrderRepository.save(order);
 
-        log.info("Orden {} pasada a CONFIRMADA para preparación de todos los tiempos", orderId);
+        log.info("Orden {} pasada a CONFIRMADA para preparación de todos los tiempos (cocina: {}, barra: {})",
+                orderId, order.getCocinaEstado(), order.getBarraEstado());
 
         String couponCode = null;
         BigDecimal couponDiscount = order.getDescuento() != null ? order.getDescuento() : BigDecimal.ZERO;
@@ -845,11 +1145,11 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
         }
 
-        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount);
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order, couponCode, couponDiscount, beverageProductIds);
 
         try {
             orderSseService.publishOrderStatusChanged(orderDTO);
-            log.info("Evento SSE de orden {} (todos los tiempos marchados) publicado para cocina", orderId);
+            log.info("Evento SSE de orden {} (todos los tiempos marchados) publicado para cocina/barra", orderId);
         } catch (Exception e) {
             log.error("Error al publicar evento SSE para orden {}: {}", orderId, e.getMessage(), e);
         }

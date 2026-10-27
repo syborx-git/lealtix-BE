@@ -27,6 +27,11 @@ public class Mesa {
     @Column(length = 100, nullable = false)
     private String nombre;
 
+    /** Área del local donde se ubica la mesa (ej. Principal, Terraza, Balcón, 2do Piso) */
+    @Column(name = "area", length = 100)
+    @Builder.Default
+    private String area = "Principal";
+
     /** Identificador único asignado por el usuario (ej. M-1, BARRA-1, 101) */
     @Column(name = "identificador", length = 50)
     private String identificador;
@@ -107,6 +112,9 @@ public class Mesa {
         }
         if (alto == null || alto <= 0) {
             alto = 80.0;
+        }
+        if (area == null || area.isBlank()) {
+            area = "Principal";
         }
     }
 

@@ -38,6 +38,7 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
     private final RestockHistoryRepository restockHistoryRepository;
     private final DateRangeResolver dateRangeResolver;
     private final ReporteExcelService excelService;
+    private final TenantMenuProductRepository tenantMenuProductRepository;
 
     @Override
     public CorteInsumosDTO obtener(Long tenantId, PresetReporte preset, LocalDateTime from, LocalDateTime to, String area) {
@@ -117,12 +118,8 @@ public class ReporteCorteInsumosServiceImpl implements ReporteCorteInsumosServic
         Map<Long, Insumo> insumoMap = insumosTenant.stream().collect(Collectors.toMap(Insumo::getId, i -> i, (a, b) -> a));
         Map<Long, Double> costosPromedio = obtenerCostosPromedio(tenantId);
 
-        // Identificar IDs de productos que son bebidas/barra
-        Set<Long> barraProductIds = insumosTenant.stream()
-                .filter(Insumo::isEsBebida)
-                .map(Insumo::getProductoId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        // Identificar IDs de productos que son bebidas/barra de manera exhaustiva
+        Set<Long> barraProductIds = com.lealtixservice.util.BeverageClassificationUtil.getBeverageProductIds(tenantId, tenantMenuProductRepository, insumoRepository);
 
         // Procesar periodo actual
         ProcessedAreaPeriod dataActual = procesarPeriodo(itemsActual, barraProductIds, insumoMap, costosPromedio, areaFiltro, insumosTenant);

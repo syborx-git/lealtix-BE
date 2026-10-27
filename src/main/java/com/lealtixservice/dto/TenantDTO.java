@@ -39,6 +39,8 @@ public class TenantDTO {
     private Boolean kitchenModuleEnabled;
     private LocalDateTime kitchenEnabledAt;
     private String customSiteHtml;
+    @Builder.Default
+    private String ticketLogoMode = "HEADER";
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

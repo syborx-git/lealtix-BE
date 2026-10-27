@@ -140,7 +140,9 @@ public class InventoryController {
         Double stockMinimo = toDouble(body.get("stockMinimo"));
         Double precioVenta = toDouble(body.get("precioVenta"));
         List<Long> categoryIds = toLongList(body.get("categoryIds"));
-        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds));
+        Boolean esVariable = body.get("esVariable") != null ? Boolean.valueOf(body.get("esVariable").toString()) : null;
+        Boolean tieneVariantes = body.get("tieneVariantes") != null ? Boolean.valueOf(body.get("tieneVariantes").toString()) : null;
+        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes));
     }
 
     @Operation(summary = "Actualizar bebida")
@@ -154,7 +156,9 @@ public class InventoryController {
         Double stockMinimo = toDouble(body.get("stockMinimo"));
         Double precioVenta = toDouble(body.get("precioVenta"));
         List<Long> categoryIds = toLongList(body.get("categoryIds"));
-        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds));
+        Boolean esVariable = body.get("esVariable") != null ? Boolean.valueOf(body.get("esVariable").toString()) : null;
+        Boolean tieneVariantes = body.get("tieneVariantes") != null ? Boolean.valueOf(body.get("tieneVariantes").toString()) : null;
+        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes));
     }
 
     @Operation(summary = "Eliminar bebida")
@@ -252,7 +256,11 @@ public class InventoryController {
         Double cantidad = toDouble(body.get("cantidad"));
         Double precio = toDouble(body.get("precio"));
         String grupo = body.get("grupo") != null ? body.get("grupo").toString() : null;
-        return ResponseEntity.ok(inventoryService.addAdditional(dishId, insumoId, cantidad, precio, grupo));
+        Boolean isVariant = body.get("isVariant") != null ? Boolean.valueOf(body.get("isVariant").toString()) : false;
+        if (body.get("tipoIngrediente") != null && "VARIANTE".equalsIgnoreCase(body.get("tipoIngrediente").toString())) {
+            isVariant = true;
+        }
+        return ResponseEntity.ok(inventoryService.addAdditional(dishId, insumoId, cantidad, precio, grupo, isVariant));
     }
 
     @Operation(summary = "Actualizar cantidad/precio/importancia de un adicional permitido")
@@ -369,6 +377,47 @@ public class InventoryController {
             @PathVariable Long dishId,
             @PathVariable Long subRecetaId) {
         return ResponseEntity.ok(inventoryService.removeSubRecetaFromDish(dishId, subRecetaId));
+    }
+
+    /* ============ Variantes de Platillos / Bebidas ============ */
+
+    @Operation(summary = "Obtener variantes de platillos o bebidas asignadas")
+    @GetMapping("/dish/{dishId}/variant-dishes")
+    public ResponseEntity<GenericResponse> getVariantDishes(@PathVariable Long dishId) {
+        return ResponseEntity.ok(inventoryService.getVariantDishes(dishId));
+    }
+
+    @Operation(summary = "Asignar un platillo o bebida como variante de otro")
+    @PostMapping("/dish/{dishId}/variant-dish")
+    public ResponseEntity<GenericResponse> addVariantDish(
+            @PathVariable Long dishId,
+            @RequestBody Map<String, Object> body) {
+        Long variantDishId = body.get("variantDishId") != null ? Long.valueOf(body.get("variantDishId").toString()) : null;
+        Double precio = toDouble(body.get("precio"));
+        String grupo = body.get("grupo") != null ? body.get("grupo").toString() : null;
+        Double cantidad = toDouble(body.get("cantidad"));
+        String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
+        return ResponseEntity.ok(
+                inventoryService.addVariantDish(dishId, variantDishId, precio, grupo, cantidad, unidad));
+    }
+
+    @Operation(summary = "Actualizar una variante de platillo o bebida")
+    @PutMapping("/variant-dish/{id}")
+    public ResponseEntity<GenericResponse> updateVariantDish(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        Double precio = toDouble(body.get("precio"));
+        String grupo = body.get("grupo") != null ? body.get("grupo").toString() : null;
+        Double cantidad = toDouble(body.get("cantidad"));
+        String unidad = body.get("unidad") != null ? body.get("unidad").toString() : null;
+        return ResponseEntity.ok(
+                inventoryService.updateVariantDish(id, precio, grupo, cantidad, unidad));
+    }
+
+    @Operation(summary = "Eliminar una variante de platillo o bebida")
+    @DeleteMapping("/variant-dish/{id}")
+    public ResponseEntity<GenericResponse> removeVariantDish(@PathVariable Long id) {
+        return ResponseEntity.ok(inventoryService.removeVariantDish(id));
     }
 
     /* ============ Descuento de comanda ============ */
