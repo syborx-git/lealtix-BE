@@ -29,23 +29,56 @@ public final class BeverageClassificationUtil {
             "destilado", "destilados", "botella", "botellas",
             "licor", "licores", "liquor",
             "vino", "vinos", "wine", "wines",
-            "trago", "tragos", "shot", "shots",
+            "trago", "tragos", "shot", "shots", "chupito", "chupitos",
             "cafe", "cafes", "cafeteria", "coffee",
             "infusion", "infusiones", "te", "tes", "tea",
             "refresco", "refrescos", "soda", "sodas",
             "agua", "aguas", "water",
             "jugo", "jugos", "juice",
-            "smoothie", "smoothies", "malteada", "malteadas"
+            "smoothie", "smoothies", "malteada", "malteadas", "frappe", "frappes",
+            "cava", "cavas", "cantina", "cantinas", "copeo", "preparados", "preparado",
+            "mixers", "mixer", "digestivo", "digestivos", "aperitivo", "aperitivos",
+            "calientes", "frios", "sin alcohol", "con alcohol", "bebestibles"
     );
 
     private static final List<String> BEVERAGE_NAME_KEYWORDS = List.of(
+            // Cervezas y preparados
             "cerveza", "heineken", "corona", "victoria", "modelo", "bohemia", "stella",
-            "michelob", "amstel", "ultra", "mojito", "margarita", "carajillo", "piña colada",
-            "pina colada", "azulito", "ruso negro", "alma negra", "coca-cola", "coca cola",
-            "sprite", "fanta", "refresco", "tequila", "whisky", "vodka", "mezcal", "brandy",
-            "perrier", "pellegrino", "peñafiel", "penafiel", "ciel", "agua embotellada",
-            "agua mineral", "agua natural", "agua fresca", "limonada", "naranjada", "ron ",
-            "ron 7", "ron blanco", "ron añejo"
+            "michelob", "amstel", "ultra", "pacifico", "indio", "tecate", "carta blanca",
+            "dos equis", "xx", "leon", "montejo", "barril", "caguama", "caguamon",
+            "michelada", "chelada", "ojo rojo", "cubana", "clamato",
+            // Cocteles clásicos y populares
+            "mojito", "margarita", "carajillo", "piña colada", "pina colada", "azulito",
+            "ruso negro", "alma negra", "paloma", "charro negro", "vampiro", "cantarito",
+            "piñada", "pinada", "conga", "sangria", "clericot", "aperol", "spritz",
+            "gin tonic", "gin & tonic", "martini", "cosmopolitan", "daikiri", "daiquiri",
+            "submarino", "perla negra", "baby mango", "cucaracha", "torito",
+            // Destilados y marcas habituales
+            "tequila", "whisky", "vodka", "mezcal", "brandy", "cognac", "ginebra", "gin ",
+            "don julio", "herradura", "maestro dobel", "dobel", "centenario", "7 leguas",
+            "siete leguas", "jose cuervo", "cuervo", "1800", "tradicional", "cazadores", "espolon",
+            "buchanan", "red label", "black label", "chivas", "jack daniel", "jim beam",
+            "macallan", "glenfiddich", "j&b", "ballantines", "johnnie walker",
+            "bacardi", "havana", "captain morgan", "matusalem", "appleton", "zacapa", "flor de caña",
+            "absolut", "smirnoff", "grey goose", "belvedere", "stolichnaya",
+            "400 conejos", "ojo de tigre", "alipus", "montelobos", "amores", "creyente",
+            "torres 10", "torres 5", "fundador", "don pedro", "terry", "hennessy", "martell",
+            "baileys", "kahlua", "frangelico", "jagermeister", "licor 43", "anis", "campari",
+            "amaretto", "sambuca", "midori", "hpnotiq",
+            // Vinos
+            "cabernet", "merlot", "malbec", "chardonnay", "sauvignon", "tempranillo",
+            "syrah", "pinot", "rioja", "ribera", "lambrusco", "prosecco", "champagne", "champana",
+            // Cafetería
+            "latte", "capuchino", "cappuccino", "espresso", "expreso", "americano", "moka", "mocha",
+            "frappe", "matcha", "chai",
+            // Refrescos, aguas y energizantes
+            "coca-cola", "coca cola", "sprite", "fanta", "refresco", "perrier", "pellegrino",
+            "peñafiel", "penafiel", "ciel", "agua embotellada", "agua mineral", "agua natural",
+            "agua fresca", "limonada", "naranjada", "horchata", "jamaica", "tamarindo",
+            "topo chico", "tehuacan", "squirt", "mundet", "sidral", "delaware", "boing", "jarrito",
+            "red bull", "monster", "boost", "electrolit",
+            // Ron y derivados
+            "ron ", "ron 7", "ron blanco", "ron añejo"
     );
 
     public static String cleanText(String text) {

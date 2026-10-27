@@ -31,7 +31,12 @@ set "CLOUDINARY_API_KEY=TODO_REEMPLAZAR"
 set "CLOUDINARY_SECRET=TODO_REEMPLAZAR"
 set "CLOUDINARY_URL=cloudinary://TODO:TODO@TODO_REEMPLAZAR"
 
-echo Arrancando backend Lealtix en http://localhost:8080 ...
-call mvn spring-boot:run > backend-run.log 2>&1
+title Lealtix BACKEND - http://localhost:8080
+echo =====================================================
+echo  LEALTIX BACKEND - http://localhost:8080
+echo  Compilando y levantando Spring Boot...
+echo =====================================================
+echo.
+call mvn spring-boot:run
 
 endlocal

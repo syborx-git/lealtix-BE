@@ -100,6 +100,8 @@ public class ClientOrderMapper {
                         Boolean esBebida = null;
                         if (beverageProductIds != null && item.getProduct() != null && item.getProduct().getId() != null) {
                             esBebida = beverageProductIds.contains(item.getProduct().getId());
+                        } else if (item.getProduct() != null) {
+                            esBebida = com.lealtixservice.util.BeverageClassificationUtil.isBeverageProduct(item.getProduct());
                         }
                         return ClientOrderItemMapper.toDTO(item, esBebida);
                     })
@@ -111,6 +113,14 @@ public class ClientOrderMapper {
 
         OrderStatus resolvedBarraEstado = order.getBarraEstado() != null ? order.getBarraEstado() : (hasBarraItems ? order.getEstado() : null);
         OrderStatus resolvedCocinaEstado = order.getCocinaEstado() != null ? order.getCocinaEstado() : (hasCocinaItems ? order.getEstado() : null);
+
+        // Si la orden no tiene artículos de cocina o barra, su estado correspondiente debe ser null
+        if (!hasCocinaItems) {
+            resolvedCocinaEstado = null;
+        }
+        if (!hasBarraItems) {
+            resolvedBarraEstado = null;
+        }
 
         return ClientOrderDTO.builder()
                 .id(order.getId())
