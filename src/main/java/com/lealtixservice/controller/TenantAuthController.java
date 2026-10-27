@@ -63,8 +63,14 @@ public class TenantAuthController {
             }else{
 
             }
-            // Generar token JWT con tenantId y rol
-            String token = jwtUtil.generateToken(user.getEmail(), tenantId, user.getRol() != null ? user.getRol().name() : "ADMIN");
+            // Generar token JWT con tenantId y rol.
+            // longSession=true (tablet/POS) => token de larga duración.
+            boolean longSession = Boolean.TRUE.equals(request.getLongSession());
+            String token = jwtUtil.generateToken(
+                    user.getEmail(),
+                    tenantId,
+                    user.getRol() != null ? user.getRol().name() : "ADMIN",
+                    longSession);
 
             // Obtener permisos del rol
             List<String> permissions = rolePermissionService.getPermissionsByRole(user.getRol().name());
@@ -101,5 +107,7 @@ public class TenantAuthController {
     public static class TenantLoginRequest {
         private String email;
         private String password;
+        /** true => token de larga duración (tablet/POS, no cierra sesión). */
+        private Boolean longSession;
     }
 }
