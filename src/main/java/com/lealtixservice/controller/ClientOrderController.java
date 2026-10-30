@@ -1,5 +1,6 @@
 package com.lealtixservice.controller;
 
+import com.lealtixservice.dto.CambiarMesaRequest;
 import com.lealtixservice.dto.ClientOrderDTO;
 import com.lealtixservice.dto.CreateClientOrderRequest;
 import com.lealtixservice.dto.GenericResponse;
@@ -537,6 +538,30 @@ public class ClientOrderController {
             return ResponseEntity.ok(new GenericResponse(200, "Reporte de ventas obtenido", report));
         } catch (Exception e) {
             log.error("Error obteniendo reporte de ventas del tenant {}", tenantId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error interno del servidor", null));
+        }
+    }
+
+    @Operation(summary = "Cambiar de mesa una comanda activa")
+    @RequestMapping(value = "/{orderId}/cambiar-mesa", method = {RequestMethod.PATCH, RequestMethod.PUT})
+    public ResponseEntity<GenericResponse> cambiarMesa(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody CambiarMesaRequest request) {
+        try {
+            log.info("Cambiando comanda {} a mesa {}", orderId, request.getNuevaMesaId());
+            ClientOrderDTO order = clientOrderService.cambiarMesa(orderId, request.getNuevaMesaId());
+            return ResponseEntity.ok(new GenericResponse(200, "Mesa cambiada exitosamente", order));
+        } catch (ResourceNotFoundException ex) {
+            log.warn("Recurso no encontrado al cambiar mesa: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new GenericResponse(404, ex.getMessage(), null));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Error de validación al cambiar mesa de comanda {}: {}", orderId, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new GenericResponse(400, ex.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Error al cambiar mesa de comanda {}", orderId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new GenericResponse(500, "Error interno del servidor", null));
         }

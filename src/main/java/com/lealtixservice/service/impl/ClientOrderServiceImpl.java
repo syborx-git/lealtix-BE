@@ -1779,4 +1779,79 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
         return BigDecimal.ZERO;
     }
-}
+
+    @Override
+    @Transactional
+    public ClientOrderDTO cambiarMesa(UUID orderId, Long nuevaMesaId) {
+        log.info("Cambiando mesa de orden {} a nueva mesa {}", orderId, nuevaMesaId);
+
+        ClientOrder order = clientOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada: " + orderId));
+
+        if (order.getEstado() == OrderStatus.PAGADA || order.getEstado() == OrderStatus.CANCELADA) {
+            throw new IllegalArgumentException("No se puede cambiar de mesa una orden en estado " + order.getEstado());
+        }
+
+        if (nuevaMesaId == null) {
+            throw new IllegalArgumentException("El ID de la nueva mesa es obligatorio");
+        }
+
+        Mesa nuevaMesa = mesaRepository.findById(nuevaMesaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mesa de destino no encontrada: " + nuevaMesaId));
+
+        if (!nuevaMesa.getTenantId().equals(order.getTenant().getId())) {
+            throw new IllegalArgumentException("La mesa de destino no pertenece al mismo restaurante");
+        }
+
+        Mesa antiguaMesa = order.getMesa();
+        if (antiguaMesa != null && antiguaMesa.getId().equals(nuevaMesa.getId())) {
+            throw new IllegalArgumentException("La orden ya se encuentra asignada a la mesa '" + nuevaMesa.getNombre() + "'");
+        }
+
+        if (nuevaMesa.getEstado() != MesaEstado.LIBRE) {
+            throw new IllegalArgumentException("La mesa de destino '" + nuevaMesa.getNombre() + "' debe estar LIBRE. Estado actual: " + nuevaMesa.getEstado());
+        }
+
+        // 1. Liberar la mesa anterior si no tiene otras órdenes activas
+        if (antiguaMesa != null) {
+            final UUID currentOrderId = order.getId();
+            boolean tieneOtrasActivas = clientOrderRepository.findByTenantId(order.getTenant().getId()).stream()
+                    .anyMatch(o -> !o.getId().equals(currentOrderId)
+                            && o.getMesa() != null
+                            && o.getMesa().getId().equals(antiguaMesa.getId())
+                            && o.getEstado() != OrderStatus.PAGADA
+                            && o.getEstado() != OrderStatus.CANCELADA);
+            if (!tieneOtrasActivas) {
+                antiguaMesa.setEstado(MesaEstado.LIBRE);
+                antiguaMesa.setMeseroUserId(null);
+                mesaRepository.save(antiguaMesa);
+                log.info("Mesa anterior {} ({}) liberada tras transferir orden {}", 
+                        antiguaMesa.getId(), antiguaMesa.getNombre(), orderId);
+            }
+        }
+
+        // 2. Ocupar la nueva mesa y asignar el mesero existente
+        nuevaMesa.setEstado(MesaEstado.OCUPADA);
+        if (order.getMesero() != null) {
+            nuevaMesa.setMeseroUserId(order.getMesero().getId());
+        }
+        mesaRepository.save(nuevaMesa);
+
+        // 3. Reasignar mesa en la orden (el mesero asignado sigue siendo el mismo)
+        order.setMesa(nuevaMesa);
+        order = clientOrderRepository.save(order);
+
+        // 4. Mapear a DTO
+        ClientOrderDTO orderDTO = ClientOrderMapper.toDTO(order);
+
+        // 5. Notificar a través de SSE para cocina, barra y comandix
+        try {
+            orderSseService.publishOrderStatusChanged(orderDTO);
+        } catch (Exception e) {
+            log.warn("No se pudo notificar evento SSE tras cambio de mesa: {}", e.getMessage());
+        }
+
+        log.info("Orden {} transferida exitosamente a mesa {} ({})", orderId, nuevaMesa.getId(), nuevaMesa.getNombre());
+        return orderDTO;
+    }
+}

@@ -149,4 +149,16 @@ public interface ClientOrderService {
      * Reporte general de ventas/comandas con JOIN de mesa, mesero y cliente.
      */
     List<SalesReportRowDTO> getSalesReport(Long tenantId, LocalDateTime from, LocalDateTime to);
+
+    /**
+     * Cambia la mesa asociada a una comanda activa.
+     * Libera la mesa actual si no tiene otras órdenes activas, ocupa la nueva mesa (que debe estar libre)
+     * y mantiene el mesero asignado y todos los productos/tiempos asociados.
+     *
+     * @param orderId ID de la comanda
+     * @param nuevaMesaId ID de la nueva mesa de destino
+     * @return DTO de la comanda actualizada
+     */
+    ClientOrderDTO cambiarMesa(UUID orderId, Long nuevaMesaId);
 }
+
