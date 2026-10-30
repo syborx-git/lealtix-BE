@@ -42,10 +42,15 @@ import com.lealtixservice.service.ClientOrderService;
 import com.lealtixservice.service.CouponRedemptionService;
 import com.lealtixservice.service.InventoryService;
 import com.lealtixservice.service.OrderSseService;
+import com.lealtixservice.config.TenantUserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -292,7 +297,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         if (order.getEstado() != OrderStatus.PENDIENTE && order.getEstado() != OrderStatus.CONFIRMADA) {
             throw new IllegalArgumentException(
                     "No se puede editar una comanda en estado " + order.getEstado()
-                            + ". Solo pueden editarse comandas pendientes o confirmadas");
+                            + ". Una comanda pagada o cancelada no puede editarse");
         }
 
         // Validar cliente (opcional) y que pertenezca al tenant
@@ -739,7 +744,22 @@ public class ClientOrderServiceImpl implements ClientOrderService {
             }
 
             if (newStatus == OrderStatus.CANCELADA) {
-                order.setCancelledBy(userEmail);
+                String role = currentActorRole();
+                boolean isPaid = order.getEstado() == OrderStatus.PAGADA;
+
+                // Anti-robo: SOLO el administrador puede cancelar (meseros, cocina y caja
+                // no, porque podrían coludirse para ocultar ventas). Aplica a cualquier estado.
+                if (!"ADMIN".equals(role)) {
+                    throw new AccessDeniedException(
+                            "Solo un administrador puede cancelar comandas. Solicita autorización.");
+                }
+                if (reason == null || reason.trim().length() < 3) {
+                    throw new IllegalArgumentException("Debes indicar el motivo de la cancelación.");
+                }
+
+                // El responsable se toma del token (no del cuerpo): no es falsificable.
+                String actor = currentActorEmail();
+                order.setCancelledBy(actor != null ? actor : userEmail);
                 order.setCancelledAt(LocalDateTime.now());
 
                 // Resolver categoría estandarizada y comentarios detallados
@@ -773,6 +793,14 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 if (order.getEstado() != OrderStatus.CANCELADA) {
                     restoreStockForOrder(order);
                 }
+
+                // Si estaba pagada, anular los pagos para que no cuenten como
+                // ingreso válido en caja (devolución rastreable).
+                if (isPaid) {
+                    anularPagosDeOrden(order);
+                }
+
+                // Liberar la mesa si no quedan otras comandas activas en ella.
                 if (order.getMesa() != null) {
                     Mesa m = order.getMesa();
                     final UUID currentOrderId = order.getId();
@@ -787,7 +815,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                         mesaRepository.save(m);
                     }
                 }
-                log.info("Orden {} cancelada por {}. Razón: {}", orderId, userEmail, reason);
+                log.info("Orden {} cancelada por {} (rol {}). Motivo: {}", orderId, order.getCancelledBy(), role, reason);
             }
 
             order.setEstado(newStatus);
@@ -1134,6 +1162,56 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     public ClientOrderDTO cancelOrder(UUID orderId) {
         log.info("Cancelando orden: {}", orderId);
         return updateOrderStatus(orderId, OrderStatus.CANCELADA);
+    }
+
+    /** Rol del usuario autenticado (desde el JWT), p. ej. ADMIN, CAJA, MESERO. */
+    private String currentActorRole() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null) {
+                return null;
+            }
+            return auth.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .filter(a -> a != null && a.startsWith("ROLE_"))
+                    .map(a -> a.substring(5))
+                    .findFirst()
+                    .orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Email del usuario autenticado (desde el JWT). No se confía en el cuerpo. */
+    private String currentActorEmail() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null) {
+                return null;
+            }
+            if (auth.getPrincipal() instanceof TenantUserPrincipal principal) {
+                return principal.getEmail();
+            }
+            return auth.getName();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Marca como ANULADO los pagos registrados en caja para una comanda cancelada. */
+    private void anularPagosDeOrden(ClientOrder order) {
+        try {
+            List<Pago> pagos = pagoRepository.findByComandaId(order.getId());
+            for (Pago pago : pagos) {
+                if (!"ANULADO".equalsIgnoreCase(pago.getEstado())) {
+                    pago.setEstado("ANULADO");
+                    pagoRepository.save(pago);
+                }
+            }
+            log.info("Pagos anulados ({}) para la comanda {} por cancelación/devolución", pagos.size(), order.getId());
+        } catch (Exception e) {
+            log.error("Error anulando pagos de la comanda {}: {}", order.getId(), e.getMessage(), e);
+        }
     }
 
     /**
@@ -1854,4 +1932,4 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         log.info("Orden {} transferida exitosamente a mesa {} ({})", orderId, nuevaMesa.getId(), nuevaMesa.getNombre());
         return orderDTO;
     }
-}
+}

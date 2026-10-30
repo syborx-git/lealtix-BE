@@ -1,56 +1,86 @@
-name: Deploy Backend to Hetzner
+name: CI/CD Backend Hetzner
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
 
+concurrency:
+  group: hetzner-deploy-be
+  cancel-in-progress: false
+
 jobs:
-  deploy:
+  # -------------------------------------------------------------
+  # 1. CI: Validación en Pull Requests y Pushes
+  # -------------------------------------------------------------
+  build-and-test:
+    name: Validar Compilación Backend
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: Descargar código (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Compilar y validar sintaxis Java
+        run: mvn clean test-compile -DskipTests
+
+  # -------------------------------------------------------------
+  # 2. CD: Despliegue en Hetzner (Sólo al fusionar o empujar a 'main')
+  # -------------------------------------------------------------
+  deploy:
+    name: Desplegar en Hetzner (Main)
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar vía SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
-            BRANCH="${{ github.ref_name }}"
-            echo "🚀 Desplegando Backend desde rama $BRANCH..."
+            set -e
+            echo "🚀 [BE] Desplegando Backend desde rama main..."
             cd /var/www/lealtix/lealtix-BE
-            git checkout $BRANCH
-            git pull origin $BRANCH
+            # Forzar sincronización exacta con origin/main
+            git fetch origin main
+            git checkout -f main
+            git reset --hard origin/main
+            echo "HEAD del Backend: $(git rev-parse --short HEAD)"
+
             cd /var/www/lealtix
-            # Variables de entorno de integraciones (Facturapi / Stripe webhook)
-            export FACTURAPI_API_KEY="sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF"
-            export STRIPE_WEBHOOK_SECRET="whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S"
-            ENV_FILE=/var/www/lealtix/.env
-            touch "$ENV_FILE"
-            grep -q '^FACTURAPI_API_KEY=' "$ENV_FILE" \
-              && sed -i 's|^FACTURAPI_API_KEY=.*|FACTURAPI_API_KEY=sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF|' "$ENV_FILE" \
-              || echo 'FACTURAPI_API_KEY=sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF' >> "$ENV_FILE"
-            grep -q '^STRIPE_WEBHOOK_SECRET=' "$ENV_FILE" \
-              && sed -i 's|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S|' "$ENV_FILE" \
-              || echo 'STRIPE_WEBHOOK_SECRET=whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S' >> "$ENV_FILE"
-            # CORS: permitir el panel de produccion y desarrollo
-            CORS_ORIGINS="https://admin.lealtix.com.mx,https://lealtix.com.mx,https://www.lealtix.com.mx,http://localhost:4200,http://localhost:4201,http://localhost:3000"
-            grep -q '^CORS_ALLOWED_ORIGINS=' "$ENV_FILE" \
-              && sed -i "s|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=$CORS_ORIGINS|" "$ENV_FILE" \
-              || echo "CORS_ALLOWED_ORIGINS=$CORS_ORIGINS" >> "$ENV_FILE"
-            # Override para garantizar las variables en el contenedor
-            cat > /var/www/lealtix/docker-compose.override.yml <<'YML'
-            services:
-              lealtix-backend:
-                environment:
-                  FACTURAPI_API_KEY: "sk_test_1EWd1bt2DZRjnAjDnRFJVxnwUxdoyxWUZVtaPm1TqF"
-                  STRIPE_WEBHOOK_SECRET: "whsec_KzGucdB6wfFN8Y14k7Gl7vxeSwv58o4S"
-                  CORS_ALLOWED_ORIGINS: "https://admin.lealtix.com.mx,https://lealtix.com.mx,https://www.lealtix.com.mx,http://localhost:4200,http://localhost:4201,http://localhost:3000"
-            YML
-            docker compose up -d --build --force-recreate lealtix-backend
+            echo "===== Reconstruyendo contenedor lealtix-backend ====="
+            docker compose build --no-cache lealtix-backend
+            docker compose up -d --force-recreate --no-deps lealtix-backend
+
+            echo "===== Monitoreo y logs iniciales ====="
             sleep 15
-            echo "===== docker compose ps ====="
-            docker compose ps || true
-            echo "===== docker compose logs lealtix-backend ====="
-            docker compose logs --tail=300 lealtix-backend || true
-            echo "✅ Backend actualizado con éxito!"
+            docker compose ps
+            docker compose logs --tail=50 lealtix-backend || true
+
+            echo "===== Healthcheck de la API ====="
+            for i in $(seq 1 25); do
+              code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/api/tenant/slug/demo || curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/tenant/slug/demo || echo 000)
+              echo "Intento $i: HTTP $code"
+              if [ "$code" = "200" ]; then
+                echo "✅ Backend respondiendo con éxito (HTTP 200)!"
+                break
+              fi
+              if [ "$i" = "25" ]; then
+                echo "❌ La API no respondió 200 tras el despliegue."
+                docker compose logs --tail=100 lealtix-backend
+                exit 1
+              fi
+              sleep 4
+            done
+            echo "🎉 Backend desplegado y activo!"

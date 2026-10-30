@@ -1,6 +1,8 @@
 package com.lealtixservice.service.impl;
 
+import com.lealtixservice.config.SendGridTemplates;
 import com.lealtixservice.dto.EmailAttachmentDTO;
+import com.lealtixservice.dto.EmailDTO;
 import com.lealtixservice.service.Emailservice;
 import com.lealtixservice.service.FacturapiService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,9 @@ public class FacturapiServiceImpl implements FacturapiService {
     @Autowired
     private Emailservice emailService;
 
+    @Autowired
+    private SendGridTemplates sendGridTemplates;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
@@ -49,7 +54,7 @@ public class FacturapiServiceImpl implements FacturapiService {
         // Enviar la factura por correo (SendGrid con PDF + XML adjuntos).
         String invoiceId = invoice != null ? String.valueOf(invoice.get("id")) : null;
         if (invoiceId != null && !invoiceId.isBlank() && customerEmail != null && !customerEmail.isBlank()) {
-            emailInvoice(invoiceId, customerEmail);
+            emailInvoice(invoiceId, customerEmail, invoice);
         }
 
         return invoice;
@@ -70,6 +75,10 @@ public class FacturapiServiceImpl implements FacturapiService {
      */
     @Override
     public String emailInvoice(String invoiceId, String email) {
+        return emailInvoice(invoiceId, email, null);
+    }
+
+    public String emailInvoice(String invoiceId, String email, Map<String, Object> invoice) {
         if (email == null || email.isBlank()) {
             log.warn("Facturapi: no se envía factura {} por correo (sin email)", invoiceId);
             return "sin email de destino";
@@ -98,17 +107,33 @@ public class FacturapiServiceImpl implements FacturapiService {
                         .build());
             }
 
-            String html = "<div style=\"font-family:Arial,sans-serif;color:#33211D\">"
-                    + "<h2 style=\"color:#DA9F5B\">Tu factura (CFDI)</h2>"
-                    + "<p>Hola,</p>"
-                    + "<p>Adjuntamos tu factura en PDF y XML.</p>"
-                    + "<p><strong>Folio:</strong> " + invoiceId + "</p>"
-                    + "<p>Gracias por tu compra.</p>"
-                    + "<p style=\"color:#999;font-size:12px\">Lealtix</p>"
-                    + "</div>";
+            // Datos dinámicos para la plantilla de SendGrid.
+            // Las llaves deben coincidir con las variables {{...}} de la plantilla.
+            String customerName = null;
+            Object customerObj = invoice != null ? invoice.get("customer") : null;
+            if (customerObj instanceof Map) {
+                Object legalName = ((Map<?, ?>) customerObj).get("legal_name");
+                customerName = legalName != null ? String.valueOf(legalName) : null;
+            }
 
-            emailService.sendEmailWithAttachments(email, "Tu factura Lealtix", html, attachments);
-            log.info("Facturapi: factura {} enviada por correo (SendGrid) a {}", invoiceId, email);
+            Map<String, Object> dynamicData = new HashMap<>();
+            dynamicData.put("folio", invoiceId);
+            dynamicData.put("uuid", invoice != null ? invoice.get("uuid") : null);
+            dynamicData.put("total", invoice != null ? invoice.get("total") : null);
+            dynamicData.put("cliente", customerName);
+            dynamicData.put("anio", java.time.Year.now().getValue());
+
+            EmailDTO emailDTO = EmailDTO.builder()
+                    .to(email)
+                    .subject("Tu factura Lealtix")
+                    .templateId(sendGridTemplates.getFacturaTemplate())
+                    .dynamicData(dynamicData)
+                    .attachments(attachments)
+                    .entityType("INVOICE")
+                    .build();
+
+            emailService.sendEmailWithTemplate(emailDTO);
+            log.info("Facturapi: factura {} enviada por correo (SendGrid template) a {}", invoiceId, email);
             return null;
         } catch (Exception e) {
             log.error("Error enviando factura {} por correo (SendGrid) a {}: {}", invoiceId, email, e.getMessage(), e);
