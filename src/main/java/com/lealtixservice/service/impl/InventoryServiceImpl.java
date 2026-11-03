@@ -27,12 +27,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.lealtixservice.util.BeverageClassificationUtil;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -92,6 +95,8 @@ public class InventoryServiceImpl implements InventoryService {
             }
         }
 
+        Set<Long> beverageProductIds = BeverageClassificationUtil.getBeverageProductIds(tenantId, productRepository, insumoRepository);
+
         List<Map<String, Object>> items = new ArrayList<>();
         for (TenantMenuProduct p : products) {
             List<ProductRecipe> ownRecipes = recipesByDish.getOrDefault(p.getId(), List.of());
@@ -111,6 +116,9 @@ public class InventoryServiceImpl implements InventoryService {
                 min = safeMin(p);
             }
 
+            boolean isBebida = (p.getId() != null && beverageProductIds.contains(p.getId()))
+                    || BeverageClassificationUtil.isBeverageProduct(p);
+
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", p.getId());
             item.put("name", p.getNombre());
@@ -125,7 +133,8 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("stockMinimo", min);
             item.put("unidad", p.getUnidad() != null ? p.getUnidad() : "pieza");
             item.put("tamanoLote", p.getTamanoLote() != null ? p.getTamanoLote() : 1.0);
-            item.put("esPlatillo", dish);
+            item.put("esBebida", isBebida);
+            item.put("esPlatillo", dish && !isBebida);
             item.put("esSubReceta", p.getEsSubReceta() != null && p.getEsSubReceta());
             item.put("esVariable", p.getEsVariable() != null && p.getEsVariable());
             item.put("tieneVariantes", p.getTieneVariantes() != null && p.getTieneVariantes());
@@ -673,9 +682,15 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("insumoId", r.getInsumo().getId());
             item.put("insumoName", r.getInsumo().getNombre());
             item.put("insumoUnit", r.getInsumo().getUnidad() != null ? r.getInsumo().getUnidad() : "pieza");
+            item.put("unidad", r.getInsumo().getUnidad() != null ? r.getInsumo().getUnidad() : "pieza");
             item.put("cantidad", r.getCantidad());
             item.put("modificable", r.getModificable() != null && r.getModificable());
             item.put("grupo", r.getGrupo());
+            item.put("stock", r.getInsumo().getStock() != null ? r.getInsumo().getStock() : 0.0);
+            item.put("stockBodega", r.getInsumo().getStockBodega() != null ? redondear(r.getInsumo().getStockBodega()) : 0.0);
+            item.put("stockCocina", r.getInsumo().getStockCocina() != null ? redondear(r.getInsumo().getStockCocina()) : 0.0);
+            item.put("stockBarra", r.getInsumo().getStockBarra() != null ? redondear(r.getInsumo().getStockBarra()) : 0.0);
+            item.put("stockMinimo", r.getInsumo().getStockMinimo() != null ? r.getInsumo().getStockMinimo() : 0.0);
             items.add(item);
         }
         return new GenericResponse(200, "Recetas obtenidas", items);
@@ -1503,6 +1518,9 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("cantidad", r.getCantidad());
             item.put("modificable", r.getModificable() != null && r.getModificable());
             item.put("stock", r.getInsumo().getStock() != null ? r.getInsumo().getStock() : 0.0);
+            item.put("stockBodega", r.getInsumo().getStockBodega() != null ? redondear(r.getInsumo().getStockBodega()) : 0.0);
+            item.put("stockCocina", r.getInsumo().getStockCocina() != null ? redondear(r.getInsumo().getStockCocina()) : 0.0);
+            item.put("stockBarra", r.getInsumo().getStockBarra() != null ? redondear(r.getInsumo().getStockBarra()) : 0.0);
             item.put("stockMinimo", r.getInsumo().getStockMinimo() != null ? r.getInsumo().getStockMinimo() : 0.0);
             list.add(item);
         }
@@ -1558,6 +1576,9 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("modificable", r.getModificable() != null && r.getModificable());
             item.put("grupo", r.getGrupo());
             item.put("stock", r.getInsumo().getStock() != null ? r.getInsumo().getStock() : 0.0);
+            item.put("stockBodega", r.getInsumo().getStockBodega() != null ? redondear(r.getInsumo().getStockBodega()) : 0.0);
+            item.put("stockCocina", r.getInsumo().getStockCocina() != null ? redondear(r.getInsumo().getStockCocina()) : 0.0);
+            item.put("stockBarra", r.getInsumo().getStockBarra() != null ? redondear(r.getInsumo().getStockBarra()) : 0.0);
             item.put("stockMinimo", r.getInsumo().getStockMinimo() != null ? r.getInsumo().getStockMinimo() : 0.0);
             list.add(item);
         }
