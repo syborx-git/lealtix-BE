@@ -78,7 +78,7 @@ BEGIN
     IF v_tenant_id IS NULL THEN
         INSERT INTO tenant (
             nombre_negocio, direccion, telefono, tipo_negocio,
-            slug, uid_tenant, schedules,
+            slug, uidtenant, schedules,
             logo_url, slogan,
             kitchen_module_enabled, kitchen_enabled_at,
             is_active, created_at, updated_at, user_id

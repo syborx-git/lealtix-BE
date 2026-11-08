@@ -4,9 +4,11 @@ Este directorio contiene los scripts SQL preparados para inicializar o restaurar
 
 ---
 
-## 📄 Archivo Principal
+## 📄 Archivos Principales
 
-* **`insert_menu_restaurante_petra.sql`**: Script completo e idempotente con el catálogo gastronómico de "Restaurante Petra" (desayunos, comidas, postres, entradas, especialidades, sub-recetas e insumos).
+* **`insert_menu_vectorinside.sql`**: Script completo para el tenant **`VectorInside`** (`slug: vectorinside`, `admin@vectorinside.com` / `VectorInside2025!`), con menú gastronómico, 113 insumos, 29 subrecetas, 58 platillos, 332 recetas, personal operativo (mesero, cocina, caja) y mesas.
+* **`insert_menu_restaurante_petra.sql`**: Script completo para **`Restaurante Petra`** (`admin@restaurante-petra.com` / `admin123`).
+
 
 ---
 
