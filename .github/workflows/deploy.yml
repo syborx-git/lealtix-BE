@@ -51,14 +51,33 @@ jobs:
           script: |
             set -e
             echo "🚀 [BE] Desplegando Backend desde rama main..."
-            cd /var/www/lealtix/lealtix-BE
+
+            REPO_DIR="/var/www/lealtix/lealtix-BE"
+            if [ ! -d "$REPO_DIR" ]; then
+              REPO_DIR="/var/www/lealtix/lealtix-be"
+            fi
+            if [ ! -d "$REPO_DIR" ]; then
+              REPO_DIR="$(find /home /root /opt /srv /app /var /usr/local -maxdepth 8 -type d -iname 'lealtix-be' 2>/dev/null | head -n 1)"
+            fi
+            if [ -z "$REPO_DIR" ] || [ ! -d "$REPO_DIR" ]; then
+              echo "❌ No se encontró el repo lealtix-BE en el servidor"; exit 1
+            fi
+            echo "REPO_DIR=$REPO_DIR"
+            cd "$REPO_DIR"
+
             # Forzar sincronización exacta con origin/main
             git fetch origin main
             git checkout -f main
             git reset --hard origin/main
             echo "HEAD del Backend: $(git rev-parse --short HEAD)"
 
-            cd /var/www/lealtix
+            COMPOSE_DIR="$(dirname "$REPO_DIR")"
+            if [ ! -f "$COMPOSE_DIR/docker-compose.yml" ]; then
+              COMPOSE_FILE="$(grep -rl 'lealtix-backend' /var/www /root /home /opt /srv /app --include='docker-compose.yml' 2>/dev/null | head -n 1)"
+              if [ -n "$COMPOSE_FILE" ]; then COMPOSE_DIR="$(dirname "$COMPOSE_FILE")"; fi
+            fi
+            cd "$COMPOSE_DIR"
+
             echo "===== Reconstruyendo contenedor lealtix-backend ====="
             docker compose build --no-cache lealtix-backend
             docker compose up -d --force-recreate --no-deps lealtix-backend
