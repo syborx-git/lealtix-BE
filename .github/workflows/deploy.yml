@@ -45,43 +45,33 @@ jobs:
       - name: Desplegar vía SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.HETZNER_HOST }}
+          host: 46.224.3.72
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
-            echo "🚀 [BE] Desplegando Backend desde rama main..."
+            echo "🚀 [BE] Desplegando Backend desde rama main en produccion..."
             echo "=== Diagnostico de Directorios ==="
             ls -la /var/www || true
             ls -la /var/www/lealtix 2>/dev/null || true
             docker ps || true
 
-            # 1. Buscar repo del backend por pom.xml o nombres comunes
+            # 1. Buscar repo del backend en /var/www/lealtix
             REPO_DIR=""
-            for d in /var/www/lealtix/lealtix-BE /var/www/lealtix/lealtix-be /var/www/lealtix/lealtix-backend /var/www/lealtix/backend /var/www/lealtix/lealtix_service /var/www/lealtix-BE /var/www/lealtix-be /var/www/lealtix-backend; do
-              if [ -d "$d/.git" ] || [ -f "$d/pom.xml" ]; then
+            for d in /var/www/lealtix/lealtix-BE /var/www/lealtix/lealtix-be /var/www/lealtix/backend /var/www/lealtix/lealtix-backend; do
+              if [ -d "$d" ]; then
                 REPO_DIR="$d"
                 echo "Encontrado candidato: $REPO_DIR"
                 break
               fi
             done
 
-            # 2. Si no se encontro en candidatos, buscar por pom.xml
+            # 2. Si no existe, clonar el repositorio
             if [ -z "$REPO_DIR" ] || [ ! -d "$REPO_DIR" ]; then
-              echo "Buscando pom.xml en el servidor..."
-              POM_PATH=$(find /var/www /root /home /opt /srv /app -maxdepth 6 -name "pom.xml" 2>/dev/null | head -n 1)
-              if [ -n "$POM_PATH" ]; then
-                REPO_DIR=$(dirname "$POM_PATH")
-                echo "Encontrado por pom.xml: $REPO_DIR"
-              fi
-            fi
-
-            # 3. Si no existe, clonar el repositorio
-            if [ -z "$REPO_DIR" ] || [ ! -d "$REPO_DIR" ]; then
-              echo "⚠️ No se encontro repo backend existente en el servidor. Clonando..."
+              echo "Clonando repositorio backend en /var/www/lealtix/lealtix-BE..."
               mkdir -p /var/www/lealtix
               cd /var/www/lealtix
-              git clone https://github.com/syborx-git/lealtix-BE.git lealtix-BE
-              REPO_DIR="/var/www/lealtix/lealtix-BE"
+              git clone https://github.com/syborx-git/lealtix-BE.git lealtix-BE || true
+              if [ -d "/var/www/lealtix/lealtix-BE" ]; then REPO_DIR="/var/www/lealtix/lealtix-BE"; fi
             fi
 
             echo "REPO_DIR final = $REPO_DIR"
@@ -99,11 +89,6 @@ jobs:
             COMPOSE_DIR=$(dirname "$REPO_DIR")
             if [ ! -f "$COMPOSE_DIR/docker-compose.yml" ]; then
               COMPOSE_FILE=$(grep -rl "lealtix-backend" /var/www /root /home /opt /srv /app --include="docker-compose.yml" 2>/dev/null | head -n 1)
-              if [ -n "$COMPOSE_FILE" ]; then COMPOSE_DIR=$(dirname "$COMPOSE_FILE"); fi
-            fi
-
-            if [ ! -f "$COMPOSE_DIR/docker-compose.yml" ]; then
-              COMPOSE_FILE=$(find /var/www /root /home -maxdepth 4 -name "docker-compose.yml" 2>/dev/null | head -n 1)
               if [ -n "$COMPOSE_FILE" ]; then COMPOSE_DIR=$(dirname "$COMPOSE_FILE"); fi
             fi
 
