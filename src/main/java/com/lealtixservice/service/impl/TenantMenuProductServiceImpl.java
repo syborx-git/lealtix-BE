@@ -209,6 +209,20 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             }
         }
 
+        if (dto.getArea() != null && !dto.getArea().trim().isEmpty()) {
+            productEntity.setArea(dto.getArea().trim().toUpperCase());
+        } else if (productEntity.getArea() == null || productEntity.getArea().trim().isEmpty()) {
+            productEntity.setArea("COCINA");
+        }
+
+        if (dto.getTipoBebida() != null) {
+            productEntity.setTipoBebida(dto.getTipoBebida());
+        }
+
+        if (dto.getInsumoId() != null) {
+            productEntity.setInsumoId(dto.getInsumoId());
+        }
+
         syncCategories(productEntity, dto);
 
         return productEntity;
@@ -323,6 +337,9 @@ List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of
             dto.setAutoAvailability(entity.getAutoAvailability());
             dto.setEsVariable(Boolean.TRUE.equals(entity.getEsVariable()));
             dto.setTieneVariantes(Boolean.TRUE.equals(entity.getTieneVariantes()));
+            dto.setArea(entity.getArea() != null ? entity.getArea() : "COCINA");
+            dto.setTipoBebida(entity.getTipoBebida());
+            dto.setInsumoId(entity.getInsumoId());
 
             // Todas las categorías del producto (principal + extras) para la UI
             List<Long> categoryIds = new ArrayList<>();

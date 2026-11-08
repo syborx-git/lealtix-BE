@@ -34,6 +34,14 @@ public class RestockHistory {
     @Builder.Default
     private Double costoTotal = 0.0;
 
+    /** ID de la orden de compra que origino este restock (opcional). */
+    @Column(name = "orden_compra_id")
+    private Long ordenCompraId;
+
+    /** Area a la que se ingreso el stock: 'COCINA', 'BARRA', 'ALMACEN'. */
+    @Column(name = "area_destino", length = 30)
+    private String areaDestino;
+
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
