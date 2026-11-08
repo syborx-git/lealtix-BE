@@ -263,4 +263,15 @@ public interface InventoryService {
      * @return número de productos cuyo isActive cambió.
      */
     int syncProductAvailabilityByTenant(Long tenantId);
+
+    /**
+     * Distribución automática: detecta qué insumos en Cocina y Barra están en o por debajo
+     * de su stock mínimo, calcula el faltante óptimo y cuánto puede surtirse desde Bodega central.
+     */
+    GenericResponse getDistribucionSugerida(Long tenantId, Double factor);
+
+    /**
+     * Traspaso masivo de stock desde Bodega central hacia Cocina y Barra en 1 solo clic.
+     */
+    GenericResponse distribuirBatch(com.lealtixservice.dto.distribucion.DistribucionBatchRequest request);
 }

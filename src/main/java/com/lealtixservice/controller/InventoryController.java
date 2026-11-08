@@ -122,6 +122,25 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.getTransferenciasByTenant(tenantId));
     }
 
+    @Operation(summary = "Distribución automática: sugerencia de insumos a transferir a Cocina y Barra")
+    @GetMapping({"/bodega/distribucion-sugerida/{tenantId}", "/bodega/distribucion-sugerida"})
+    public ResponseEntity<GenericResponse> getDistribucionSugerida(
+            @PathVariable(required = false) Long tenantId,
+            @RequestParam(name = "tenantId", required = false) Long queryTenantId,
+            @RequestParam(required = false, defaultValue = "1.5") Double factor) {
+        Long resolved = tenantId != null ? tenantId : queryTenantId;
+        if (resolved == null) {
+            return ResponseEntity.badRequest().body(new GenericResponse(400, "tenantId es requerido", null));
+        }
+        return ResponseEntity.ok(inventoryService.getDistribucionSugerida(resolved, factor));
+    }
+
+    @Operation(summary = "Distribuir lote de insumos desde Bodega a Cocina y Barra en 1 clic")
+    @PostMapping("/bodega/distribuir-batch")
+    public ResponseEntity<GenericResponse> distribuirBatch(@RequestBody com.lealtixservice.dto.distribucion.DistribucionBatchRequest request) {
+        return ResponseEntity.ok(inventoryService.distribuirBatch(request));
+    }
+
     /* ============ Bebidas (insumos marcados como bebida, vendibles en Comandix) ============ */
 
     @Operation(summary = "Obtener bebidas de un tenant")

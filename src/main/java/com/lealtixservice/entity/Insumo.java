@@ -56,6 +56,11 @@ public class Insumo {
     /** Id del producto de menú (tenant_menu_product) enlazado, solo para bebidas vendibles */
     private Long productoId;
 
+    /** Área de destino / distribución: 'BARRA' | 'COCINA' | 'ALMACEN' */
+    @Builder.Default
+    @Column(name = "area_distribucion", length = 30)
+    private String areaDistribucion = "ALMACEN";
+
     /** Stock distribuido (cocina + barra) del insumo, usado por el POS para ventas/disponibilidad */
     @Builder.Default
     private Double stock = 0.0;

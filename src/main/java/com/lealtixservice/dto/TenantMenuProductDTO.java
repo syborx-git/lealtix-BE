@@ -37,6 +37,12 @@ public class TenantMenuProductDTO {
     /** true = producto que contiene variantes (no tiene precio base directo; el precio lo tienen sus variantes) */
     private Boolean tieneVariantes;
 
+    /** Área de preparación / destino: 'COCINA' | 'BARRA' | 'ALMACEN' */
+    private String area;
+
+    private String tipoBebida;
+    private Long insumoId;
+
     /** Ingredientes de la receta (base / modificables) para mostrar opciones */
     private List<Map<String, Object>> recipes;
 

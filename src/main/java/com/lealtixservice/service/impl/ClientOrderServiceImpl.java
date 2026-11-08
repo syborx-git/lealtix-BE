@@ -663,8 +663,11 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                 order.setBarraEstado(newStatus);
                 if (newStatus == OrderStatus.LISTO && order.getBarraReadyAt() == null) {
                     order.setBarraReadyAt(LocalDateTime.now());
-                } else if (newStatus == OrderStatus.EN_PREPARACION && order.getAcceptedAt() == null) {
-                    order.setAcceptedAt(LocalDateTime.now());
+                } else if (newStatus != OrderStatus.LISTO) {
+                    order.setBarraReadyAt(null);
+                    if (newStatus == OrderStatus.EN_PREPARACION && order.getAcceptedAt() == null) {
+                        order.setAcceptedAt(LocalDateTime.now());
+                    }
                 }
 
                 // Evaluar estado general de la comanda
@@ -673,6 +676,8 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     order.setEstado(newStatus);
                     if (newStatus == OrderStatus.LISTO && order.getReadyAt() == null) {
                         order.setReadyAt(LocalDateTime.now());
+                    } else if (newStatus != OrderStatus.LISTO) {
+                        order.setReadyAt(null);
                     }
                 } else {
                     // Tiene productos de barra y cocina
@@ -684,16 +689,26 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     } else if (newStatus == OrderStatus.LISTO) {
                         // Barra lista pero cocina aún en preparación / confirmada
                         order.setEstado(OrderStatus.EN_PREPARACION);
+                        order.setReadyAt(null);
                     } else if (newStatus == OrderStatus.EN_PREPARACION) {
                         order.setEstado(OrderStatus.EN_PREPARACION);
+                        order.setReadyAt(null);
+                    } else if (newStatus == OrderStatus.CONFIRMADA) {
+                        order.setEstado(order.getCocinaEstado() == OrderStatus.CONFIRMADA
+                                ? OrderStatus.CONFIRMADA
+                                : OrderStatus.EN_PREPARACION);
+                        order.setReadyAt(null);
                     }
                 }
             } else if ("COCINA".equals(normArea)) {
                 order.setCocinaEstado(newStatus);
                 if (newStatus == OrderStatus.LISTO && order.getCocinaReadyAt() == null) {
                     order.setCocinaReadyAt(LocalDateTime.now());
-                } else if (newStatus == OrderStatus.EN_PREPARACION && order.getAcceptedAt() == null) {
-                    order.setAcceptedAt(LocalDateTime.now());
+                } else if (newStatus != OrderStatus.LISTO) {
+                    order.setCocinaReadyAt(null);
+                    if (newStatus == OrderStatus.EN_PREPARACION && order.getAcceptedAt() == null) {
+                        order.setAcceptedAt(LocalDateTime.now());
+                    }
                 }
 
                 // Evaluar estado general de la comanda
@@ -702,6 +717,8 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     order.setEstado(newStatus);
                     if (newStatus == OrderStatus.LISTO && order.getReadyAt() == null) {
                         order.setReadyAt(LocalDateTime.now());
+                    } else if (newStatus != OrderStatus.LISTO) {
+                        order.setReadyAt(null);
                     }
                 } else {
                     // Tiene productos de cocina y barra
@@ -713,8 +730,15 @@ public class ClientOrderServiceImpl implements ClientOrderService {
                     } else if (newStatus == OrderStatus.LISTO) {
                         // Cocina lista pero barra aún en preparación / confirmada
                         order.setEstado(OrderStatus.EN_PREPARACION);
+                        order.setReadyAt(null);
                     } else if (newStatus == OrderStatus.EN_PREPARACION) {
                         order.setEstado(OrderStatus.EN_PREPARACION);
+                        order.setReadyAt(null);
+                    } else if (newStatus == OrderStatus.CONFIRMADA) {
+                        order.setEstado(order.getBarraEstado() == OrderStatus.CONFIRMADA
+                                ? OrderStatus.CONFIRMADA
+                                : OrderStatus.EN_PREPARACION);
+                        order.setReadyAt(null);
                     }
                 }
             }

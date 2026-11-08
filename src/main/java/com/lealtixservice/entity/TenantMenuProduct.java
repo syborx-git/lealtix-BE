@@ -81,6 +81,17 @@ public class TenantMenuProduct {
     @Column(name = "tiene_variantes")
     private Boolean tieneVariantes = false;
 
+    /** Área de preparación / destino: 'COCINA' | 'BARRA' | 'ALMACEN' */
+    @Builder.Default
+    @Column(name = "area", length = 30, nullable = false)
+    private String area = "COCINA";
+
+    @Column(name = "tipo_bebida", length = 30)
+    private String tipoBebida;
+
+    @Column(name = "insumo_id")
+    private Long insumoId;
+
     @Builder.Default
     private boolean isActive = true;
 
