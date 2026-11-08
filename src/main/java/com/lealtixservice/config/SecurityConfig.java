@@ -66,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/tenant/auth/**").permitAll()
                         // Landing / autofactura / menú público
                         .requestMatchers("/api/tenant/slug/**", "/api/tenant/config/**").permitAll()
+                        .requestMatchers("/api/tenant/seed/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/tenant").permitAll()
                         .requestMatchers("/api/tenant-config/**").permitAll()
                         .requestMatchers("/api/tenant-customers/**").permitAll()

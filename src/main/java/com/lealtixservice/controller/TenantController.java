@@ -30,6 +30,52 @@ public class TenantController {
     @Autowired
     private TenantUserService  tenantUserService;
 
+    @Autowired
+    private javax.sql.DataSource dataSource;
+
+    @Autowired
+    private com.lealtixservice.repository.TenantRepository tenantRepository;
+
+    @Operation(summary = "Semillar datos y menú completo para VectorInside")
+    @GetMapping("/seed/vectorinside")
+    public ResponseEntity<GenericResponse> seedVectorInside(
+            @RequestParam(name = "secret", required = false, defaultValue = "") String secret) {
+        log.info("Iniciando semillado de VectorInside vía endpoint...");
+        try {
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.ClassPathResource("db/migration/V76__seed_vectorinside_tenant_and_menu.sql");
+            String sql = org.springframework.util.StreamUtils.copyToString(resource.getInputStream(), java.nio.charset.StandardCharsets.UTF_8);
+
+            try (java.sql.Connection conn = dataSource.getConnection();
+                 java.sql.Statement stmt = conn.createStatement()) {
+                stmt.execute(sql);
+            }
+
+            Optional<Tenant> tenantOpt = tenantRepository.getBySlug("vectorinside");
+            Long tenantId = tenantOpt.map(Tenant::getId).orElse(null);
+
+            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            data.put("status", "SUCCESS");
+            data.put("slug", "vectorinside");
+            data.put("tenantId", tenantId);
+            data.put("adminEmail", "admin@vectorinside.com");
+            data.put("password", "VectorInside2025!");
+
+            log.info("¡Semillado de VectorInside completado exitosamente! TenantId: {}", tenantId);
+            return ResponseEntity.ok(new GenericResponse(200, "¡Tenant VectorInside y menú semillados exitosamente!", data));
+        } catch (Exception e) {
+            log.error("Error al semillar VectorInside: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse(500, "Error al semillar: " + e.getMessage(), null));
+        }
+    }
+
+    @Operation(summary = "Semillar datos y menú completo para VectorInside (POST)")
+    @PostMapping("/seed/vectorinside")
+    public ResponseEntity<GenericResponse> seedVectorInsidePost(
+            @RequestParam(name = "secret", required = false, defaultValue = "") String secret) {
+        return seedVectorInside(secret);
+    }
+
     /**
      * Crea un nuevo Tenant.
      * @param dto datos del tenant
