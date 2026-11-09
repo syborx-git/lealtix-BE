@@ -55,6 +55,10 @@ public class CorteCajaDiario {
     private BigDecimal sistemaTarjeta = BigDecimal.ZERO;
 
     @Builder.Default
+    @Column(name = "sistema_amex", precision = 12, scale = 2, nullable = false)
+    private BigDecimal sistemaAmex = BigDecimal.ZERO;
+
+    @Builder.Default
     @Column(name = "sistema_transferencia", precision = 12, scale = 2, nullable = false)
     private BigDecimal sistemaTransferencia = BigDecimal.ZERO;
 
@@ -76,6 +80,10 @@ public class CorteCajaDiario {
     private BigDecimal realTarjeta = BigDecimal.ZERO;
 
     @Builder.Default
+    @Column(name = "real_amex", precision = 12, scale = 2, nullable = false)
+    private BigDecimal realAmex = BigDecimal.ZERO;
+
+    @Builder.Default
     @Column(name = "real_transferencia", precision = 12, scale = 2, nullable = false)
     private BigDecimal realTransferencia = BigDecimal.ZERO;
 
@@ -95,6 +103,10 @@ public class CorteCajaDiario {
     @Builder.Default
     @Column(name = "diferencia_tarjeta", precision = 12, scale = 2, nullable = false)
     private BigDecimal diferenciaTarjeta = BigDecimal.ZERO;
+
+    @Builder.Default
+    @Column(name = "diferencia_amex", precision = 12, scale = 2, nullable = false)
+    private BigDecimal diferenciaAmex = BigDecimal.ZERO;
 
     @Builder.Default
     @Column(name = "diferencia_transferencia", precision = 12, scale = 2, nullable = false)

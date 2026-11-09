@@ -16,6 +16,7 @@ public class ResumenCorteSistemaDTO {
     private LocalDate fecha;
     private BigDecimal sistemaEfectivo;
     private BigDecimal sistemaTarjeta;
+    private BigDecimal sistemaAmex;
     private BigDecimal sistemaTransferencia;
     private BigDecimal sistemaOtros;
     private BigDecimal sistemaTotal;

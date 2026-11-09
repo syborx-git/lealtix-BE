@@ -153,18 +153,19 @@ public class ReporteCorteCajaServiceImpl implements ReporteCorteCajaService {
         kpis.add(KpiDTO.de("total_cobrado", "Total cobrado", numero(actual, 0), numero(anterior, 0), "moneda"));
         kpis.add(KpiDTO.de("efectivo", "Efectivo", numero(actual, 1), numero(anterior, 1), "moneda"));
         kpis.add(KpiDTO.de("tarjeta", "Tarjeta", numero(actual, 2), numero(anterior, 2), "moneda"));
-        kpis.add(KpiDTO.de("transferencia", "Transferencia", numero(actual, 3), numero(anterior, 3), "moneda"));
-        kpis.add(KpiDTO.de("mixto", "Pago mixto", numero(actual, 4), numero(anterior, 4), "moneda"));
-        kpis.add(KpiDTO.de("operaciones", "Operaciones de cobro", numero(actual, 6), numero(anterior, 6), "numero"));
-        kpis.add(KpiDTO.de("cajeros", "Cajeros con movimientos", numero(actual, 7), numero(anterior, 7), "numero"));
+        kpis.add(KpiDTO.de("amex", "American Express", numero(actual, 3), numero(anterior, 3), "moneda"));
+        kpis.add(KpiDTO.de("transferencia", "Transferencia", numero(actual, 4), numero(anterior, 4), "moneda"));
+        kpis.add(KpiDTO.de("mixto", "Pago mixto", numero(actual, 5), numero(anterior, 5), "moneda"));
+        kpis.add(KpiDTO.de("operaciones", "Operaciones de cobro", numero(actual, 7), numero(anterior, 7), "numero"));
+        kpis.add(KpiDTO.de("cajeros", "Cajeros con movimientos", numero(actual, 8), numero(anterior, 8), "numero"));
 
-        BigDecimal ticketActual = ticketPromedio(numero(actual, 0), numero(actual, 6));
-        BigDecimal ticketAnterior = ticketPromedio(numero(anterior, 0), numero(anterior, 6));
+        BigDecimal ticketActual = ticketPromedio(numero(actual, 0), numero(actual, 7));
+        BigDecimal ticketAnterior = ticketPromedio(numero(anterior, 0), numero(anterior, 7));
         kpis.add(KpiDTO.de("ticket_promedio", "Ticket promedio por cobro", ticketActual, ticketAnterior, "moneda"));
 
         // La propina no forma parte del total cobrado: se reporta aparte para que el
         // cierre pueda separar lo que es venta de lo que fue propina del personal.
-        kpis.add(KpiDTO.de("propinas", "Propinas cobradas", numero(actual, 5), numero(anterior, 5), "moneda"));
+        kpis.add(KpiDTO.de("propinas", "Propinas cobradas", numero(actual, 6), numero(anterior, 6), "moneda"));
 
         // El dinero que se perdio por cancelaciones es parte del cierre: sin esto
         // el total cobrado no se puede conciliar contra lo esperado.
@@ -203,6 +204,7 @@ public class ReporteCorteCajaServiceImpl implements ReporteCorteCajaService {
             ColumnaDTO.de("operaciones", "Operaciones", TipoColumna.NUMERO),
             ColumnaDTO.de("efectivo", "Efectivo", TipoColumna.MONEDA),
             ColumnaDTO.de("tarjeta", "Tarjeta", TipoColumna.MONEDA),
+            ColumnaDTO.de("amex", "AMEX", TipoColumna.MONEDA),
             ColumnaDTO.de("transferencia", "Transferencia", TipoColumna.MONEDA),
             ColumnaDTO.de("mixto", "Mixto", TipoColumna.MONEDA),
             ColumnaDTO.de("total", "Total", TipoColumna.MONEDA),
@@ -253,10 +255,11 @@ public class ReporteCorteCajaServiceImpl implements ReporteCorteCajaService {
             mapa.put("operaciones", numero(fila, 2));
             mapa.put("efectivo", numero(fila, 3));
             mapa.put("tarjeta", numero(fila, 4));
-            mapa.put("transferencia", numero(fila, 5));
-            mapa.put("mixto", numero(fila, 6));
-            mapa.put("total", numero(fila, 7));
-            mapa.put("propinas", numero(fila, 8));
+            mapa.put("amex", numero(fila, 5));
+            mapa.put("transferencia", numero(fila, 6));
+            mapa.put("mixto", numero(fila, 7));
+            mapa.put("total", numero(fila, 8));
+            mapa.put("propinas", numero(fila, 9));
             filas.add(mapa);
         }
         return TablaReporteDTO.de(COLUMNAS_CAJERO, filas);
@@ -298,6 +301,7 @@ public class ReporteCorteCajaServiceImpl implements ReporteCorteCajaService {
         return switch (metodo) {
             case "CASH" -> "Efectivo";
             case "CARD" -> "Tarjeta";
+            case "AMEX" -> "American Express";
             case "TRANSFER" -> "Transferencia";
             case "MIXED" -> "Pago mixto";
             case "SIN_METODO" -> "Sin metodo registrado";

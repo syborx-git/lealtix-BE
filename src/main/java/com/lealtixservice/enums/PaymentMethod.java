@@ -11,7 +11,8 @@ public enum PaymentMethod {
     CASH("Efectivo"),
     CARD("Tarjeta de Crédito/Débito"),
     TRANSFER("Transferencia Bancaria"),
-    MIXED("Pago Mixto");
+    MIXED("Pago Mixto"),
+    AMEX("American Express");
 
     private final String description;
 

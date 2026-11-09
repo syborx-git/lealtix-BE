@@ -337,6 +337,7 @@ public class CajaTurnoServiceImpl implements CajaTurnoService {
         String rawMetodo = (request.getMetodoPago() != null ? request.getMetodoPago().trim().toUpperCase() : "EFECTIVO");
         PaymentMethod paymentMethod = switch (rawMetodo) {
             case "CARD", "TARJETA", "VISA", "MASTERCARD", "DEBITO", "CREDITO" -> PaymentMethod.CARD;
+            case "AMEX", "AMERICAN_EXPRESS", "AMERICAN EXPRESS" -> PaymentMethod.AMEX;
             case "TRANSFER", "TRANSFERENCIA", "SPEI" -> PaymentMethod.TRANSFER;
             case "MIXED", "MIXTO", "VALES", "OTRO" -> PaymentMethod.MIXED;
             default -> PaymentMethod.CASH;

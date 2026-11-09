@@ -19,6 +19,7 @@ public class GenerarCorteDiarioRequest {
 
     private BigDecimal realEfectivo;
     private BigDecimal realTarjeta;
+    private BigDecimal realAmex;
     private BigDecimal realTransferencia;
     private BigDecimal realOtros;
 

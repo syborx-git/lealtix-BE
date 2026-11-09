@@ -24,18 +24,21 @@ public class CorteCajaDiarioDTO {
 
     private BigDecimal sistemaEfectivo;
     private BigDecimal sistemaTarjeta;
+    private BigDecimal sistemaAmex;
     private BigDecimal sistemaTransferencia;
     private BigDecimal sistemaOtros;
     private BigDecimal sistemaTotal;
 
     private BigDecimal realEfectivo;
     private BigDecimal realTarjeta;
+    private BigDecimal realAmex;
     private BigDecimal realTransferencia;
     private BigDecimal realOtros;
     private BigDecimal realTotal;
 
     private BigDecimal diferenciaEfectivo;
     private BigDecimal diferenciaTarjeta;
+    private BigDecimal diferenciaAmex;
     private BigDecimal diferenciaTransferencia;
     private BigDecimal diferenciaOtros;
     private BigDecimal diferenciaTotal;

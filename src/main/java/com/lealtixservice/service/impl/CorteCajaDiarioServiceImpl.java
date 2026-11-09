@@ -130,12 +130,14 @@ public class CorteCajaDiarioServiceImpl implements CorteCajaDiarioService {
         BigDecimal realEfectivo = request.getRealEfectivo() != null ? request.getRealEfectivo() : BigDecimal.ZERO;
         BigDecimal realTarjeta = request.getRealTarjeta() != null ? request.getRealTarjeta() : BigDecimal.ZERO;
         BigDecimal realTransferencia = request.getRealTransferencia() != null ? request.getRealTransferencia() : BigDecimal.ZERO;
+        BigDecimal realAmex = request.getRealAmex() != null ? request.getRealAmex() : BigDecimal.ZERO;
         BigDecimal realOtros = request.getRealOtros() != null ? request.getRealOtros() : BigDecimal.ZERO;
-        BigDecimal realTotal = realEfectivo.add(realTarjeta).add(realTransferencia).add(realOtros);
+        BigDecimal realTotal = realEfectivo.add(realTarjeta).add(realTransferencia).add(realAmex).add(realOtros);
 
         BigDecimal diffEfectivo = realEfectivo.subtract(sistema.getSistemaEfectivo());
         BigDecimal diffTarjeta = realTarjeta.subtract(sistema.getSistemaTarjeta());
         BigDecimal diffTransferencia = realTransferencia.subtract(sistema.getSistemaTransferencia());
+        BigDecimal diffAmex = realAmex.subtract(sistema.getSistemaAmex() != null ? sistema.getSistemaAmex() : BigDecimal.ZERO);
         BigDecimal diffOtros = realOtros.subtract(sistema.getSistemaOtros());
         BigDecimal diffTotal = realTotal.subtract(sistema.getSistemaTotal());
 
@@ -159,16 +161,19 @@ public class CorteCajaDiarioServiceImpl implements CorteCajaDiarioService {
                 .fechaHoraRegistro(LocalDateTime.now())
                 .sistemaEfectivo(sistema.getSistemaEfectivo())
                 .sistemaTarjeta(sistema.getSistemaTarjeta())
+                .sistemaAmex(sistema.getSistemaAmex() != null ? sistema.getSistemaAmex() : BigDecimal.ZERO)
                 .sistemaTransferencia(sistema.getSistemaTransferencia())
                 .sistemaOtros(sistema.getSistemaOtros())
                 .sistemaTotal(sistema.getSistemaTotal())
                 .realEfectivo(realEfectivo)
                 .realTarjeta(realTarjeta)
+                .realAmex(realAmex)
                 .realTransferencia(realTransferencia)
                 .realOtros(realOtros)
                 .realTotal(realTotal)
                 .diferenciaEfectivo(diffEfectivo)
                 .diferenciaTarjeta(diffTarjeta)
+                .diferenciaAmex(diffAmex)
                 .diferenciaTransferencia(diffTransferencia)
                 .diferenciaOtros(diffOtros)
                 .diferenciaTotal(diffTotal)
@@ -292,13 +297,18 @@ public class CorteCajaDiarioServiceImpl implements CorteCajaDiarioService {
         BigDecimal realTrans = cortesAct.stream().map(CorteCajaDiario::getRealTransferencia).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal diffTrans = realTrans.subtract(sisTrans);
 
+        BigDecimal sisAmex = cortesAct.stream().map(c -> c.getSistemaAmex() != null ? c.getSistemaAmex() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal realAmex = cortesAct.stream().map(c -> c.getRealAmex() != null ? c.getRealAmex() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal diffAmex = realAmex.subtract(sisAmex);
+
         BigDecimal sisOtros = cortesAct.stream().map(CorteCajaDiario::getSistemaOtros).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal realOtros = cortesAct.stream().map(CorteCajaDiario::getRealOtros).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal diffOtros = realOtros.subtract(sisOtros);
 
         List<Map<String, Object>> filasMetodo = List.of(
                 crearFilaMetodo("Efectivo Físico", sisEf, realEf, diffEf),
-                crearFilaMetodo("Tarjeta / Terminal", sisTar, realTar, diffTar),
+                crearFilaMetodo("Tarjeta (Visa/MC)", sisTar, realTar, diffTar),
+                crearFilaMetodo("American Express (AMEX)", sisAmex, realAmex, diffAmex),
                 crearFilaMetodo("Transferencia / SPEI", sisTrans, realTrans, diffTrans),
                 crearFilaMetodo("Otros Métodos", sisOtros, realOtros, diffOtros),
                 crearFilaMetodo("Total General Consolidado", sisTotAct, realTotAct, diffTotAct)
@@ -391,6 +401,7 @@ public class CorteCajaDiarioServiceImpl implements CorteCajaDiarioService {
 
         BigDecimal sisEf = BigDecimal.ZERO;
         BigDecimal sisTar = BigDecimal.ZERO;
+        BigDecimal sisAmex = BigDecimal.ZERO;
         BigDecimal sisTrans = BigDecimal.ZERO;
         BigDecimal sisOtros = BigDecimal.ZERO;
         BigDecimal totProp = BigDecimal.ZERO;
@@ -408,6 +419,7 @@ public class CorteCajaDiarioServiceImpl implements CorteCajaDiarioService {
             switch (metRaw) {
                 case "CASH", "EFECTIVO", "DINERO" -> sisEf = sisEf.add(totalCobrado);
                 case "CARD", "TARJETA", "VISA", "MASTERCARD", "DEBITO", "CREDITO" -> sisTar = sisTar.add(totalCobrado);
+                case "AMEX", "AMERICAN_EXPRESS", "AMERICAN EXPRESS" -> sisAmex = sisAmex.add(totalCobrado);
                 case "TRANSFER", "TRANSFERENCIA", "SPEI" -> sisTrans = sisTrans.add(totalCobrado);
                 default -> sisOtros = sisOtros.add(totalCobrado);
             }
@@ -422,12 +434,13 @@ public class CorteCajaDiarioServiceImpl implements CorteCajaDiarioService {
             }
         }
 
-        BigDecimal sisTotal = sisEf.add(sisTar).add(sisTrans).add(sisOtros);
+        BigDecimal sisTotal = sisEf.add(sisTar).add(sisAmex).add(sisTrans).add(sisOtros);
 
         return ResumenCorteSistemaDTO.builder()
                 .fecha(hoy)
                 .sistemaEfectivo(sisEf)
                 .sistemaTarjeta(sisTar)
+                .sistemaAmex(sisAmex)
                 .sistemaTransferencia(sisTrans)
                 .sistemaOtros(sisOtros)
                 .sistemaTotal(sisTotal)
@@ -448,16 +461,19 @@ public class CorteCajaDiarioServiceImpl implements CorteCajaDiarioService {
                 .fechaHoraRegistro(c.getFechaHoraRegistro())
                 .sistemaEfectivo(c.getSistemaEfectivo())
                 .sistemaTarjeta(c.getSistemaTarjeta())
+                .sistemaAmex(c.getSistemaAmex() != null ? c.getSistemaAmex() : BigDecimal.ZERO)
                 .sistemaTransferencia(c.getSistemaTransferencia())
                 .sistemaOtros(c.getSistemaOtros())
                 .sistemaTotal(c.getSistemaTotal())
                 .realEfectivo(c.getRealEfectivo())
                 .realTarjeta(c.getRealTarjeta())
+                .realAmex(c.getRealAmex() != null ? c.getRealAmex() : BigDecimal.ZERO)
                 .realTransferencia(c.getRealTransferencia())
                 .realOtros(c.getRealOtros())
                 .realTotal(c.getRealTotal())
                 .diferenciaEfectivo(c.getDiferenciaEfectivo())
                 .diferenciaTarjeta(c.getDiferenciaTarjeta())
+                .diferenciaAmex(c.getDiferenciaAmex() != null ? c.getDiferenciaAmex() : BigDecimal.ZERO)
                 .diferenciaTransferencia(c.getDiferenciaTransferencia())
                 .diferenciaOtros(c.getDiferenciaOtros())
                 .diferenciaTotal(c.getDiferenciaTotal())

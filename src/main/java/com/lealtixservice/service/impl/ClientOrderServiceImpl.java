@@ -1456,6 +1456,7 @@ public class ClientOrderServiceImpl implements ClientOrderService {
 
         // Validar que referencia está presente para métodos que la requieren
         if ((request.getMethod() == PaymentMethod.CARD ||
+             request.getMethod() == PaymentMethod.AMEX ||
              request.getMethod() == PaymentMethod.TRANSFER ||
              request.getMethod() == PaymentMethod.MIXED) &&
             (request.getReference() == null || request.getReference().isBlank())) {

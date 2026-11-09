@@ -154,6 +154,7 @@ public class ComandaAsientoServiceImpl implements ComandaAsientoService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Usuario no encontrado en tenant con email: " + request.getUserEmail()));
         if ((request.getMethod() == PaymentMethod.CARD ||
+                request.getMethod() == PaymentMethod.AMEX ||
                 request.getMethod() == PaymentMethod.TRANSFER ||
                 request.getMethod() == PaymentMethod.MIXED) &&
                 (request.getReference() == null || request.getReference().isBlank())) {
