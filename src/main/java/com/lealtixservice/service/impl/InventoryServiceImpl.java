@@ -359,7 +359,7 @@ public class InventoryServiceImpl implements InventoryService {
 
                 .stockBarra(0.0)
 
-                .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
+                .stockMinimo(Insumo.resolveDefaultStockMinimo(unidad, stockMinimo))
 
                 .isActive(true)
 
@@ -393,7 +393,10 @@ public class InventoryServiceImpl implements InventoryService {
 
         }
 
-        if (stockMinimo != null) insumo.setStockMinimo(Math.max(0, stockMinimo));
+        if (stockMinimo != null) {
+            String u = (unidad != null && !unidad.isBlank()) ? unidad : insumo.getUnidad();
+            insumo.setStockMinimo(Insumo.resolveDefaultStockMinimo(u, stockMinimo));
+        }
 
         if (categoryIds != null) {
 
@@ -675,7 +678,7 @@ public class InventoryServiceImpl implements InventoryService {
 
                 .stockBarra(0.0)
 
-                .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
+                .stockMinimo(Insumo.resolveDefaultStockMinimo(unidad, stockMinimo))
 
                 .isActive(true)
 
@@ -1157,7 +1160,7 @@ public class InventoryServiceImpl implements InventoryService {
 
                 .stockBarra(stock != null ? stock : 0.0)
 
-                .stockMinimo(stockMinimo != null ? stockMinimo : 0.0)
+                .stockMinimo(Insumo.resolveDefaultStockMinimo(unidad, stockMinimo))
 
                 .esBebida(true)
 
@@ -1287,7 +1290,10 @@ public class InventoryServiceImpl implements InventoryService {
 
         }
 
-        if (stockMinimo != null) insumo.setStockMinimo(Math.max(0, stockMinimo));
+        if (stockMinimo != null) {
+            String u = (unidad != null && !unidad.isBlank()) ? unidad : insumo.getUnidad();
+            insumo.setStockMinimo(Insumo.resolveDefaultStockMinimo(u, stockMinimo));
+        }
 
         if (precioVenta != null) {
 
@@ -1465,7 +1471,10 @@ public class InventoryServiceImpl implements InventoryService {
 
         if (stock != null) product.setStock(Math.max(0, stock));
 
-        if (stockMinimo != null) product.setStockMinimo(Math.max(0, stockMinimo));
+        if (stockMinimo != null) {
+            String u = (unidad != null && !unidad.isBlank()) ? unidad : product.getUnidad();
+            product.setStockMinimo(stockMinimo > 0 ? stockMinimo : Insumo.resolveDefaultStockMinimo(u, null));
+        }
 
         if (unidad != null && !unidad.isBlank()) product.setUnidad(unidad);
 
@@ -2181,7 +2190,7 @@ public class InventoryServiceImpl implements InventoryService {
 
                 .stockBarra(0.0)
 
-                .stockMinimo(0.0)
+                .stockMinimo(Insumo.resolveDefaultStockMinimo(subReceta.getUnidad(), null))
 
                 .isActive(true)
 

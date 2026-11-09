@@ -77,9 +77,9 @@ public class Insumo {
     @Builder.Default
     private Double stockBarra = 0.0;
 
-    /** Stock mínimo para alertas */
+    /** Stock mínimo para alertas (por defecto: 500 para gramos/mililitros, 10 para piezas/otros; nunca <= 0) */
     @Builder.Default
-    private Double stockMinimo = 0.0;
+    private Double stockMinimo = 10.0;
 
     @Builder.Default
     private boolean isActive = true;
@@ -87,14 +87,33 @@ public class Insumo {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    public static double resolveDefaultStockMinimo(String unidad, Double stockMinimo) {
+        if (stockMinimo != null && stockMinimo > 0) {
+            return stockMinimo;
+        }
+        if (unidad == null) {
+            return 10.0;
+        }
+        String u = unidad.trim().toLowerCase();
+        if (u.contains("gram") || u.equals("g") || u.equals("gr")) {
+            return 500.0;
+        }
+        if (u.contains("mili") || u.equals("ml") || u.contains("litro") || u.equals("l")) {
+            return 500.0;
+        }
+        return 10.0;
+    }
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        this.stockMinimo = resolveDefaultStockMinimo(this.unidad, this.stockMinimo);
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        this.stockMinimo = resolveDefaultStockMinimo(this.unidad, this.stockMinimo);
     }
 }
