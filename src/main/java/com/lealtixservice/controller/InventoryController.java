@@ -344,6 +344,21 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.producirLoteSubReceta(subRecetaId, lotes));
     }
 
+    @Operation(summary = "Obtener sugerencia de restock para sub-recetas bajo stock o agotadas con insumos disponibles")
+    @GetMapping("/sub-recetas/sugerencia-restock/{tenantId}")
+    public ResponseEntity<GenericResponse> getSubRecetasRestockSugerido(@PathVariable Long tenantId) {
+        return ResponseEntity.ok(inventoryService.getSubRecetasRestockSugerido(tenantId));
+    }
+
+    @Operation(summary = "Producir en batch múltiples sub-recetas en un solo clic")
+    @PostMapping("/sub-recetas/producir-batch")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<GenericResponse> producirBatchSubRecetas(@RequestBody Map<String, Object> body) {
+        Long tenantId = body != null && body.get("tenantId") != null ? Long.valueOf(body.get("tenantId").toString()) : null;
+        List<Map<String, Object>> items = (List<Map<String, Object>>) (body != null ? body.get("items") : List.of());
+        return ResponseEntity.ok(inventoryService.producirBatchSubRecetas(tenantId, items));
+    }
+
     @Operation(summary = "Eliminar sub-receta")
     @DeleteMapping("/sub-recetas/{subRecetaId}")
     public ResponseEntity<GenericResponse> deleteSubReceta(@PathVariable Long subRecetaId) {

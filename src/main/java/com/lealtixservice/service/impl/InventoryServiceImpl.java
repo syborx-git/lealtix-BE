@@ -68,6 +68,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 
 import java.util.HashMap;
+import java.util.HashSet;
 
 import java.util.LinkedHashMap;
 
@@ -220,6 +221,7 @@ public class InventoryServiceImpl implements InventoryService {
                 stock = safeStock(p);
 
                 min = safeMin(p);
+                double producible = calculateProducibleSubRecetaStock(p, new HashSet<>());
 
             } else if (dish) {
 
@@ -248,6 +250,11 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("id", p.getId());
 
             item.put("name", p.getNombre());
+            if (Boolean.TRUE.equals(p.getEsSubReceta())) {
+                double prod = calculateProducibleSubRecetaStock(p, new HashSet<>());
+                item.put("producibleStock", prod);
+                item.put("effectiveStock", Math.round((stock + prod) * 1000) / 1000.0);
+            }
 
             item.put("description", p.getDescripcion());
 
@@ -2063,6 +2070,7 @@ public class InventoryServiceImpl implements InventoryService {
             item.put("tamanoLote", s.getTamanoLote() != null ? s.getTamanoLote() : 1.0);
 
             item.put("stock", safeStock(s));
+            item.put("stockMinimo", safeMin(s));
 
             item.put("unidad", s.getUnidad() != null ? s.getUnidad() : "pieza");
 
@@ -3000,7 +3008,7 @@ public class InventoryServiceImpl implements InventoryService {
 
             double portion = s.getCantidad() != null && s.getCantidad() > 0 ? s.getCantidad() : 1.0;
 
-            deductProduct(sr, portion * units, deducted);
+            deductSubRecetaRecursivo(sr, portion * units, deducted, new HashSet<>());
 
         }
 
@@ -3480,7 +3488,7 @@ public class InventoryServiceImpl implements InventoryService {
 
             double portion = s.getCantidad() != null && s.getCantidad() > 0 ? s.getCantidad() : 1.0;
 
-            double subStock = safeStock(sr);
+            double subStock = calculateEffectiveSubRecetaStock(sr, new HashSet<>());
 
             min = Math.min(min, Math.floor(subStock / portion));
 
@@ -3545,6 +3553,9 @@ public class InventoryServiceImpl implements InventoryService {
             double portion = s.getCantidad() != null && s.getCantidad() > 0 ? s.getCantidad() : 1.0;
 
             double subMin = safeMin(sr);
+            if (subMin <= 0) {
+                subMin = calculateEffectiveSubRecetaStockMin(sr, new HashSet<>());
+            }
 
             min = Math.min(min, Math.floor(subMin / portion));
 
@@ -3926,7 +3937,7 @@ public class InventoryServiceImpl implements InventoryService {
 
             double req = s.getCantidad() != null && s.getCantidad() > 0 ? s.getCantidad() : 1.0;
 
-            double subStock = safeStock(sr);
+            double subStock = calculateEffectiveSubRecetaStock(sr, new HashSet<>());
 
             if (Math.floor(subStock / req) < qty) {
 
@@ -3986,7 +3997,7 @@ public class InventoryServiceImpl implements InventoryService {
 
             double portion = s.getCantidad() != null && s.getCantidad() > 0 ? s.getCantidad() : 1.0;
 
-            double subStock = safeStock(sr);
+            double subStock = calculateEffectiveSubRecetaStock(sr, new HashSet<>());
 
             double availableUnits = Math.floor(subStock / portion);
 
@@ -4114,7 +4125,7 @@ public class InventoryServiceImpl implements InventoryService {
 
                         double portion = s.getCantidad() != null && s.getCantidad() > 0 ? s.getCantidad() : 1.0;
 
-                        double subStock = safeStock(sr);
+                        double subStock = calculateEffectiveSubRecetaStock(sr, new HashSet<>());
 
                         double availableUnits = Math.floor(subStock / portion);
 
@@ -4472,7 +4483,350 @@ public class InventoryServiceImpl implements InventoryService {
 
     }
 
+
+
+    /**
+     * Calcula el stock disponible de una sub-receta considerando:
+     * 1. Su stock preparado actual en cocina/almacen (safeStock).
+     * 2. El stock adicional que se puede preparar al momento a partir de sus insumos en cocina (cálculo recursivo).
+     */
+    private double calculateEffectiveSubRecetaStock(TenantMenuProduct sr, Set<Long> visited) {
+        if (sr == null || sr.getId() == null) return 0.0;
+        if (!visited.add(sr.getId())) {
+            return safeStock(sr);
+        }
+
+        double preparedStock = safeStock(sr);
+        double producibleStock = calculateProducibleSubRecetaStock(sr, visited);
+
+        return Math.max(0.0, Math.round((preparedStock + producibleStock) * 1000) / 1000.0);
+    }
+
+    private double calculateProducibleSubRecetaStock(TenantMenuProduct sr, Set<Long> visited) {
+        if (sr == null || sr.getId() == null) return 0.0;
+        List<ProductRecipe> recs = recipeRepository.findByDishId(sr.getId());
+        if (recs.isEmpty()) {
+            return 0.0;
+        }
+
+        double minUnits = Double.MAX_VALUE;
+        double rendimientoLote = (sr.getTamanoLote() != null && sr.getTamanoLote() > 0) ? sr.getTamanoLote() : 1.0;
+
+        for (ProductRecipe r : recs) {
+            double req = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+            if (req <= 0) continue;
+            double reqPerUnit = req / rendimientoLote;
+            if (reqPerUnit <= 0) continue;
+
+            Insumo ins = r.getInsumo();
+            double insStock = (ins != null && ins.getStock() != null) ? ins.getStock() : 0.0;
+            minUnits = Math.min(minUnits, Math.floor(insStock / reqPerUnit));
+        }
+
+        // Sub-sub-recetas anidadas si existieran
+        List<ProductSubReceta> nestedSubs = subRecetaRepository.findByDishId(sr.getId());
+        for (ProductSubReceta ns : nestedSubs) {
+            if (Boolean.TRUE.equals(ns.getModificable())) continue;
+            TenantMenuProduct nestedSr = ns.getSubReceta();
+            if (nestedSr == null) continue;
+            double portion = ns.getCantidad() != null && ns.getCantidad() > 0 ? ns.getCantidad() : 1.0;
+            double portionPerUnit = portion / rendimientoLote;
+            if (portionPerUnit <= 0) continue;
+
+            double nestedStock = calculateEffectiveSubRecetaStock(nestedSr, new HashSet<>(visited));
+            minUnits = Math.min(minUnits, Math.floor(nestedStock / portionPerUnit));
+        }
+
+        return minUnits == Double.MAX_VALUE ? 0.0 : Math.max(0.0, minUnits);
+    }
+
+    private double calculateEffectiveSubRecetaStockMin(TenantMenuProduct sr, Set<Long> visited) {
+        if (sr == null || sr.getId() == null) return 0.0;
+        double directMin = safeMin(sr);
+        if (directMin > 0) return directMin;
+
+        if (!visited.add(sr.getId())) return 0.0;
+        List<ProductRecipe> recs = recipeRepository.findByDishId(sr.getId());
+        if (recs.isEmpty()) return 0.0;
+
+        double minUnits = Double.MAX_VALUE;
+        double rendimientoLote = (sr.getTamanoLote() != null && sr.getTamanoLote() > 0) ? sr.getTamanoLote() : 1.0;
+        for (ProductRecipe r : recs) {
+            double req = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+            if (req <= 0) continue;
+            double reqPerUnit = req / rendimientoLote;
+            Insumo ins = r.getInsumo();
+            double insMin = (ins != null && ins.getStockMinimo() != null) ? ins.getStockMinimo() : 0.0;
+            minUnits = Math.min(minUnits, Math.floor(insMin / reqPerUnit));
+        }
+        return minUnits == Double.MAX_VALUE ? 0.0 : Math.max(0.0, minUnits);
+    }
+
+    private void deductSubRecetaRecursivo(TenantMenuProduct sr, double qty, List<Map<String, Object>> deducted, Set<Long> visited) {
+        if (sr == null || sr.getId() == null || qty <= 0) return;
+        if (!visited.add(sr.getId())) return;
+
+        double antes = safeStock(sr);
+        if (antes >= qty) {
+            // Hay suficiente stock preparado de la sub-receta
+            deductProduct(sr, qty, deducted);
+        } else {
+            // Consumir el stock preparado que haya disponible
+            if (antes > 0) {
+                deductProduct(sr, antes, deducted);
+            }
+            // El déficit se descuenta automáticamente de los insumos crudos que conforman la sub-receta
+            double deficit = qty - antes;
+            List<ProductRecipe> recs = recipeRepository.findByDishId(sr.getId());
+            double rendimientoLote = (sr.getTamanoLote() != null && sr.getTamanoLote() > 0) ? sr.getTamanoLote() : 1.0;
+            for (ProductRecipe r : recs) {
+                double req = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+                if (req <= 0) continue;
+                double reqPerUnit = req / rendimientoLote;
+                deductInsumo(r.getInsumo(), reqPerUnit * deficit, deducted);
+            }
+            // Sub-sub-recetas anidadas
+            List<ProductSubReceta> nestedSubs = subRecetaRepository.findByDishId(sr.getId());
+            for (ProductSubReceta ns : nestedSubs) {
+                if (Boolean.TRUE.equals(ns.getModificable())) continue;
+                TenantMenuProduct nestedSr = ns.getSubReceta();
+                if (nestedSr == null) continue;
+                double nestedPortion = ns.getCantidad() != null && ns.getCantidad() > 0 ? ns.getCantidad() : 1.0;
+                double nestedReq = (nestedPortion / rendimientoLote) * deficit;
+                deductSubRecetaRecursivo(nestedSr, nestedReq, deducted, new HashSet<>(visited));
+            }
+        }
+    }
+
+    @Override
+    public GenericResponse getSubRecetasRestockSugerido(Long tenantId) {
+        if (tenantId == null) {
+            return new GenericResponse(400, "tenantId es requerido", null);
+        }
+
+        List<TenantMenuProduct> allProducts = productRepository.findAllByTenantId(tenantId);
+        List<TenantMenuProduct> subRecetas = allProducts.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getEsSubReceta()))
+                .collect(Collectors.toList());
+
+        List<Long> subIds = subRecetas.stream().map(TenantMenuProduct::getId).collect(Collectors.toList());
+        Map<Long, List<ProductRecipe>> recipesByDish = new HashMap<>();
+        if (!subIds.isEmpty()) {
+            for (ProductRecipe r : recipeRepository.findByDishIdInWithInsumo(subIds)) {
+                if (r.getDish() != null && r.getDish().getId() != null) {
+                    recipesByDish.computeIfAbsent(r.getDish().getId(), k -> new ArrayList<>()).add(r);
+                }
+            }
+        }
+
+        List<Map<String, Object>> items = new ArrayList<>();
+        int bajoStockCount = 0;
+        int produciblesCount = 0;
+
+        for (TenantMenuProduct sr : subRecetas) {
+            double stockActual = safeStock(sr);
+            double stockMin = safeMin(sr);
+            double tamanoLote = (sr.getTamanoLote() != null && sr.getTamanoLote() > 0) ? sr.getTamanoLote() : 1.0;
+            String unidad = sr.getUnidad() != null ? sr.getUnidad() : "pieza";
+
+            List<ProductRecipe> recs = recipesByDish.getOrDefault(sr.getId(), List.of());
+            boolean hasRecipe = !recs.isEmpty();
+
+            double maxLotes = Double.MAX_VALUE;
+            List<String> faltantes = new ArrayList<>();
+            List<Map<String, Object>> insumosInfo = new ArrayList<>();
+
+            if (!hasRecipe) {
+                maxLotes = 0.0;
+            } else {
+                for (ProductRecipe r : recs) {
+                    double req = r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0;
+                    Insumo ins = r.getInsumo();
+                    double disp = (ins != null && ins.getStock() != null) ? ins.getStock() : 0.0;
+                    String insUnidad = (ins != null && ins.getUnidad() != null) ? ins.getUnidad() : "unidad";
+                    String insNombre = ins != null ? ins.getNombre() : "Insumo desconocido";
+
+                    Map<String, Object> ing = new LinkedHashMap<>();
+                    ing.put("insumoId", ins != null ? ins.getId() : null);
+                    ing.put("nombre", insNombre);
+                    ing.put("cantidadRequerida", req);
+                    ing.put("unidad", insUnidad);
+                    ing.put("stockDisponible", disp);
+                    ing.put("suficiente", disp >= req);
+                    insumosInfo.add(ing);
+
+                    if (req > 0) {
+                        double lotesPosibles = Math.floor(disp / req);
+                        maxLotes = Math.min(maxLotes, lotesPosibles);
+                        if (disp < req) {
+                            faltantes.add(String.format("%s (disp: %.2f %s, req: %.2f %s)",
+                                    insNombre, disp, insUnidad, req, insUnidad));
+                        }
+                    }
+                }
+            }
+            if (maxLotes == Double.MAX_VALUE) maxLotes = 0.0;
+            maxLotes = Math.max(0.0, maxLotes);
+
+            boolean puedeProducir = hasRecipe && maxLotes >= 1.0;
+            boolean bajoStock = stockActual < stockMin;
+            boolean agotado = stockActual <= 0.0;
+
+            if (bajoStock || agotado) {
+                bajoStockCount++;
+            }
+            if (puedeProducir) {
+                produciblesCount++;
+            }
+
+            // Calcular sugeridos: si está bajo stock o agotado, lotes para llegar al mínimo (al menos 1)
+            double lotesSugeridos = 1.0;
+            if (stockActual < stockMin) {
+                double deficit = stockMin - stockActual;
+                lotesSugeridos = Math.ceil(deficit / tamanoLote);
+            }
+            if (lotesSugeridos < 1.0) lotesSugeridos = 1.0;
+
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", sr.getId());
+            map.put("name", sr.getNombre());
+            map.put("descripcion", sr.getDescripcion());
+            map.put("categoria", sr.getCategory() != null ? sr.getCategory().getNombre() : null);
+            map.put("stockActual", stockActual);
+            map.put("stockMinimo", stockMin);
+            map.put("tamanoLote", tamanoLote);
+            map.put("unidad", unidad);
+            map.put("hasRecipe", hasRecipe);
+            map.put("maxLotesProducibles", maxLotes);
+            map.put("produciblePortions", Math.round(maxLotes * tamanoLote * 1000) / 1000.0);
+            map.put("lotesSugeridos", lotesSugeridos);
+            map.put("puedeProducir", puedeProducir);
+            map.put("bajoStock", bajoStock);
+            map.put("agotado", agotado);
+            map.put("insumosFaltantes", faltantes);
+            map.put("insumos", insumosInfo);
+
+            items.add(map);
+        }
+
+        Map<String, Object> responseData = new LinkedHashMap<>();
+        responseData.put("tenantId", tenantId);
+        responseData.put("totalSubRecetas", subRecetas.size());
+        responseData.put("bajoStockCount", bajoStockCount);
+        responseData.put("produciblesCount", produciblesCount);
+        responseData.put("subRecetas", items);
+
+        return new GenericResponse(200, "Sugerencias de restock para sub-recetas obtenidas", responseData);
+    }
+
+    @Override
+    @Transactional
+    public GenericResponse producirBatchSubRecetas(Long tenantId, List<Map<String, Object>> items) {
+        if (items == null || items.isEmpty()) {
+            return new GenericResponse(400, "No se proporcionaron sub-recetas a producir", null);
+        }
+
+        List<Map<String, Object>> exitosos = new ArrayList<>();
+        List<String> errores = new ArrayList<>();
+        Long resolvedTenantId = tenantId;
+
+        for (Map<String, Object> item : items) {
+            Object rawId = item.get("subRecetaId");
+            if (rawId == null) rawId = item.get("id");
+            if (rawId == null) continue;
+
+            Long subRecetaId = Long.valueOf(rawId.toString());
+            Double lotes = toDouble(item.get("lotes"));
+            if (lotes == null || lotes <= 0) lotes = 1.0;
+
+            try {
+                TenantMenuProduct subReceta = findSubReceta(subRecetaId);
+                if (resolvedTenantId == null) {
+                    resolvedTenantId = productTenantId(subReceta);
+                }
+
+                List<ProductRecipe> recipes = recipeRepository.findByDishId(subRecetaId);
+                if (recipes.isEmpty()) {
+                    errores.add(subReceta.getNombre() + ": no tiene receta configurada");
+                    continue;
+                }
+
+                // 1. Validar disponibilidad
+                boolean ok = true;
+                for (ProductRecipe r : recipes) {
+                    double req = (r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0) * lotes;
+                    double currentStock = (r.getInsumo() != null && r.getInsumo().getStock() != null) ? r.getInsumo().getStock() : 0.0;
+                    if (currentStock < req) {
+                        ok = false;
+                        errores.add(subReceta.getNombre() + ": stock insuficiente de '" + r.getInsumo().getNombre() + "'");
+                        break;
+                    }
+                }
+                if (!ok) continue;
+
+                // 2. Descontar insumos
+                List<Map<String, Object>> deducted = new ArrayList<>();
+                for (ProductRecipe r : recipes) {
+                    double req = (r.getCantidad() != null ? r.getCantidad().doubleValue() : 0.0) * lotes;
+                    deductInsumo(r.getInsumo(), req, deducted);
+                }
+
+                // 3. Incrementar stock de la sub-receta
+                double rendimientoLote = (subReceta.getTamanoLote() != null && subReceta.getTamanoLote() > 0) ? subReceta.getTamanoLote() : 1.0;
+                double cantidadProducida = Math.round(rendimientoLote * lotes * 1000) / 1000.0;
+                double stockAntes = safeStock(subReceta);
+                double stockNuevo = Math.round((stockAntes + cantidadProducida) * 1000) / 1000.0;
+                subReceta.setStock(stockNuevo);
+                productRepository.save(subReceta);
+
+                // Sincronizar insumo espejo si existe
+                List<Insumo> matching = insumoRepository.findByTenantIdAndProductoId(productTenantId(subReceta), subReceta.getId());
+                for (Insumo ins : matching) {
+                    if (ins.isEsSubReceta()) {
+                        ins.setStock(stockNuevo);
+                        ins.setStockCocina(stockNuevo);
+                        insumoRepository.save(ins);
+                    }
+                }
+
+                Map<String, Object> ex = new LinkedHashMap<>();
+                ex.put("subRecetaId", subReceta.getId());
+                ex.put("nombre", subReceta.getNombre());
+                ex.put("lotes", lotes);
+                ex.put("cantidadProducida", cantidadProducida);
+                ex.put("stockNuevo", stockNuevo);
+                exitosos.add(ex);
+
+            } catch (Exception e) {
+                log.error("[producirBatchSubRecetas] Error procesando subRecetaId={}: {}", subRecetaId, e.getMessage());
+                errores.add("ID " + subRecetaId + ": " + e.getMessage());
+            }
+        }
+
+        if (resolvedTenantId != null) {
+            syncAvailability(resolvedTenantId);
+        }
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("totalProcesados", items.size());
+        res.put("totalExitosos", exitosos.size());
+        res.put("exitosos", exitosos);
+        res.put("errores", errores);
+
+        String msg = String.format("Se produjeron %d de %d sub-recetas solicitadas", exitosos.size(), items.size());
+        int status = exitosos.isEmpty() && !errores.isEmpty() ? 400 : 200;
+        return new GenericResponse(status, msg, res);
+    }
+
+
+    private Double toDouble(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        try {
+            return Double.valueOf(val.toString().trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 }
-
-
-

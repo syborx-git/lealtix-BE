@@ -204,6 +204,16 @@ public interface InventoryService {
     GenericResponse producirLoteSubReceta(Long subRecetaId, Double lotes);
 
     /**
+     * Sub-recetas: obtiene sugerencias de restock para sub-recetas bajo stock mínimo con cálculo de insumos disponibles.
+     */
+    GenericResponse getSubRecetasRestockSugerido(Long tenantId);
+
+    /**
+     * Sub-recetas: produce en lote múltiples sub-recetas en una sola transacción.
+     */
+    GenericResponse producirBatchSubRecetas(Long tenantId, List<Map<String, Object>> items);
+
+    /**
      * Sub-recetas: quita una sub-receta de un platillo o bebida.
      */
     GenericResponse removeSubRecetaFromDish(Long dishId, Long subRecetaId);
