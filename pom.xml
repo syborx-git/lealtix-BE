@@ -146,6 +146,18 @@
             <version>3.5.3</version>
         </dependency>
 
+        <!-- Google Wallet API & OAuth2 Credentials -->
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <version>1.23.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.apis</groupId>
+            <artifactId>google-api-services-walletobjects</artifactId>
+            <version>v1-rev20260806-2.0.0</version>
+        </dependency>
+
         <!-- H2 in-memory DB required for tests: driver was missing (Cannot load driver class: org.h2.Driver) -->
         <dependency>
             <groupId>com.h2database</groupId>

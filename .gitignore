@@ -36,3 +36,7 @@ jacoco.exec
 
 # Archivos con datos sensibles
 *.env
+google-wallet-credentials.json
+*wallet-credentials*.json
+*gserviceaccount*.json
+*lealtix-wallet*.json
