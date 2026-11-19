@@ -45,7 +45,7 @@ jobs:
       - name: Desplegar vía SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 46.224.3.72
+          host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |

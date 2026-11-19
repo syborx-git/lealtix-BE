@@ -101,6 +101,24 @@ public class LoyaltyCardServiceImpl implements LoyaltyCardService {
 
         config = configRepository.save(config);
         log.info("Configuración de tarjeta de lealtad actualizada para tenant ID {}", tenantId);
+
+        // Propagar cambios a tarjetas de clientes existentes y sincronizar en Google Wallet
+        try {
+            List<CustomerLoyaltyCard> cards = cardRepository.findAllByTenantIdWithCustomer(tenantId);
+            for (CustomerLoyaltyCard card : cards) {
+                // Invalidar URLs previas de guardado para forzar regeneración con nueva configuración
+                card.setGoogleWalletSaveUrl(null);
+                cardRepository.save(card);
+
+                // Si ya fue agregada en el Google Wallet del cliente, actualizar pase en tiempo real vía REST API
+                if (card.getGoogleWalletObjectId() != null && !card.getGoogleWalletObjectId().isBlank() && googleWalletService.isConfigured()) {
+                    googleWalletService.updatePassStamps(card, config);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Aviso al propagar configuración a Google Wallet: {}", e.getMessage());
+        }
+
         return toConfigDto(config);
     }
 
@@ -319,10 +337,6 @@ public class LoyaltyCardServiceImpl implements LoyaltyCardService {
                             .build();
                     return cardRepository.save(newCard);
                 });
-
-        if (card.getGoogleWalletSaveUrl() != null && !card.getGoogleWalletSaveUrl().isBlank()) {
-            return card.getGoogleWalletSaveUrl();
-        }
 
         if (googleWalletService.isConfigured()) {
             return googleWalletService.generateSavePassUrl(card, config);
