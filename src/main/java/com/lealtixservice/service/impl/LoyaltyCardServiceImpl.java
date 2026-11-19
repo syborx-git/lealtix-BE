@@ -4,6 +4,7 @@ import com.lealtixservice.dto.*;
 import com.lealtixservice.entity.*;
 import com.lealtixservice.repository.*;
 import com.lealtixservice.service.LoyaltyCardService;
+import com.lealtixservice.service.GoogleWalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
