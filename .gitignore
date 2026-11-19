@@ -33,6 +33,7 @@ jacoco.exec
 # Archivos temporales
 *.swp
 *.swo
+scratch/
 
 # Archivos con datos sensibles
 *.env

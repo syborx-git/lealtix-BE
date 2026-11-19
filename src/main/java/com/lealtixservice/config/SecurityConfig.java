@@ -75,6 +75,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/tenant-menu-categories/categories/**").permitAll()
                         .requestMatchers("/api/tenant-menu-categories/catalog/**").permitAll()
                         .requestMatchers("/api/allergies/**").permitAll()
+                        .requestMatchers("/api/loyalty-card/banner/**").permitAll()
                         // Chatbot de clientes
                         .requestMatchers("/api/chatbot/**").permitAll()
                         // Pagos de clientes (Stripe)

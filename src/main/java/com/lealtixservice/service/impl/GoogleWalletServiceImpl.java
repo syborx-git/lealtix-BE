@@ -45,6 +45,9 @@ public class GoogleWalletServiceImpl implements GoogleWalletService {
     @Value("${google.wallet.credentials-path:classpath:google-wallet-credentials.json}")
     private String credentialsPath;
 
+    @Value("${lealtix.backend.url:https://api.lealtix.com.mx}")
+    private String backendUrl;
+
     private ServiceAccountCredentials credentials;
     private Walletobjects walletClient;
 
@@ -166,8 +169,19 @@ public class GoogleWalletServiceImpl implements GoogleWalletService {
                 patchBody.setSecondaryLoyaltyPoints(rewardPoints);
             }
 
+            // Actualización del banner visual dinámico de sellos
+            Long tenantId = card.getTenant() != null ? card.getTenant().getId() : 0L;
+            Long customerId = card.getCustomer() != null ? card.getCustomer().getId() : 0L;
+            String bannerUrl = buildBannerUrl(tenantId, customerId, currentStamps);
+
+            Image heroImage = new Image();
+            ImageUri imageUri = new ImageUri();
+            imageUri.setUri(bannerUrl);
+            heroImage.setSourceUri(imageUri);
+            patchBody.setHeroImage(heroImage);
+
             walletClient.loyaltyobject().patch(objectId, patchBody).execute();
-            log.info("Google Wallet real-time pass updated for objectId: {}", objectId);
+            log.info("Google Wallet real-time pass updated for objectId: {} (stamps: {}/{})", objectId, currentStamps, totalStamps);
 
         } catch (Exception e) {
             // It's normal to catch 404 if the user hasn't physically added the card to their device yet
@@ -219,6 +233,17 @@ public class GoogleWalletServiceImpl implements GoogleWalletService {
         int currentStamps = card.getCurrentStamps() != null ? card.getCurrentStamps() : 0;
         int totalStamps = config.getTotalStamps() != null ? config.getTotalStamps() : 8;
 
+        // Hero banner mostrando la cuadrícula visual de sellos acumulados y pendientes
+        Long tenantId = card.getTenant() != null ? card.getTenant().getId() : 0L;
+        Long customerId = customer != null ? customer.getId() : 0L;
+        String bannerUrl = buildBannerUrl(tenantId, customerId, currentStamps);
+
+        Map<String, Object> heroImage = new HashMap<>();
+        Map<String, Object> heroSourceUri = new HashMap<>();
+        heroSourceUri.put("uri", bannerUrl);
+        heroImage.put("sourceUri", heroSourceUri);
+        map.put("heroImage", heroImage);
+
         Map<String, Object> points = new HashMap<>();
         points.put("label", "Progreso de Sellos");
         Map<String, Object> balance = new HashMap<>();
@@ -258,5 +283,10 @@ public class GoogleWalletServiceImpl implements GoogleWalletService {
         }
 
         return map;
+    }
+
+    private String buildBannerUrl(Long tenantId, Long customerId, int stamps) {
+        String base = (backendUrl != null && !backendUrl.isBlank()) ? backendUrl.replaceAll("/+$", "") : "https://api.lealtix.com.mx";
+        return String.format("%s/api/loyalty-card/banner/%d/%d.png?stamps=%d&t=%d", base, tenantId, customerId, stamps, System.currentTimeMillis());
     }
 }

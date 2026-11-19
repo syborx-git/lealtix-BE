@@ -50,7 +50,15 @@ class GoogleWalletServiceTest {
 
         assertNotNull(saveUrl, "Save URL should not be null");
         assertTrue(saveUrl.startsWith("https://pay.google.com/gp/v/save/"), "URL must start with Google Pay save prefix");
+
+        String jwt = saveUrl.replace("https://pay.google.com/gp/v/save/", "");
+        String[] parts = jwt.split("\\.");
+        String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(payloadJson.contains("heroImage"), "JWT payload must contain heroImage for visual stamps banner");
+        assertTrue(payloadJson.contains("/api/loyalty-card/banner/1/1.png"), "JWT payload heroImage must target banner endpoint");
+
         System.out.println(">>> GENERATED GOOGLE WALLET SAVE URL: " + saveUrl);
+        System.out.println(">>> PAYLOAD: " + payloadJson);
     }
 }
 
