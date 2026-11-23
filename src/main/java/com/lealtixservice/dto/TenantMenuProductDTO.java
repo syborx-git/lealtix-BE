@@ -28,6 +28,9 @@ public class TenantMenuProductDTO {
     private String imageUrl;
     private List<CrossSellingDTO> crossSellingProducts;
 
+    /** true = Producto habilitado para venta en Kiosko / Autoservicio */
+    private Boolean disponibleKiosko;
+
     /** true = isActive gestionado automáticamente según stock de insumos */
     private Boolean autoAvailability;
 
@@ -91,5 +94,6 @@ public class TenantMenuProductDTO {
         this.crossSellingProducts = List.of();
         this.categoryIds = List.of();
         this.categories = List.of();
+        this.disponibleKiosko = false;
     }
 }

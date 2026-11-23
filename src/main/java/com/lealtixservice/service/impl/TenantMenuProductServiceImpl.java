@@ -192,6 +192,10 @@ public class TenantMenuProductServiceImpl implements TenantMenuProductService {
             productEntity.setActive(dto.getIsActive());
         }
 
+        if (dto.getDisponibleKiosko() != null) {
+            productEntity.setDisponibleKiosko(dto.getDisponibleKiosko());
+        }
+
         // Auto-disponibilidad: respetar el valor enviado; si no llega, conservar el actual
         // (nulos existentes por updates previos se tratan como activado en el sync).
         if (dto.getAutoAvailability() != null) {
@@ -334,6 +338,7 @@ List<ProductRecipe> recipes = recipesByDish.getOrDefault(entity.getId(), List.of
             dto.setStock(stock);
             dto.setStockMinimo(entity.getStockMinimo() != null ? entity.getStockMinimo() : 0.0);
             dto.setUnidad(entity.getUnidad() != null ? entity.getUnidad() : "pieza");
+            dto.setDisponibleKiosko(Boolean.TRUE.equals(entity.getDisponibleKiosko()));
             dto.setAutoAvailability(entity.getAutoAvailability());
             dto.setEsVariable(Boolean.TRUE.equals(entity.getEsVariable()));
             dto.setTieneVariantes(Boolean.TRUE.equals(entity.getTieneVariantes()));

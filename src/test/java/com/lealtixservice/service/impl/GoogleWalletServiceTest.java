@@ -60,5 +60,34 @@ class GoogleWalletServiceTest {
         System.out.println(">>> GENERATED GOOGLE WALLET SAVE URL: " + saveUrl);
         System.out.println(">>> PAYLOAD: " + payloadJson);
     }
+
+    @Test
+    void testDirectPatchPassOnGoogle() {
+        CustomerLoyaltyCardRepository repo = Mockito.mock(CustomerLoyaltyCardRepository.class);
+        GoogleWalletServiceImpl service = new GoogleWalletServiceImpl(new DefaultResourceLoader(), repo);
+        ReflectionTestUtils.setField(service, "walletEnabled", true);
+        ReflectionTestUtils.setField(service, "issuerId", "3388000000023241643");
+        ReflectionTestUtils.setField(service, "credentialsPath", "classpath:google-wallet-credentials.json");
+        service.init();
+
+        Tenant tenant = Tenant.builder().id(1L).nombreNegocio("Tenant Demo").build();
+        TenantCustomer customer = TenantCustomer.builder().id(2L).name("Jorge").build();
+        CustomerLoyaltyCard card = CustomerLoyaltyCard.builder()
+                .id(3L)
+                .tenant(tenant)
+                .customer(customer)
+                .currentStamps(2)
+                .googleWalletObjectId("3388000000023241643.tenant_1_cust_2")
+                .build();
+
+        TenantLoyaltyCardConfig config = TenantLoyaltyCardConfig.builder()
+                .cardTitle("Petra Club Gourmet")
+                .bgColorHex("#831843")
+                .totalStamps(6)
+                .rewardTitle("Enchiladas Petra de Cortesía")
+                .build();
+
+        service.updatePassStamps(card, config);
+    }
 }
 

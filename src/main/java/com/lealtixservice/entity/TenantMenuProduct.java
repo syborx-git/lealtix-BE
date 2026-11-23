@@ -95,6 +95,11 @@ public class TenantMenuProduct {
     @Builder.Default
     private boolean isActive = true;
 
+    /** true = Producto habilitado para venta en Kiosko / Autoservicio */
+    @Builder.Default
+    @Column(name = "disponible_kiosko", nullable = false)
+    private Boolean disponibleKiosko = false;
+
     /**
      * true = el isActive se gestiona automáticamente según el stock de insumos
      * (el producto se desactiva si no puede prepararse y se reactiva al abastecer).
