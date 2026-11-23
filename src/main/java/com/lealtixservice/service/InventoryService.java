@@ -64,19 +64,23 @@ public interface InventoryService {
      * Crea una bebida: registra el insumo marcado como bebida (pieza o mililitros) con su stock
      * y crea el producto de menú enlazado (con receta de 1 unidad) para que se venda en Comandix.
      */
-    GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes);
+    GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes, Boolean disponibleKiosko);
+
+    default GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes) {
+        return createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes, false);
+    }
 
     default GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
-        return createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, false, false);
+        return createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, false, false, false);
     }
 
     /**
      * Actualiza los datos de una bebida (insumo + producto de menú enlazado).
      */
-    GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes);
+    GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes, Boolean disponibleKiosko);
 
-    default GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds) {
-        return updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, null, null);
+    default GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes) {
+        return updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes, null);
     }
 
     /**

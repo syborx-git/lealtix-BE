@@ -161,7 +161,8 @@ public class InventoryController {
         List<Long> categoryIds = toLongList(body.get("categoryIds"));
         Boolean esVariable = body.get("esVariable") != null ? Boolean.valueOf(body.get("esVariable").toString()) : null;
         Boolean tieneVariantes = body.get("tieneVariantes") != null ? Boolean.valueOf(body.get("tieneVariantes").toString()) : null;
-        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes));
+        Boolean disponibleKiosko = body.get("disponibleKiosko") != null ? Boolean.valueOf(body.get("disponibleKiosko").toString()) : null;
+        return ResponseEntity.ok(inventoryService.createBebida(tenantId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes, disponibleKiosko));
     }
 
     @Operation(summary = "Actualizar bebida")
@@ -177,7 +178,8 @@ public class InventoryController {
         List<Long> categoryIds = toLongList(body.get("categoryIds"));
         Boolean esVariable = body.get("esVariable") != null ? Boolean.valueOf(body.get("esVariable").toString()) : null;
         Boolean tieneVariantes = body.get("tieneVariantes") != null ? Boolean.valueOf(body.get("tieneVariantes").toString()) : null;
-        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes));
+        Boolean disponibleKiosko = body.get("disponibleKiosko") != null ? Boolean.valueOf(body.get("disponibleKiosko").toString()) : null;
+        return ResponseEntity.ok(inventoryService.updateBebida(insumoId, nombre, unidad, stock, stockMinimo, precioVenta, categoryIds, esVariable, tieneVariantes, disponibleKiosko));
     }
 
     @Operation(summary = "Eliminar bebida")

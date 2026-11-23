@@ -1132,10 +1132,8 @@ public class InventoryServiceImpl implements InventoryService {
 
 
     @Override
-
     @Transactional
-
-    public GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes) {
+    public GenericResponse createBebida(Long tenantId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes, Boolean disponibleKiosko) {
 
         if (tenantId == null || nombre == null || nombre.isBlank()) {
 
@@ -1237,6 +1235,8 @@ public class InventoryServiceImpl implements InventoryService {
 
                 .tieneVariantes(hasVars)
 
+                .disponibleKiosko(Boolean.TRUE.equals(disponibleKiosko))
+
                 .build();
 
         productRepository.save(product);
@@ -1274,10 +1274,8 @@ public class InventoryServiceImpl implements InventoryService {
 
 
     @Override
-
     @Transactional
-
-    public GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes) {
+    public GenericResponse updateBebida(Long insumoId, String nombre, String unidad, Double stock, Double stockMinimo, Double precioVenta, List<Long> categoryIds, Boolean esVariable, Boolean tieneVariantes, Boolean disponibleKiosko) {
 
         Insumo insumo = findInsumo(insumoId);
 
@@ -1370,6 +1368,10 @@ public class InventoryServiceImpl implements InventoryService {
 
                 product.setCategories(new ArrayList<>(cats));
 
+            }
+
+            if (disponibleKiosko != null) {
+                product.setDisponibleKiosko(disponibleKiosko);
             }
 
             productRepository.save(product);
@@ -3786,6 +3788,8 @@ public class InventoryServiceImpl implements InventoryService {
                 m.put("esVariable", Boolean.TRUE.equals(p.getEsVariable()));
 
                 m.put("tieneVariantes", Boolean.TRUE.equals(p.getTieneVariantes()));
+
+                m.put("disponibleKiosko", Boolean.TRUE.equals(p.getDisponibleKiosko()));
 
             });
 
